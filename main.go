@@ -1,0 +1,64 @@
+// Copyright 2025 AgbCloud CLI Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package main
+
+import (
+	"os"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/joho/godotenv"
+	"github.com/liyuebing/agbcloud-cli/cmd"
+	"github.com/spf13/cobra"
+)
+
+var rootCmd = &cobra.Command{
+	Use:               "agbcloud",
+	Short:             "AgbCloud CLI",
+	Long:              "Command line interface for AgbCloud services",
+	DisableAutoGenTag: true,
+	SilenceUsage:      true,
+	SilenceErrors:     true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return cmd.Help()
+	},
+}
+
+func init() {
+	// Add command groups
+	rootCmd.AddGroup(&cobra.Group{ID: "core", Title: "Core Commands"})
+	rootCmd.AddGroup(&cobra.Group{ID: "management", Title: "Management Commands"})
+
+	// Add commands
+	rootCmd.AddCommand(cmd.VersionCmd)
+	rootCmd.AddCommand(cmd.ConfigCmd)
+
+	// Global flags
+	rootCmd.CompletionOptions.HiddenDefaultCmd = true
+	rootCmd.PersistentFlags().BoolP("help", "", false, "help for agbcloud")
+	rootCmd.Flags().BoolP("version", "v", false, "Display the version of AgbCloud CLI")
+
+	// Handle version flag
+	rootCmd.PreRun = func(command *cobra.Command, args []string) {
+		versionFlag, _ := command.Flags().GetBool("version")
+		if versionFlag {
+			err := cmd.VersionCmd.RunE(command, []string{})
+			if err != nil {
+				log.Fatal(err)
+			}
+			os.Exit(0)
+		}
+	}
+}
+
+func main() {
+	// Load environment variables
+	_ = godotenv.Load()
+
+	// Execute root command
+	err := rootCmd.Execute()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
