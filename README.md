@@ -39,7 +39,7 @@ agbcloud config set api_key your-key-here
 
 The CLI uses the following default configuration:
 
-- **API Endpoint**: `https://sdk-api.agb.cloud`
+- **API Endpoint**: `https://agb.cloud`
 - **API Key**: Retrieved from `AGB_API_KEY` environment variable
 
 ## Development

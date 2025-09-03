@@ -33,6 +33,7 @@ func init() {
 	// Add commands
 	rootCmd.AddCommand(cmd.VersionCmd)
 	rootCmd.AddCommand(cmd.ConfigCmd)
+	rootCmd.AddCommand(cmd.OAuthCmd)
 
 	// Global flags
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true

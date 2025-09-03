@@ -41,12 +41,41 @@ build-windows:
 # Clean build artifacts
 .PHONY: clean
 clean:
-	rm -rf bin/
+	rm -rf bin/ coverage.out coverage.html
 
-# Run tests
+# Run unit tests (default)
 .PHONY: test
-test:
-	go test -v ./...
+test: test-unit
+
+# Run unit tests
+.PHONY: test-unit
+test-unit:
+	@echo "Running unit tests..."
+	@./scripts/test.sh --unit-only
+
+# Run integration tests
+.PHONY: test-integration
+test-integration:
+	@echo "Running integration tests..."
+	@./scripts/test.sh --integration-only
+
+# Run all tests (unit + integration)
+.PHONY: test-all
+test-all:
+	@echo "Running all tests..."
+	@./scripts/test.sh --all
+
+# Run tests with coverage
+.PHONY: test-coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	@./scripts/test.sh --unit-only --verbose
+
+# Run tests in verbose mode
+.PHONY: test-verbose
+test-verbose:
+	@echo "Running tests in verbose mode..."
+	@./scripts/test.sh --unit-only --verbose
 
 # Run linter
 .PHONY: lint
@@ -84,7 +113,12 @@ help:
 	@echo "  build-darwin - Build for macOS (amd64, arm64)"
 	@echo "  build-windows- Build for Windows (amd64, arm64)"
 	@echo "  clean        - Clean build artifacts"
-	@echo "  test         - Run tests"
+	@echo "  test         - Run unit tests (default)"
+	@echo "  test-unit    - Run unit tests only"
+	@echo "  test-integration - Run integration tests only"
+	@echo "  test-all     - Run all tests (unit + integration)"
+	@echo "  test-coverage - Run tests with coverage report"
+	@echo "  test-verbose - Run tests in verbose mode"
 	@echo "  lint         - Run linter"
 	@echo "  fmt          - Format code"
 	@echo "  deps         - Install dependencies"

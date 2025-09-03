@@ -1,0 +1,757 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>client: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/liyuebing/agbcloud-cli/internal/client/client.go (0.0%)</option>
+				
+				<option value="file1">github.com/liyuebing/agbcloud-cli/internal/client/configuration.go (0.0%)</option>
+				
+				<option value="file2">github.com/liyuebing/agbcloud-cli/internal/client/factory.go (0.0%)</option>
+				
+				<option value="file3">github.com/liyuebing/agbcloud-cli/internal/client/oauth_api.go (0.0%)</option>
+				
+				<option value="file4">github.com/liyuebing/agbcloud-cli/internal/config/config.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">// Copyright 2025 AgbCloud CLI Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package client
+
+import (
+        "bytes"
+        "context"
+        "encoding/json"
+        "errors"
+        "fmt"
+        "io"
+        "net/http"
+        "net/http/httputil"
+        "net/url"
+        "regexp"
+        "strings"
+        "time"
+
+        log "github.com/sirupsen/logrus"
+)
+
+var (
+        JsonCheck = regexp.MustCompile(`(?i:(?:application|text)/(?:[^;]+\+)?json)`)
+)
+
+// APIClient manages communication with the AgbCloud API
+type APIClient struct {
+        cfg    *Configuration
+        common service // Reuse a single struct instead of allocating one for each service on the heap.
+
+        // API Services
+        OAuthAPI OAuthAPI
+}
+
+type service struct {
+        client *APIClient
+}
+
+// NewAPIClient creates a new API client
+func NewAPIClient(cfg *Configuration) *APIClient <span class="cov0" title="0">{
+        if cfg.HTTPClient == nil </span><span class="cov0" title="0">{
+                cfg.HTTPClient = &amp;http.Client{
+                        Timeout: 30 * time.Second,
+                }
+        }</span>
+
+        <span class="cov0" title="0">c := &amp;APIClient{}
+        c.cfg = cfg
+        c.common.client = c
+
+        // API Services
+        c.OAuthAPI = (*OAuthAPIService)(&amp;c.common)
+
+        return c</span>
+}
+
+// GetConfig returns the configuration
+func (c *APIClient) GetConfig() *Configuration <span class="cov0" title="0">{
+        return c.cfg
+}</span>
+
+// callAPI do the request.
+func (c *APIClient) callAPI(request *http.Request) (*http.Response, error) <span class="cov0" title="0">{
+        // Always log request information for debugging (similar to Python version)
+        log.Printf("\n=== HTTP Request Information ===")
+        log.Printf("URL: %s", request.URL.String())
+        log.Printf("Method: %s", request.Method)
+        log.Printf("Headers: %v", request.Header)
+
+        if request.Body != nil </span><span class="cov0" title="0">{
+                // Read body for logging without consuming it
+                bodyBytes, err := io.ReadAll(request.Body)
+                if err == nil </span><span class="cov0" title="0">{
+                        log.Printf("Request Body: %s", string(bodyBytes))
+                        // Restore the body
+                        request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+                }</span>
+        } else<span class="cov0" title="0"> {
+                log.Printf("Request Body: None")
+        }</span>
+        <span class="cov0" title="0">log.Printf("=" + strings.Repeat("=", 49))
+
+        if c.cfg.Debug </span><span class="cov0" title="0">{
+                dump, err := httputil.DumpRequestOut(request, true)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov0" title="0">log.Printf("\n%s\n", string(dump))</span>
+        }
+
+        <span class="cov0" title="0">resp, err := c.cfg.HTTPClient.Do(request)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("\n=== HTTP Request Error ===")
+                log.Printf("Error Type: %T", err)
+                log.Printf("Error Message: %s", err.Error())
+                log.Printf("Request URL: %s", request.URL.String())
+                log.Printf("=" + strings.Repeat("=", 49))
+                return resp, err
+        }</span>
+
+        // Log response information
+        <span class="cov0" title="0">log.Printf("\n=== HTTP Response Information ===")
+        log.Printf("Status Code: %d", resp.StatusCode)
+        log.Printf("Status: %s", resp.Status)
+        log.Printf("Headers: %v", resp.Header)
+        log.Printf("=" + strings.Repeat("=", 49))
+
+        if c.cfg.Debug </span><span class="cov0" title="0">{
+                dump, err := httputil.DumpResponse(resp, true)
+                if err != nil </span><span class="cov0" title="0">{
+                        return resp, err
+                }</span>
+                <span class="cov0" title="0">log.Printf("\n%s\n", string(dump))</span>
+        }
+        <span class="cov0" title="0">return resp, err</span>
+}
+
+// prepareRequest build the request
+func (c *APIClient) prepareRequest(
+        ctx context.Context,
+        path string, method string,
+        postBody interface{},
+        headerParams map[string]string,
+        queryParams url.Values) (localVarRequest *http.Request, err error) <span class="cov0" title="0">{
+
+        var body *bytes.Buffer
+
+        // Detect postBody type and post.
+        if postBody != nil </span><span class="cov0" title="0">{
+                contentType := headerParams["Content-Type"]
+                if contentType == "" </span><span class="cov0" title="0">{
+                        contentType = detectContentType(postBody)
+                        headerParams["Content-Type"] = contentType
+                }</span>
+
+                <span class="cov0" title="0">body, err = setBody(postBody, contentType)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+        }
+
+        // Setup path and query parameters
+        <span class="cov0" title="0">url, err := url.Parse(path)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Override request host, if applicable
+        <span class="cov0" title="0">if c.cfg.Host != "" </span><span class="cov0" title="0">{
+                url.Host = c.cfg.Host
+        }</span>
+
+        // Override request scheme, if applicable
+        <span class="cov0" title="0">if c.cfg.Scheme != "" </span><span class="cov0" title="0">{
+                url.Scheme = c.cfg.Scheme
+        }</span>
+
+        // Adding Query Param
+        <span class="cov0" title="0">query := url.Query()
+        for k, v := range queryParams </span><span class="cov0" title="0">{
+                for _, iv := range v </span><span class="cov0" title="0">{
+                        query.Add(k, iv)
+                }</span>
+        }
+        <span class="cov0" title="0">url.RawQuery = query.Encode()
+
+        // Generate a new request
+        if body != nil </span><span class="cov0" title="0">{
+                localVarRequest, err = http.NewRequest(method, url.String(), body)
+        }</span> else<span class="cov0" title="0"> {
+                localVarRequest, err = http.NewRequest(method, url.String(), nil)
+        }</span>
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // add header parameters, if any
+        <span class="cov0" title="0">if len(headerParams) &gt; 0 </span><span class="cov0" title="0">{
+                headers := http.Header{}
+                for h, v := range headerParams </span><span class="cov0" title="0">{
+                        headers[h] = []string{v}
+                }</span>
+                <span class="cov0" title="0">localVarRequest.Header = headers</span>
+        }
+
+        // Add the user agent to the request.
+        <span class="cov0" title="0">localVarRequest.Header.Add("User-Agent", c.cfg.UserAgent)
+
+        if ctx != nil </span><span class="cov0" title="0">{
+                // add context to the request
+                localVarRequest = localVarRequest.WithContext(ctx)
+
+                // Walk through any authentication.
+
+                // AccessToken Authentication
+                if auth, ok := ctx.Value(ContextAccessToken).(string); ok </span><span class="cov0" title="0">{
+                        localVarRequest.Header.Add("Authorization", "Bearer "+auth)
+                }</span>
+
+                // API Key Authentication
+                <span class="cov0" title="0">if apiKey, ok := ctx.Value(ContextAPIKey).(APIKey); ok </span><span class="cov0" title="0">{
+                        if apiKey.Prefix != "" </span><span class="cov0" title="0">{
+                                localVarRequest.Header.Add("Authorization", apiKey.Prefix+" "+apiKey.Key)
+                        }</span> else<span class="cov0" title="0"> {
+                                localVarRequest.Header.Add("Authorization", "Bearer "+apiKey.Key)
+                        }</span>
+                }
+        }
+
+        <span class="cov0" title="0">for header, value := range c.cfg.DefaultHeader </span><span class="cov0" title="0">{
+                localVarRequest.Header.Add(header, value)
+        }</span>
+        <span class="cov0" title="0">return localVarRequest, nil</span>
+}
+
+func (c *APIClient) decode(v interface{}, b []byte, contentType string) (err error) <span class="cov0" title="0">{
+        if len(b) == 0 </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov0" title="0">if s, ok := v.(*string); ok </span><span class="cov0" title="0">{
+                *s = string(b)
+                return nil
+        }</span>
+        <span class="cov0" title="0">if JsonCheck.MatchString(contentType) </span><span class="cov0" title="0">{
+                if err = json.Unmarshal(b, v); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">return nil</span>
+        }
+        <span class="cov0" title="0">return errors.New("undefined response type")</span>
+}
+
+// Set request body from an interface{}
+func setBody(body interface{}, contentType string) (bodyBuf *bytes.Buffer, err error) <span class="cov0" title="0">{
+        if bodyBuf == nil </span><span class="cov0" title="0">{
+                bodyBuf = &amp;bytes.Buffer{}
+        }</span>
+
+        <span class="cov0" title="0">if reader, ok := body.(io.Reader); ok </span><span class="cov0" title="0">{
+                _, err = bodyBuf.ReadFrom(reader)
+        }</span> else<span class="cov0" title="0"> if b, ok := body.([]byte); ok </span><span class="cov0" title="0">{
+                _, err = bodyBuf.Write(b)
+        }</span> else<span class="cov0" title="0"> if s, ok := body.(string); ok </span><span class="cov0" title="0">{
+                _, err = bodyBuf.WriteString(s)
+        }</span> else<span class="cov0" title="0"> if s, ok := body.(*string); ok </span><span class="cov0" title="0">{
+                _, err = bodyBuf.WriteString(*s)
+        }</span> else<span class="cov0" title="0"> if JsonCheck.MatchString(contentType) </span><span class="cov0" title="0">{
+                err = json.NewEncoder(bodyBuf).Encode(body)
+        }</span>
+
+        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">if bodyBuf.Len() == 0 </span><span class="cov0" title="0">{
+                err = fmt.Errorf("invalid body type %s\n", contentType)
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return bodyBuf, nil</span>
+}
+
+// detectContentType method is used to figure out `Request.Body` content type for request header
+func detectContentType(body interface{}) string <span class="cov0" title="0">{
+        contentType := "text/plain; charset=utf-8"
+        switch body.(type) </span>{
+        case map[string]interface{}, []interface{}, interface{}:<span class="cov0" title="0">
+                contentType = "application/json; charset=utf-8"</span>
+        case string:<span class="cov0" title="0">
+                contentType = "text/plain; charset=utf-8"</span>
+        default:<span class="cov0" title="0">
+                if b, ok := body.([]byte); ok </span><span class="cov0" title="0">{
+                        contentType = http.DetectContentType(b)
+                }</span> else<span class="cov0" title="0"> {
+                        contentType = "application/json; charset=utf-8"
+                }</span>
+        }
+
+        <span class="cov0" title="0">return contentType</span>
+}
+
+// GenericOpenAPIError Provides access to the body, error and model on returned errors.
+type GenericOpenAPIError struct {
+        body  []byte
+        error string
+        model interface{}
+}
+
+// Error returns non-empty string if there was an error.
+func (e GenericOpenAPIError) Error() string <span class="cov0" title="0">{
+        return e.error
+}</span>
+
+// Body returns the raw bytes of the response
+func (e GenericOpenAPIError) Body() []byte <span class="cov0" title="0">{
+        return e.body
+}</span>
+
+// Model returns the unpacked model of the error
+func (e GenericOpenAPIError) Model() interface{} <span class="cov0" title="0">{
+        return e.model
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Copyright 2025 AgbCloud CLI Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package client
+
+import (
+        "context"
+        "fmt"
+        "net/http"
+        "strings"
+)
+
+// contextKeys are used to identify the type of value in the context.
+type contextKey string
+
+func (c contextKey) String() string <span class="cov0" title="0">{
+        return "auth " + string(c)
+}</span>
+
+var (
+        // ContextAccessToken takes a string oauth2 access token as authentication for the request.
+        ContextAccessToken = contextKey("accesstoken")
+
+        // ContextAPIKey takes an API key as authentication for the request.
+        ContextAPIKey = contextKey("apikey")
+
+        // ContextServerIndex uses a server configuration from the index.
+        ContextServerIndex = contextKey("serverIndex")
+
+        // ContextServerVariables overrides a server configuration variables.
+        ContextServerVariables = contextKey("serverVariables")
+)
+
+// APIKey provides API key based authentication to a request passed via context using ContextAPIKey
+type APIKey struct {
+        Key    string
+        Prefix string
+}
+
+// ServerVariable stores the information about a server variable
+type ServerVariable struct {
+        Description  string
+        DefaultValue string
+        EnumValues   []string
+}
+
+// ServerConfiguration stores the information about a server
+type ServerConfiguration struct {
+        URL         string
+        Description string
+        Variables   map[string]ServerVariable
+}
+
+// ServerConfigurations stores multiple ServerConfiguration items
+type ServerConfigurations []ServerConfiguration
+
+// Configuration stores the configuration of the API client
+type Configuration struct {
+        Host          string            `json:"host,omitempty"`
+        Scheme        string            `json:"scheme,omitempty"`
+        DefaultHeader map[string]string `json:"defaultHeader,omitempty"`
+        UserAgent     string            `json:"userAgent,omitempty"`
+        Debug         bool              `json:"debug,omitempty"`
+        Servers       ServerConfigurations
+        HTTPClient    *http.Client
+        APIKey        string `json:"apiKey,omitempty"`
+}
+
+// NewConfiguration returns a new Configuration object
+func NewConfiguration() *Configuration <span class="cov0" title="0">{
+        cfg := &amp;Configuration{
+                DefaultHeader: make(map[string]string),
+                UserAgent:     "AgbCloud-CLI/1.0.0/go",
+                Debug:         false,
+                Servers: ServerConfigurations{
+                        {
+                                URL:         "https://agb.cloud",
+                                Description: "AgbCloud API Server",
+                        },
+                },
+        }
+        return cfg
+}</span>
+
+// AddDefaultHeader adds a new HTTP header to the default header in the request
+func (c *Configuration) AddDefaultHeader(key string, value string) <span class="cov0" title="0">{
+        c.DefaultHeader[key] = value
+}</span>
+
+// URL formats template on a index using given variables
+func (sc ServerConfigurations) URL(index int, variables map[string]string) (string, error) <span class="cov0" title="0">{
+        if index &lt; 0 || len(sc) &lt;= index </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("index %v out of range %v", index, len(sc)-1)
+        }</span>
+        <span class="cov0" title="0">server := sc[index]
+        url := server.URL
+
+        // go through variables and replace placeholders
+        for name, variable := range server.Variables </span><span class="cov0" title="0">{
+                if value, ok := variables[name]; ok </span><span class="cov0" title="0">{
+                        found := bool(len(variable.EnumValues) == 0)
+                        for _, enumValue := range variable.EnumValues </span><span class="cov0" title="0">{
+                                if value == enumValue </span><span class="cov0" title="0">{
+                                        found = true
+                                }</span>
+                        }
+                        <span class="cov0" title="0">if !found </span><span class="cov0" title="0">{
+                                return "", fmt.Errorf("the variable %s in the server URL has invalid value %v. Must be %v", name, value, variable.EnumValues)
+                        }</span>
+                        <span class="cov0" title="0">url = strings.Replace(url, "{"+name+"}", value, -1)</span>
+                } else<span class="cov0" title="0"> {
+                        url = strings.Replace(url, "{"+name+"}", variable.DefaultValue, -1)
+                }</span>
+        }
+        <span class="cov0" title="0">return url, nil</span>
+}
+
+// ServerURL returns URL based on server settings
+func (c *Configuration) ServerURL(index int, variables map[string]string) (string, error) <span class="cov0" title="0">{
+        return c.Servers.URL(index, variables)
+}</span>
+
+// ServerURLWithContext returns a new server URL given an endpoint
+func (c *Configuration) ServerURLWithContext(ctx context.Context, endpoint string) (string, error) <span class="cov0" title="0">{
+        if ctx == nil </span><span class="cov0" title="0">{
+                return c.Servers.URL(0, nil)
+        }</span>
+
+        <span class="cov0" title="0">index := 0
+        if si := ctx.Value(ContextServerIndex); si != nil </span><span class="cov0" title="0">{
+                if i, ok := si.(int); ok </span><span class="cov0" title="0">{
+                        index = i
+                }</span>
+        }
+
+        <span class="cov0" title="0">variables := make(map[string]string)
+        if sv := ctx.Value(ContextServerVariables); sv != nil </span><span class="cov0" title="0">{
+                if vars, ok := sv.(map[string]string); ok </span><span class="cov0" title="0">{
+                        variables = vars
+                }</span>
+        }
+
+        <span class="cov0" title="0">return c.Servers.URL(index, variables)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Copyright 2025 AgbCloud CLI Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package client
+
+import (
+        "net/http"
+        "time"
+
+        "github.com/liyuebing/agbcloud-cli/internal/config"
+)
+
+// NewFromConfig creates a new API client from the CLI configuration
+func NewFromConfig(cfg *config.Config) *APIClient <span class="cov0" title="0">{
+        configuration := NewConfiguration()
+
+        // Set the server URL from config
+        if cfg.Endpoint != "" </span><span class="cov0" title="0">{
+                configuration.Servers[0].URL = cfg.Endpoint
+        }</span>
+
+        // Set API key if available
+        <span class="cov0" title="0">if cfg.APIKey != "" </span><span class="cov0" title="0">{
+                configuration.APIKey = cfg.APIKey
+                configuration.AddDefaultHeader("Authorization", "Bearer "+cfg.APIKey)
+        }</span>
+
+        // Set up HTTP client with reasonable defaults
+        <span class="cov0" title="0">configuration.HTTPClient = &amp;http.Client{
+                Timeout: 30 * time.Second,
+        }
+
+        return NewAPIClient(configuration)</span>
+}
+
+// NewDefault creates a new API client with default configuration
+func NewDefault() *APIClient <span class="cov0" title="0">{
+        return NewFromConfig(config.DefaultConfig())
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Copyright 2025 AgbCloud CLI Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package client
+
+import (
+        "bytes"
+        "context"
+        "io"
+        "net/http"
+        "net/url"
+)
+
+// OAuthAPI interface for OAuth related operations
+type OAuthAPI interface {
+        GetGoogleLoginURL(ctx context.Context, fromUrlPath string) (OAuthGoogleLoginResponse, *http.Response, error)
+}
+
+// OAuthAPIService implements OAuthAPI interface
+type OAuthAPIService service
+
+// OAuthGoogleLoginResponse represents the response from Google OAuth login API
+type OAuthGoogleLoginResponse struct {
+        Code           string               `json:"code"`
+        RequestID      string               `json:"requestId"`
+        Success        bool                 `json:"success"`
+        Data           OAuthGoogleLoginData `json:"data"`
+        TraceID        string               `json:"traceId"`
+        HTTPStatusCode int                  `json:"httpStatusCode"`
+}
+
+// OAuthGoogleLoginData represents the data field in Google OAuth login response
+type OAuthGoogleLoginData struct {
+        InvokeURL string `json:"invokeUrl"`
+}
+
+// GetGoogleLoginURL retrieves the Google OAuth login URL
+func (o *OAuthAPIService) GetGoogleLoginURL(ctx context.Context, fromUrlPath string) (OAuthGoogleLoginResponse, *http.Response, error) <span class="cov0" title="0">{
+        var (
+                localVarHTTPMethod  = http.MethodGet
+                localVarPostBody    interface{}
+                localVarReturnValue OAuthGoogleLoginResponse
+        )
+
+        // Build the request path
+        localVarPath := "/api/oauth/google/login"
+
+        // Use the configured server URL (defaults to agb.cloud)
+        serverURL, err := o.client.cfg.ServerURLWithContext(ctx, "GetGoogleLoginURL")
+        if err != nil </span><span class="cov0" title="0">{
+                return localVarReturnValue, nil, &amp;GenericOpenAPIError{error: err.Error()}
+        }</span>
+
+        <span class="cov0" title="0">localVarPath = serverURL + localVarPath
+
+        localVarHeaderParams := make(map[string]string)
+        localVarQueryParams := url.Values{}
+
+        // Set headers
+        localVarHeaderParams["Accept"] = "application/json"
+
+        // Note: OAuth Google login endpoint does not require authorization
+
+        // Add fromUrlPath query parameter
+        if fromUrlPath != "" </span><span class="cov0" title="0">{
+                localVarQueryParams.Add("fromUrlPath", fromUrlPath)
+        }</span>
+
+        // Create a context without authentication for OAuth endpoint
+        <span class="cov0" title="0">ctxWithoutAuth := context.Background()
+        if deadline, ok := ctx.Deadline(); ok </span><span class="cov0" title="0">{
+                var cancel context.CancelFunc
+                ctxWithoutAuth, cancel = context.WithDeadline(ctxWithoutAuth, deadline)
+                defer cancel()
+        }</span>
+
+        <span class="cov0" title="0">req, err := o.client.prepareRequest(ctxWithoutAuth, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams)
+        if err != nil </span><span class="cov0" title="0">{
+                return localVarReturnValue, nil, err
+        }</span>
+
+        <span class="cov0" title="0">localVarHTTPResponse, err := o.client.callAPI(req)
+        if err != nil || localVarHTTPResponse == nil </span><span class="cov0" title="0">{
+                return localVarReturnValue, localVarHTTPResponse, err
+        }</span>
+
+        <span class="cov0" title="0">localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+        localVarHTTPResponse.Body.Close()
+        localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+        if err != nil </span><span class="cov0" title="0">{
+                return localVarReturnValue, localVarHTTPResponse, err
+        }</span>
+
+        <span class="cov0" title="0">if localVarHTTPResponse.StatusCode &gt;= 300 </span><span class="cov0" title="0">{
+                newErr := &amp;GenericOpenAPIError{
+                        body:  localVarBody,
+                        error: localVarHTTPResponse.Status,
+                }
+                return localVarReturnValue, localVarHTTPResponse, newErr
+        }</span>
+
+        <span class="cov0" title="0">err = o.client.decode(&amp;localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+        if err != nil </span><span class="cov0" title="0">{
+                newErr := &amp;GenericOpenAPIError{
+                        body:  localVarBody,
+                        error: err.Error(),
+                }
+                return localVarReturnValue, localVarHTTPResponse, newErr
+        }</span>
+
+        <span class="cov0" title="0">return localVarReturnValue, localVarHTTPResponse, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">// Copyright 2025 AgbCloud CLI Contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package config
+
+import (
+        "os"
+        "path/filepath"
+)
+
+// Config represents the CLI configuration
+type Config struct {
+        APIKey   string `yaml:"api_key"`
+        Endpoint string `yaml:"endpoint"`
+}
+
+// DefaultConfig returns the default configuration
+func DefaultConfig() *Config <span class="cov0" title="0">{
+        return &amp;Config{
+                APIKey:   os.Getenv("AGB_API_KEY"),
+                Endpoint: "https://agb.cloud",
+        }
+}</span>
+
+// ConfigDir returns the configuration directory path
+func ConfigDir() (string, error) <span class="cov0" title="0">{
+        homeDir, err := os.UserHomeDir()
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">return filepath.Join(homeDir, ".agbcloud"), nil</span>
+}
+
+// ConfigFile returns the configuration file path
+func ConfigFile() (string, error) <span class="cov0" title="0">{
+        configDir, err := ConfigDir()
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">return filepath.Join(configDir, "config.yaml"), nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

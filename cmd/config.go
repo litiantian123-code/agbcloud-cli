@@ -60,7 +60,7 @@ var configListCmd = &cobra.Command{
 		} else {
 			fmt.Println("  api_key = <not set>")
 		}
-		fmt.Println("  endpoint = https://sdk-api.agb.cloud")
+		fmt.Println("  endpoint = https://agb.cloud")
 		return nil
 	},
 }

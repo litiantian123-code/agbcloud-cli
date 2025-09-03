@@ -18,7 +18,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	return &Config{
 		APIKey:   os.Getenv("AGB_API_KEY"),
-		Endpoint: "https://sdk-api.agb.cloud",
+		Endpoint: "https://agb.cloud",
 	}
 }
 
