@@ -5,6 +5,7 @@ package client
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -33,12 +34,6 @@ func NewFromConfig(cfg *config.Config) *APIClient {
 		configuration.Servers[0].URL = cfg.Endpoint
 	}
 
-	// Set API key if available
-	if cfg.APIKey != "" {
-		configuration.APIKey = cfg.APIKey
-		configuration.AddDefaultHeader("Authorization", "Bearer "+cfg.APIKey)
-	}
-
 	// Create HTTP client with optional SSL verification skip
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
@@ -61,4 +56,45 @@ func NewFromConfig(cfg *config.Config) *APIClient {
 // NewDefault creates a new API client with default configuration
 func NewDefault() *APIClient {
 	return NewFromConfig(config.DefaultConfig())
+}
+
+// NewWithConfig creates a new API client with profile-based configuration
+func NewWithConfig(cfg *config.Config) (*APIClient, error) {
+	activeProfile, err := cfg.GetActiveProfile()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active profile: %w", err)
+	}
+
+	configuration := NewConfiguration()
+
+	// Set server URL from profile
+	configuration.Servers = ServerConfigurations{
+		{
+			URL:         activeProfile.Api.Url,
+			Description: "AgbCloud API Server",
+		},
+	}
+
+	// Set authentication based on OAuth token
+	if activeProfile.Api.Token != nil {
+		// Use OAuth token authentication
+		configuration.AddDefaultHeader("Authorization", "Bearer "+activeProfile.Api.Token.LoginToken)
+	}
+
+	// Create HTTP client with optional SSL verification skip
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	if shouldSkipSSLVerification() {
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+	}
+
+	configuration.HTTPClient = httpClient
+
+	return NewAPIClient(configuration), nil
 }

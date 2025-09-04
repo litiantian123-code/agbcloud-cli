@@ -27,9 +27,6 @@ var configSetCmd = &cobra.Command{
 		value := args[1]
 
 		switch key {
-		case "api_key":
-			fmt.Printf("Note: API key configuration is read from AGB_CLI_API_KEY environment variable\n")
-			fmt.Printf("To set API key, use: export AGB_CLI_API_KEY=%s\n", value)
 		case "endpoint":
 			fmt.Printf("Note: Endpoint configuration is read from AGB_CLI_ENDPOINT environment variable\n")
 			fmt.Printf("To set endpoint, use: export AGB_CLI_ENDPOINT=%s\n", value)
@@ -55,12 +52,6 @@ var configGetCmd = &cobra.Command{
 		cfg := config.DefaultConfig()
 
 		switch key {
-		case "api_key":
-			if cfg.APIKey != "" {
-				fmt.Println(cfg.APIKey)
-			} else {
-				fmt.Println("<not set>")
-			}
 		case "endpoint":
 			fmt.Println(cfg.Endpoint)
 		case "callback_port":
@@ -84,11 +75,6 @@ var configListCmd = &cobra.Command{
 		cfg := config.DefaultConfig()
 
 		fmt.Println("Configuration:")
-		if cfg.APIKey != "" {
-			fmt.Printf("  api_key = %s\n", cfg.APIKey)
-		} else {
-			fmt.Println("  api_key = <not set>")
-		}
 		fmt.Printf("  endpoint = %s\n", cfg.Endpoint)
 		if cfg.CallbackPort != "" {
 			fmt.Printf("  callback_port = %s\n", cfg.CallbackPort)
@@ -97,8 +83,6 @@ var configListCmd = &cobra.Command{
 		}
 
 		fmt.Println("\nEnvironment Variables:")
-		fmt.Println("  API Key:")
-		fmt.Println("    AGB_CLI_API_KEY")
 		fmt.Println("  Endpoint:")
 		fmt.Println("    AGB_CLI_ENDPOINT (domain only, https:// added automatically)")
 		fmt.Println("    Default: agb.cloud")

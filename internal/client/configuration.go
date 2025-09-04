@@ -18,11 +18,8 @@ func (c contextKey) String() string {
 }
 
 var (
-	// ContextAccessToken takes a string oauth2 access token as authentication for the request.
-	ContextAccessToken = contextKey("accesstoken")
-
-	// ContextAPIKey takes an API key as authentication for the request.
-	ContextAPIKey = contextKey("apikey")
+	// ContextLoginToken takes a string OAuth login token as authentication for the request.
+	ContextLoginToken = contextKey("logintoken")
 
 	// ContextServerIndex uses a server configuration from the index.
 	ContextServerIndex = contextKey("serverIndex")
@@ -30,12 +27,6 @@ var (
 	// ContextServerVariables overrides a server configuration variables.
 	ContextServerVariables = contextKey("serverVariables")
 )
-
-// APIKey provides API key based authentication to a request passed via context using ContextAPIKey
-type APIKey struct {
-	Key    string
-	Prefix string
-}
 
 // ServerVariable stores the information about a server variable
 type ServerVariable struct {
@@ -63,7 +54,6 @@ type Configuration struct {
 	Debug         bool              `json:"debug,omitempty"`
 	Servers       ServerConfigurations
 	HTTPClient    *http.Client
-	APIKey        string `json:"apiKey,omitempty"`
 }
 
 // NewConfiguration returns a new Configuration object

@@ -48,7 +48,6 @@ import (
 
 // Create client from CLI config
 cfg := &config.Config{
-    APIKey:   "your-api-key",
     Endpoint: "https://agb.cloud",
 }
 client := client.NewFromConfig(cfg)
@@ -76,14 +75,11 @@ Currently implements:
 
 ## Authentication
 
-The client supports multiple authentication methods:
-
-1. **API Key**: Set via configuration or context
-2. **Bearer Token**: Set via context using `ContextAccessToken`
+The client supports OAuth token-based authentication:
 
 ```go
 // Using context for authentication (for APIs that require auth)
-ctx := context.WithValue(context.Background(), client.ContextAccessToken, "your-token")
+ctx := context.WithValue(context.Background(), client.ContextLoginToken, "your-login-token")
 // Note: OAuth API doesn't require authentication
 response, _, err := client.OAuthAPI.GetGoogleLoginURL(ctx, "https://agb.cloud")
 ```
@@ -125,7 +121,6 @@ The test suite includes:
 | `UserAgent` | string | HTTP User-Agent header | "AgbCloud-CLI/1.0.0/go" |
 | `Debug` | bool | Enable debug logging | false |
 | `HTTPClient` | *http.Client | Custom HTTP client | 30s timeout |
-| `APIKey` | string | API key for authentication | "" |
 
 ## Adding New API Services
 

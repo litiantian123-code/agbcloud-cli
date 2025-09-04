@@ -33,10 +33,8 @@ func init() {
 func runLogin(cmd *cobra.Command) error {
 	fmt.Println("🔐 Starting AgbCloud authentication...")
 
-	// Create client configuration for OAuth (no API key needed for OAuth)
+	// Create client configuration for OAuth
 	cfg := config.DefaultConfig()
-	// Clear API key for OAuth requests (OAuth doesn't need authentication)
-	cfg.APIKey = ""
 
 	apiClient := client.NewFromConfig(cfg)
 
@@ -191,6 +189,7 @@ func runLogin(cmd *cobra.Command) error {
 				translateResponse.Data.LoginToken,
 				translateResponse.Data.SessionId,
 				translateResponse.Data.KeepAliveToken,
+				translateResponse.Data.ExpiresAt,
 			)
 			if err != nil {
 				fmt.Printf("⚠️  Warning: Failed to save tokens: %v\n", err)

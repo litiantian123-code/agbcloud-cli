@@ -208,18 +208,9 @@ func (c *APIClient) prepareRequest(
 
 		// Walk through any authentication.
 
-		// AccessToken Authentication
-		if auth, ok := ctx.Value(ContextAccessToken).(string); ok {
+		// LoginToken Authentication
+		if auth, ok := ctx.Value(ContextLoginToken).(string); ok {
 			localVarRequest.Header.Add("Authorization", "Bearer "+auth)
-		}
-
-		// API Key Authentication
-		if apiKey, ok := ctx.Value(ContextAPIKey).(APIKey); ok {
-			if apiKey.Prefix != "" {
-				localVarRequest.Header.Add("Authorization", apiKey.Prefix+" "+apiKey.Key)
-			} else {
-				localVarRequest.Header.Add("Authorization", "Bearer "+apiKey.Key)
-			}
 		}
 	}
 

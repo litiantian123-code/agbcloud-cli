@@ -32,11 +32,10 @@ agbcloud login
 
 # Configuration management
 agbcloud config list
-agbcloud config get api_key
-agbcloud config set api_key your-key-here
+agbcloud config get endpoint
+agbcloud config set endpoint your-endpoint-here
 
 # Set configuration via environment variables (recommended)
-export AGB_CLI_API_KEY=your-api-key-here
 export AGB_CLI_ENDPOINT=agb.cloud  # Domain only, https:// added automatically
 ```
 
@@ -72,7 +71,6 @@ agbcloud login
 
 ## Environment Variables
 
-- `AGB_CLI_API_KEY`: Your AgbCloud API key
 - `AGB_CLI_ENDPOINT`: AgbCloud API endpoint domain (default: agb.cloud, https:// prefix added automatically)
 - `AGB_CLI_SKIP_SSL_VERIFY`: Override SSL verification behavior ("true" to skip, "false" to enforce)
 
@@ -83,8 +81,8 @@ The CLI uses the following configuration:
 - **API Endpoint**: 
   - `AGB_CLI_ENDPOINT` environment variable (domain only, https:// added automatically)
   - Default: `agb.cloud`
-- **API Key**: 
-  - `AGB_CLI_API_KEY` environment variable
+- **Authentication**: 
+  - OAuth token-based authentication via `agbcloud login`
 - **SSL Verification**: 
   - Automatic based on endpoint type (IP addresses, localhost, .local/.dev/.test/.internal domains, non-standard ports skip verification)
   - Override with `AGB_CLI_SKIP_SSL_VERIFY` environment variable

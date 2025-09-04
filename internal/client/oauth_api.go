@@ -15,6 +15,7 @@ import (
 type OAuthAPI interface {
 	GetLoginProviderURL(ctx context.Context, fromUrlPath, loginClient, oauthProvider string) (OAuthLoginProviderResponse, *http.Response, error)
 	LoginTranslate(ctx context.Context, loginClient, oauthProvider, authCode string) (OAuthLoginTranslateResponse, *http.Response, error)
+	RefreshToken(ctx context.Context, keepAliveToken, sessionId string) (OAuthRefreshTokenResponse, *http.Response, error)
 }
 
 // OAuthAPIService implements OAuthAPI interface
@@ -51,6 +52,26 @@ type OAuthLoginTranslateData struct {
 	LoginToken     string `json:"loginToken"`
 	SessionId      string `json:"sessionId"`
 	KeepAliveToken string `json:"keepAliveToken"`
+	ExpiresAt      string `json:"expiresAt"`
+}
+
+// OAuthRefreshTokenResponse represents the response from OAuth refresh token API
+type OAuthRefreshTokenResponse struct {
+	Code           string                `json:"code"`
+	RequestID      string                `json:"requestId"`
+	Success        bool                  `json:"success"`
+	Data           OAuthRefreshTokenData `json:"data"`
+	TraceID        string                `json:"traceId"`
+	HTTPStatusCode int                   `json:"httpStatusCode"`
+}
+
+// OAuthRefreshTokenData represents the data field in OAuth refresh token response
+// This matches the actual AgbCloud API response format
+type OAuthRefreshTokenData struct {
+	LoginToken     string `json:"loginToken"`
+	SessionId      string `json:"sessionId"`
+	KeepAliveToken string `json:"keepAliveToken"`
+	ExpiresAt      string `json:"expiresAt"`
 }
 
 // GetLoginProviderURL retrieves the OAuth login provider URL with loginClient parameter
@@ -98,6 +119,80 @@ func (o *OAuthAPIService) GetLoginProviderURL(ctx context.Context, fromUrlPath, 
 
 	// Use the original context but without authentication for OAuth endpoint
 	// Note: We don't need to strip authentication since we're not adding any auth headers
+	req, err := o.client.prepareRequest(ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := o.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = o.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+// RefreshToken refreshes the login session using keepAliveToken and sessionId
+func (o *OAuthAPIService) RefreshToken(ctx context.Context, keepAliveToken, sessionId string) (OAuthRefreshTokenResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		localVarReturnValue OAuthRefreshTokenResponse
+	)
+
+	// Build the request path
+	localVarPath := "/api/biz_login/refresh"
+
+	// Use the configured server URL (defaults to agb.cloud)
+	serverURL, err := o.client.cfg.ServerURLWithContext(ctx, "RefreshToken")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath = serverURL + localVarPath
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+
+	// Set headers
+	localVarHeaderParams["Accept"] = "application/json"
+
+	// Add required query parameters
+	if keepAliveToken == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "keepAliveToken parameter is required"}
+	}
+	localVarQueryParams.Add("keepAliveToken", keepAliveToken)
+
+	if sessionId == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "sessionId parameter is required"}
+	}
+	localVarQueryParams.Add("sessionId", sessionId)
+
+	// Prepare request
 	req, err := o.client.prepareRequest(ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams)
 	if err != nil {
 		return localVarReturnValue, nil, err

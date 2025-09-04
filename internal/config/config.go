@@ -18,7 +18,6 @@ type Config struct {
 	ActiveProfileId string    `json:"activeProfile"`
 	Profiles        []Profile `json:"profiles"`
 	// Legacy fields for backward compatibility
-	APIKey       string `json:"api_key,omitempty"`
 	Endpoint     string `json:"endpoint,omitempty"`
 	CallbackPort string `json:"callback_port,omitempty"`
 }
@@ -34,7 +33,6 @@ type Profile struct {
 // ServerApi holds API configuration and authentication information
 type ServerApi struct {
 	Url   string `json:"url"`
-	Key   string `json:"key,omitempty"`   // API key authentication
 	Token *Token `json:"token,omitempty"` // OAuth token authentication
 }
 
@@ -43,8 +41,7 @@ type Token struct {
 	LoginToken     string    `json:"loginToken"`
 	SessionId      string    `json:"sessionId"`
 	KeepAliveToken string    `json:"keepAliveToken"`
-	CreatedAt      time.Time `json:"createdAt"`
-	// Note: AgbCloud tokens don't have explicit expiry, but we track creation time
+	ExpiresAt      time.Time `json:"expiresAt"`
 }
 
 var (
@@ -167,7 +164,7 @@ func (c *Config) GetProfile(profileId string) (Profile, error) {
 }
 
 // SaveTokens saves authentication tokens to the active profile
-func (c *Config) SaveTokens(loginToken, sessionId, keepAliveToken string) error {
+func (c *Config) SaveTokens(loginToken, sessionId, keepAliveToken, expiresAt string) error {
 	activeProfile, err := c.GetActiveProfile()
 	if err != nil {
 		if err == ErrNoProfilesFound {
@@ -181,14 +178,22 @@ func (c *Config) SaveTokens(loginToken, sessionId, keepAliveToken string) error 
 		}
 	}
 
+	// Parse expiresAt time
+	var expiresAtTime time.Time
+	if expiresAt != "" {
+		expiresAtTime, err = time.Parse(time.RFC3339, expiresAt)
+		if err != nil {
+			return fmt.Errorf("failed to parse expiresAt time: %w", err)
+		}
+	}
+
 	// Update profile with tokens
 	activeProfile.Api.Token = &Token{
 		LoginToken:     loginToken,
 		SessionId:      sessionId,
 		KeepAliveToken: keepAliveToken,
-		CreatedAt:      time.Now(),
+		ExpiresAt:      expiresAtTime,
 	}
-	activeProfile.Api.Key = "" // Clear API key when using tokens
 
 	return c.EditProfile(activeProfile)
 }
@@ -207,14 +212,14 @@ func (c *Config) GetTokens() (*Token, error) {
 	return activeProfile.Api.Token, nil
 }
 
-// IsAuthenticated checks if the user is authenticated (has tokens or API key)
+// IsAuthenticated checks if the user is authenticated (has tokens)
 func (c *Config) IsAuthenticated() bool {
 	activeProfile, err := c.GetActiveProfile()
 	if err != nil {
 		return false
 	}
 
-	return activeProfile.Api.Token != nil || activeProfile.Api.Key != ""
+	return activeProfile.Api.Token != nil
 }
 
 // createInitialProfile creates the first profile for new users
@@ -254,9 +259,6 @@ func getConfigPath() (string, error) {
 
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
-	// Get API key from AGB_CLI_API_KEY environment variable only
-	apiKey := os.Getenv("AGB_CLI_API_KEY")
-
 	// Get endpoint from environment variable or use default
 	endpoint := os.Getenv("AGB_CLI_ENDPOINT")
 	if endpoint == "" {
@@ -272,7 +274,6 @@ func DefaultConfig() *Config {
 	callbackPort := os.Getenv("AGB_CLI_CALLBACK_PORT")
 
 	return &Config{
-		APIKey:       apiKey,
 		Endpoint:     endpoint,
 		CallbackPort: callbackPort,
 	}

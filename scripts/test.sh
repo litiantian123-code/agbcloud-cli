@@ -62,7 +62,6 @@ while [[ $# -gt 0 ]]; do
             echo "  --help, -h         Show this help message"
             echo ""
             echo "Environment Variables:"
-            echo "  AGB_API_KEY           API key for integration tests (optional)"
             echo "  SKIP_INTEGRATION_TESTS Set to 'true' to skip integration tests"
             exit 0
             ;;
@@ -116,10 +115,6 @@ if [ "$RUN_INTEGRATION" = true ]; then
     else
         print_status "Running integration tests against real API..."
         print_warning "Note: Integration tests WILL FAIL if network connectivity to https://agb.cloud is unavailable"
-        
-        if [ -z "$AGB_API_KEY" ]; then
-            print_warning "AGB_API_KEY not set - OAuth tests don't require authentication but other tests might"
-        fi
         
         if go test $VERBOSE_FLAG -tags=integration ./test/integration/...; then
             print_status "✅ Integration tests passed"

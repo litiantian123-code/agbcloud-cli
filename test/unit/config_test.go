@@ -13,25 +13,18 @@ import (
 // TestDefaultConfigEnvironmentVariables tests the environment variable configuration
 func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 	// Save original environment variables
-	originalCLIAPIKey := os.Getenv("AGB_CLI_API_KEY")
 	originalCLIEndpoint := os.Getenv("AGB_CLI_ENDPOINT")
 
 	// Clean up after test
 	defer func() {
-		os.Setenv("AGB_CLI_API_KEY", originalCLIAPIKey)
 		os.Setenv("AGB_CLI_ENDPOINT", originalCLIEndpoint)
 	}()
 
 	t.Run("DefaultValues", func(t *testing.T) {
 		// Clear all environment variables
-		os.Unsetenv("AGB_CLI_API_KEY")
 		os.Unsetenv("AGB_CLI_ENDPOINT")
 
 		cfg := config.DefaultConfig()
-
-		if cfg.APIKey != "" {
-			t.Errorf("Expected empty API key, got %s", cfg.APIKey)
-		}
 
 		if cfg.Endpoint != "https://agb.cloud" {
 			t.Errorf("Expected default endpoint https://agb.cloud, got %s", cfg.Endpoint)
@@ -42,14 +35,9 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 
 	t.Run("CLIEnvironmentVariables", func(t *testing.T) {
 		// Set CLI-specific environment variables
-		os.Setenv("AGB_CLI_API_KEY", "cli-api-key-123")
 		os.Setenv("AGB_CLI_ENDPOINT", "cli.agb.cloud")
 
 		cfg := config.DefaultConfig()
-
-		if cfg.APIKey != "cli-api-key-123" {
-			t.Errorf("Expected CLI API key cli-api-key-123, got %s", cfg.APIKey)
-		}
 
 		if cfg.Endpoint != "https://cli.agb.cloud" {
 			t.Errorf("Expected CLI endpoint https://cli.agb.cloud, got %s", cfg.Endpoint)
@@ -86,14 +74,9 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 
 	t.Run("EmptyEnvironmentVariables", func(t *testing.T) {
 		// Set empty environment variables
-		os.Setenv("AGB_CLI_API_KEY", "")
 		os.Setenv("AGB_CLI_ENDPOINT", "")
 
 		cfg := config.DefaultConfig()
-
-		if cfg.APIKey != "" {
-			t.Errorf("Expected empty API key, got %s", cfg.APIKey)
-		}
 
 		// Should use default when environment variable is empty
 		if cfg.Endpoint != "https://agb.cloud" {
