@@ -104,6 +104,21 @@ func (c *APIClient) callAPI(request *http.Request) (*http.Response, error) {
 	log.Printf("Status Code: %d", resp.StatusCode)
 	log.Printf("Status: %s", resp.Status)
 	log.Printf("Headers: %v", resp.Header)
+
+	// Always log response body for debugging
+	if resp.Body != nil {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err == nil {
+			log.Printf("Response Body: %s", string(bodyBytes))
+			// Restore the body
+			resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		} else {
+			log.Printf("Response Body: Error reading body - %v", err)
+		}
+	} else {
+		log.Printf("Response Body: None")
+	}
+
 	log.Printf("=" + strings.Repeat("=", 49))
 
 	if c.cfg.Debug {
