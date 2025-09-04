@@ -51,11 +51,11 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		// Return the expected response
-		response := client.OAuthGoogleLoginResponse{
+		response := client.OAuthLoginProviderResponse{
 			Code:      "success",
 			RequestID: "test-request-id-123",
 			Success:   true,
-			Data: client.OAuthGoogleLoginData{
+			Data: client.OAuthLoginProviderData{
 				InvokeURL: "https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=test-client-id&redirect_uri=https://agb.cloud/api/oauth/google/login_callback&response_type=code&scope=https://www.googleapis.com/auth/userinfo.profile%20https://www.googleapis.com/auth/userinfo.email&state=https://agb.cloud",
 			},
 			TraceID:        "test-trace-id-456",
@@ -95,7 +95,7 @@ func TestLoginCommand(t *testing.T) {
 		noOpen := true // Always true in tests to avoid opening browser
 
 		// Get the OAuth URL from the API
-		response, _, err := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, fromUrlPath)
+		response, _, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, fromUrlPath, "CLI", "GOOGLE_LOCALHOST")
 		if err != nil {
 			return err
 		}
@@ -218,7 +218,7 @@ func TestLoginCommandErrorHandling(t *testing.T) {
 
 		fromUrlPath := "https://agb.cloud" // Use default value
 
-		_, _, err := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, fromUrlPath)
+		_, _, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, fromUrlPath, "CLI", "GOOGLE_LOCALHOST")
 		if err != nil {
 			return err
 		}

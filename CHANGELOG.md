@@ -4,6 +4,7 @@
 
 ### Changed
 - **BREAKING**: Updated OAuth API endpoint from `/api/oauth/google/login` to `/api/oauth/login_provider`
+- **BREAKING**: Removed legacy `GetGoogleLoginURL()` method from OAuthAPI interface
 - Added new required parameters `loginClient` and `oauthProvider` to OAuth login API
   - `loginClient`: Default value "CLI" 
   - `oauthProvider`: Default value "GOOGLE_LOCALHOST"
@@ -12,21 +13,20 @@
 - New `GetLoginProviderURL()` method in OAuthAPI interface supporting the updated endpoint
 - New response types `OAuthLoginProviderResponse` and `OAuthLoginProviderData`
 - Comprehensive test coverage for new API endpoint and parameters
-- Backward compatibility support for existing `GetGoogleLoginURL()` method
 - API verification demo script in `examples/api_verification_demo.go`
 
-### Maintained
-- Full backward compatibility with existing `GetGoogleLoginURL()` method
-- All existing functionality preserved while using new endpoint internally
-- Legacy response types `OAuthGoogleLoginResponse` and `OAuthGoogleLoginData` still supported
+### Removed
+- **BREAKING**: Legacy `GetGoogleLoginURL()` method and associated response types
+- Legacy response types `OAuthGoogleLoginResponse` and `OAuthGoogleLoginData`
 
 ### Technical Details
-- The legacy `GetGoogleLoginURL()` method now internally calls `GetLoginProviderURL()` with default parameters
-- All tests updated to verify new endpoint and parameters
-- Integration tests added for both new and legacy API methods
-- Default parameter values ensure seamless migration for existing users
+- All OAuth requests now use the `/api/oauth/login_provider` endpoint
+- All tests updated to use new API method and endpoint
+- Integration tests include comprehensive coverage of new endpoint with various parameter combinations
+- Login command updated to use new API directly
 
 ### Migration Guide
-- **No action required** for existing code using `GetGoogleLoginURL()`
-- To use new functionality, call `GetLoginProviderURL()` with custom `loginClient` and `oauthProvider` values
-- New endpoint supports all previous functionality plus additional provider options 
+- **Action required**: Replace all calls to `GetGoogleLoginURL()` with `GetLoginProviderURL()`
+- Update method signature: `GetLoginProviderURL(ctx, fromUrlPath, "CLI", "GOOGLE_LOCALHOST")`
+- Update response type references from `OAuthGoogleLoginResponse` to `OAuthLoginProviderResponse`
+- Update data type references from `OAuthGoogleLoginData` to `OAuthLoginProviderData` 

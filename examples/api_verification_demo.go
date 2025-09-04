@@ -23,7 +23,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Test 1: New login provider API with default parameters
+	// Test 1: Login provider API with default parameters
 	fmt.Println("\n📋 Test 1: Login Provider API with defaults")
 	fmt.Println("Parameters: loginClient=CLI, oauthProvider=GOOGLE_LOCALHOST")
 
@@ -38,7 +38,7 @@ func main() {
 		}
 	}
 
-	// Test 2: New login provider API with custom parameters
+	// Test 2: Login provider API with custom parameters
 	fmt.Println("\n📋 Test 2: Login Provider API with custom parameters")
 	fmt.Println("Parameters: loginClient=WEB, oauthProvider=GOOGLE_WEB")
 
@@ -53,11 +53,11 @@ func main() {
 		}
 	}
 
-	// Test 3: Legacy Google login API (backward compatibility)
-	fmt.Println("\n📋 Test 3: Legacy Google Login API (backward compatibility)")
-	fmt.Println("Should automatically use new endpoint with default parameters")
+	// Test 3: Login provider API with empty fromUrlPath
+	fmt.Println("\n📋 Test 3: Login Provider API without fromUrlPath")
+	fmt.Println("Parameters: loginClient=CLI, oauthProvider=GOOGLE_LOCALHOST")
 
-	response3, httpResp3, err3 := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, "https://agb.cloud")
+	response3, httpResp3, err3 := apiClient.OAuthAPI.GetLoginProviderURL(ctx, "", "CLI", "GOOGLE_LOCALHOST")
 	if err3 != nil {
 		log.Printf("❌ Error: %v", err3)
 	} else {

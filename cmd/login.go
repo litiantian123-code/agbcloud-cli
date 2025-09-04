@@ -43,10 +43,10 @@ func runLogin(cmd *cobra.Command) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	fmt.Println("🌐 Requesting Google OAuth login URL...")
+	fmt.Println("🌐 Requesting OAuth login URL...")
 
-	// Get the OAuth URL from the API (using default redirect URL)
-	response, httpResp, err := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, "https://agb.cloud")
+	// Get the OAuth URL from the API using the new login provider endpoint
+	response, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, "https://agb.cloud", "CLI", "GOOGLE_LOCALHOST")
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
 			fmt.Printf("❌ API Error: %s\n", apiErr.Error())

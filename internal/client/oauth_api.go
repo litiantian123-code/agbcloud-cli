@@ -13,27 +13,11 @@ import (
 
 // OAuthAPI interface for OAuth related operations
 type OAuthAPI interface {
-	GetGoogleLoginURL(ctx context.Context, fromUrlPath string) (OAuthGoogleLoginResponse, *http.Response, error)
 	GetLoginProviderURL(ctx context.Context, fromUrlPath, loginClient, oauthProvider string) (OAuthLoginProviderResponse, *http.Response, error)
 }
 
 // OAuthAPIService implements OAuthAPI interface
 type OAuthAPIService service
-
-// OAuthGoogleLoginResponse represents the response from Google OAuth login API (legacy)
-type OAuthGoogleLoginResponse struct {
-	Code           string               `json:"code"`
-	RequestID      string               `json:"requestId"`
-	Success        bool                 `json:"success"`
-	Data           OAuthGoogleLoginData `json:"data"`
-	TraceID        string               `json:"traceId"`
-	HTTPStatusCode int                  `json:"httpStatusCode"`
-}
-
-// OAuthGoogleLoginData represents the data field in Google OAuth login response (legacy)
-type OAuthGoogleLoginData struct {
-	InvokeURL string `json:"invokeUrl"`
-}
 
 // OAuthLoginProviderResponse represents the response from OAuth login provider API
 type OAuthLoginProviderResponse struct {
@@ -48,29 +32,6 @@ type OAuthLoginProviderResponse struct {
 // OAuthLoginProviderData represents the data field in OAuth login provider response
 type OAuthLoginProviderData struct {
 	InvokeURL string `json:"invokeUrl"`
-}
-
-// GetGoogleLoginURL retrieves the Google OAuth login URL (legacy method)
-func (o *OAuthAPIService) GetGoogleLoginURL(ctx context.Context, fromUrlPath string) (OAuthGoogleLoginResponse, *http.Response, error) {
-	// Convert to new API call with default values
-	newResponse, httpResp, err := o.GetLoginProviderURL(ctx, fromUrlPath, "CLI", "GOOGLE_LOCALHOST")
-	if err != nil {
-		return OAuthGoogleLoginResponse{}, httpResp, err
-	}
-
-	// Convert new response to legacy response format
-	legacyResponse := OAuthGoogleLoginResponse{
-		Code:      newResponse.Code,
-		RequestID: newResponse.RequestID,
-		Success:   newResponse.Success,
-		Data: OAuthGoogleLoginData{
-			InvokeURL: newResponse.Data.InvokeURL,
-		},
-		TraceID:        newResponse.TraceID,
-		HTTPStatusCode: newResponse.HTTPStatusCode,
-	}
-
-	return legacyResponse, httpResp, nil
 }
 
 // GetLoginProviderURL retrieves the OAuth login provider URL with new parameters

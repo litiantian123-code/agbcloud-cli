@@ -214,28 +214,4 @@ func TestOAuthLoginProviderURLConstruction(t *testing.T) {
 			t.Logf("✅ URL construction test passed for %s", tc.name)
 		})
 	}
-
-	// Test backward compatibility with legacy method
-	t.Run("Legacy GetGoogleLoginURL compatibility", func(t *testing.T) {
-		_, httpResp, err := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, "https://agb.cloud")
-
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		if httpResp == nil {
-			t.Fatal("Expected HTTP response, got nil")
-		}
-
-		// Verify that legacy method still works and uses new endpoint internally
-		actualQuery := httpResp.Request.URL.Query()
-		if actualQuery.Get("loginClient") != "CLI" {
-			t.Errorf("Expected loginClient=CLI from legacy method, got %s", actualQuery.Get("loginClient"))
-		}
-		if actualQuery.Get("oauthProvider") != "GOOGLE_LOCALHOST" {
-			t.Errorf("Expected oauthProvider=GOOGLE_LOCALHOST from legacy method, got %s", actualQuery.Get("oauthProvider"))
-		}
-
-		t.Logf("✅ Legacy compatibility test passed")
-	})
 }
