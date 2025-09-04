@@ -5,9 +5,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/agbcloud/agbcloud-cli/internal/config"
 )
 
 var ConfigCmd = &cobra.Command{
@@ -24,8 +25,19 @@ var configSetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key := args[0]
 		value := args[1]
-		fmt.Printf("Setting %s = %s\n", key, value)
-		// TODO: Implement configuration storage
+
+		switch key {
+		case "api_key":
+			fmt.Printf("Note: API key configuration is read from AGB_CLI_API_KEY environment variable\n")
+			fmt.Printf("To set API key, use: export AGB_CLI_API_KEY=%s\n", value)
+		case "endpoint":
+			fmt.Printf("Note: Endpoint configuration is read from AGB_CLI_ENDPOINT environment variable\n")
+			fmt.Printf("To set endpoint, use: export AGB_CLI_ENDPOINT=%s\n", value)
+			fmt.Printf("Note: You can specify just the domain (e.g., 'agb.cloud'), https:// will be added automatically\n")
+		default:
+			return fmt.Errorf("unknown configuration key: %s", key)
+		}
+
 		return nil
 	},
 }
@@ -36,16 +48,21 @@ var configGetCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key := args[0]
-		// TODO: Implement configuration retrieval
-		if key == "api_key" {
-			if apiKey := os.Getenv("AGB_API_KEY"); apiKey != "" {
-				fmt.Printf("%s = %s\n", key, apiKey)
+		cfg := config.DefaultConfig()
+
+		switch key {
+		case "api_key":
+			if cfg.APIKey != "" {
+				fmt.Println(cfg.APIKey)
 			} else {
-				fmt.Printf("%s is not set\n", key)
+				fmt.Println("<not set>")
 			}
-		} else {
-			fmt.Printf("%s is not configured\n", key)
+		case "endpoint":
+			fmt.Println(cfg.Endpoint)
+		default:
+			return fmt.Errorf("unknown configuration key: %s", key)
 		}
+
 		return nil
 	},
 }
@@ -54,13 +71,23 @@ var configListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all configuration values",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg := config.DefaultConfig()
+
 		fmt.Println("Configuration:")
-		if apiKey := os.Getenv("AGB_API_KEY"); apiKey != "" {
-			fmt.Printf("  api_key = %s\n", apiKey)
+		if cfg.APIKey != "" {
+			fmt.Printf("  api_key = %s\n", cfg.APIKey)
 		} else {
 			fmt.Println("  api_key = <not set>")
 		}
-		fmt.Println("  endpoint = https://agb.cloud")
+		fmt.Printf("  endpoint = %s\n", cfg.Endpoint)
+
+		fmt.Println("\nEnvironment Variables:")
+		fmt.Println("  API Key:")
+		fmt.Println("    AGB_CLI_API_KEY")
+		fmt.Println("  Endpoint:")
+		fmt.Println("    AGB_CLI_ENDPOINT (domain only, https:// added automatically)")
+		fmt.Println("    Default: agb.cloud")
+
 		return nil
 	},
 }

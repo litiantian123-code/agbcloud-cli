@@ -1,6 +1,6 @@
 # AgbCloud HTTP Client
 
-This package provides a structured HTTP client for interacting with the AgbCloud API, inspired by the architecture of the Daytona API client.
+This package provides a structured HTTP client for interacting with the AgbCloud API.
 
 ## Architecture
 
@@ -28,7 +28,7 @@ internal/client/
 ### Basic Usage
 
 ```go
-import "github.com/liyuebing/agbcloud-cli/internal/client"
+import "github.com/agbcloud/agbcloud-cli/internal/client"
 
 // Create client with default configuration
 client := client.NewDefault()
@@ -42,8 +42,8 @@ response, httpResp, err := client.OAuthAPI.GetGoogleLoginURL(ctx, "https://agb.c
 
 ```go
 import (
-    "github.com/liyuebing/agbcloud-cli/internal/client"
-    "github.com/liyuebing/agbcloud-cli/internal/config"
+    "github.com/agbcloud/agbcloud-cli/internal/client"
+    "github.com/agbcloud/agbcloud-cli/internal/config"
 )
 
 // Create client from CLI config

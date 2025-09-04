@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liyuebing/agbcloud-cli/internal/client"
+	"github.com/agbcloud/agbcloud-cli/internal/client"
 )
 
-// TestOAuthGoogleLoginWithMockServer tests the OAuth Google login API with a mock server
-func TestOAuthGoogleLoginWithMockServer(t *testing.T) {
+// TestOAuthLoginProviderWithMockServer tests the OAuth login provider API with a mock server
+func TestOAuthLoginProviderWithMockServer(t *testing.T) {
 	// Create a mock server that returns the expected response
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify the request
-		if r.URL.Path != "/api/oauth/google/login" {
-			t.Errorf("Expected path /api/oauth/google/login, got %s", r.URL.Path)
+		if r.URL.Path != "/api/oauth/login_provider" {
+			t.Errorf("Expected path /api/oauth/login_provider, got %s", r.URL.Path)
 		}
 		if r.Method != http.MethodGet {
 			t.Errorf("Expected GET method, got %s", r.Method)
@@ -30,6 +30,17 @@ func TestOAuthGoogleLoginWithMockServer(t *testing.T) {
 		fromUrlPath := r.URL.Query().Get("fromUrlPath")
 		if fromUrlPath != "https://agb.cloud" {
 			t.Errorf("Expected fromUrlPath=https://agb.cloud, got %s", fromUrlPath)
+		}
+
+		// Check new parameters with default values
+		loginClient := r.URL.Query().Get("loginClient")
+		if loginClient != "CLI" {
+			t.Errorf("Expected loginClient=CLI, got %s", loginClient)
+		}
+
+		oauthProvider := r.URL.Query().Get("oauthProvider")
+		if oauthProvider != "GOOGLE_LOCALHOST" {
+			t.Errorf("Expected oauthProvider=GOOGLE_LOCALHOST, got %s", oauthProvider)
 		}
 
 		// Check headers
@@ -44,11 +55,11 @@ func TestOAuthGoogleLoginWithMockServer(t *testing.T) {
 		}
 
 		// Return the expected response
-		response := client.OAuthGoogleLoginResponse{
+		response := client.OAuthLoginProviderResponse{
 			Code:      "success",
 			RequestID: "test-request-id",
 			Success:   true,
-			Data: client.OAuthGoogleLoginData{
+			Data: client.OAuthLoginProviderData{
 				InvokeURL: "https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=test-client-id",
 			},
 			TraceID:        "test-trace-id",
@@ -71,8 +82,8 @@ func TestOAuthGoogleLoginWithMockServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Test the OAuth Google login API
-	response, httpResp, err := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, "https://agb.cloud")
+	// Test the OAuth login provider API with new method
+	response, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, "https://agb.cloud", "CLI", "GOOGLE_LOCALHOST")
 
 	// Verify no error
 	if err != nil {
@@ -107,18 +118,23 @@ func TestOAuthGoogleLoginWithMockServer(t *testing.T) {
 		t.Errorf("Expected httpStatusCode 200, got %d", response.HTTPStatusCode)
 	}
 
-	t.Logf("✅ OAuth Google login test passed!")
+	t.Logf("✅ OAuth login provider test passed!")
 	t.Logf("InvokeURL: %s", response.Data.InvokeURL)
 }
 
-// TestOAuthGoogleLoginURLConstruction tests URL construction
-func TestOAuthGoogleLoginURLConstruction(t *testing.T) {
+// TestOAuthLoginProviderURLConstruction tests URL construction with new parameters
+func TestOAuthLoginProviderURLConstruction(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify the new endpoint
+		if r.URL.Path != "/api/oauth/login_provider" {
+			t.Errorf("Expected path /api/oauth/login_provider, got %s", r.URL.Path)
+		}
+
 		// Just return a simple response
-		response := client.OAuthGoogleLoginResponse{
+		response := client.OAuthLoginProviderResponse{
 			Code:    "success",
 			Success: true,
-			Data: client.OAuthGoogleLoginData{
+			Data: client.OAuthLoginProviderData{
 				InvokeURL: "https://accounts.google.com/o/oauth2/auth",
 			},
 		}
@@ -134,30 +150,49 @@ func TestOAuthGoogleLoginURLConstruction(t *testing.T) {
 	ctx := context.Background()
 
 	testCases := []struct {
-		name        string
-		fromUrlPath string
-		expectQuery string
+		name          string
+		fromUrlPath   string
+		loginClient   string
+		oauthProvider string
+		expectQuery   map[string]string
 	}{
 		{
-			name:        "Basic URL",
-			fromUrlPath: "https://agb.cloud",
-			expectQuery: "fromUrlPath=https%3A%2F%2Fagb.cloud",
+			name:          "Basic URL with defaults",
+			fromUrlPath:   "https://agb.cloud",
+			loginClient:   "CLI",
+			oauthProvider: "GOOGLE_LOCALHOST",
+			expectQuery: map[string]string{
+				"fromUrlPath":   "https://agb.cloud",
+				"loginClient":   "CLI",
+				"oauthProvider": "GOOGLE_LOCALHOST",
+			},
 		},
 		{
-			name:        "URL with path",
-			fromUrlPath: "https://agb.cloud/dashboard",
-			expectQuery: "fromUrlPath=https%3A%2F%2Fagb.cloud%2Fdashboard",
+			name:          "URL with custom parameters",
+			fromUrlPath:   "https://agb.cloud/dashboard",
+			loginClient:   "WEB",
+			oauthProvider: "GOOGLE_WEB",
+			expectQuery: map[string]string{
+				"fromUrlPath":   "https://agb.cloud/dashboard",
+				"loginClient":   "WEB",
+				"oauthProvider": "GOOGLE_WEB",
+			},
 		},
 		{
-			name:        "Empty fromUrlPath",
-			fromUrlPath: "",
-			expectQuery: "",
+			name:          "Empty fromUrlPath with defaults",
+			fromUrlPath:   "",
+			loginClient:   "CLI",
+			oauthProvider: "GOOGLE_LOCALHOST",
+			expectQuery: map[string]string{
+				"loginClient":   "CLI",
+				"oauthProvider": "GOOGLE_LOCALHOST",
+			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, httpResp, err := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, tc.fromUrlPath)
+			_, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, tc.fromUrlPath, tc.loginClient, tc.oauthProvider)
 
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -167,15 +202,40 @@ func TestOAuthGoogleLoginURLConstruction(t *testing.T) {
 				t.Fatal("Expected HTTP response, got nil")
 			}
 
-			// Check if the query string matches expectation
-			actualQuery := httpResp.Request.URL.RawQuery
-			if tc.expectQuery == "" && actualQuery != "" {
-				t.Errorf("Expected empty query, got %s", actualQuery)
-			} else if tc.expectQuery != "" && actualQuery != tc.expectQuery {
-				t.Errorf("Expected query %s, got %s", tc.expectQuery, actualQuery)
+			// Check if the query parameters match expectation
+			actualQuery := httpResp.Request.URL.Query()
+			for key, expectedValue := range tc.expectQuery {
+				actualValue := actualQuery.Get(key)
+				if actualValue != expectedValue {
+					t.Errorf("Expected query param %s=%s, got %s", key, expectedValue, actualValue)
+				}
 			}
 
 			t.Logf("✅ URL construction test passed for %s", tc.name)
 		})
 	}
+
+	// Test backward compatibility with legacy method
+	t.Run("Legacy GetGoogleLoginURL compatibility", func(t *testing.T) {
+		_, httpResp, err := apiClient.OAuthAPI.GetGoogleLoginURL(ctx, "https://agb.cloud")
+
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		if httpResp == nil {
+			t.Fatal("Expected HTTP response, got nil")
+		}
+
+		// Verify that legacy method still works and uses new endpoint internally
+		actualQuery := httpResp.Request.URL.Query()
+		if actualQuery.Get("loginClient") != "CLI" {
+			t.Errorf("Expected loginClient=CLI from legacy method, got %s", actualQuery.Get("loginClient"))
+		}
+		if actualQuery.Get("oauthProvider") != "GOOGLE_LOCALHOST" {
+			t.Errorf("Expected oauthProvider=GOOGLE_LOCALHOST from legacy method, got %s", actualQuery.Get("oauthProvider"))
+		}
+
+		t.Logf("✅ Legacy compatibility test passed")
+	})
 }

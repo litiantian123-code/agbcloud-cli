@@ -6,6 +6,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Config represents the CLI configuration
@@ -16,9 +17,23 @@ type Config struct {
 
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
+	// Get API key from AGB_CLI_API_KEY environment variable only
+	apiKey := os.Getenv("AGB_CLI_API_KEY")
+
+	// Get endpoint from environment variable or use default
+	endpoint := os.Getenv("AGB_CLI_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "agb.cloud"
+	}
+
+	// Ensure endpoint has https:// prefix
+	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+		endpoint = "https://" + endpoint
+	}
+
 	return &Config{
-		APIKey:   os.Getenv("AGB_API_KEY"),
-		Endpoint: "https://agb.cloud",
+		APIKey:   apiKey,
+		Endpoint: endpoint,
 	}
 }
 

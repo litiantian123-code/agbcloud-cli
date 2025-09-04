@@ -8,8 +8,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/agbcloud/agbcloud-cli/cmd"
 	"github.com/joho/godotenv"
-	"github.com/liyuebing/agbcloud-cli/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +33,7 @@ func init() {
 	// Add commands
 	rootCmd.AddCommand(cmd.VersionCmd)
 	rootCmd.AddCommand(cmd.ConfigCmd)
-	rootCmd.AddCommand(cmd.OAuthCmd)
+	rootCmd.AddCommand(cmd.LoginCmd)
 
 	// Global flags
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true

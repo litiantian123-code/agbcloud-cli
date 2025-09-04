@@ -7,16 +7,18 @@ A command-line interface for AgbCloud services.
 ### From Source
 
 ```bash
-git clone https://github.com/liyuebing/agbcloud-cli.git
+git clone https://github.com/agbcloud/agbcloud-cli.git
 cd agbcloud-cli
 make build
 ```
 
 ### From Release
 
-Download the latest release for your platform from the [releases page](https://github.com/liyuebing/agbcloud-cli/releases).
+Download the latest release for your platform from the [releases page](https://github.com/agbcloud/agbcloud-cli/releases).
 
 ## Usage
+
+### Basic Commands
 
 ```bash
 # Show help
@@ -25,22 +27,67 @@ agbcloud --help
 # Show version
 agbcloud version
 
+# Log in to AgbCloud
+agbcloud login
+
 # Configuration management
 agbcloud config list
 agbcloud config get api_key
 agbcloud config set api_key your-key-here
+
+# Set configuration via environment variables (recommended)
+export AGB_CLI_API_KEY=your-api-key-here
+export AGB_CLI_ENDPOINT=agb.cloud  # Domain only, https:// added automatically
+```
+
+### SSL Certificate Verification
+
+The CLI automatically determines SSL verification behavior based on the endpoint:
+
+**SSL Verification Enabled (Secure)**:
+- Production domains (e.g., `agb.cloud`, `api.example.com`)
+- Standard HTTPS port (443)
+
+**SSL Verification Disabled (Development)**:
+- IP addresses (e.g., `12.34.56.78`, `[2001:db8::1]`)
+- Localhost (`localhost`, `127.0.0.1`)
+- Development domains (`.local`, `.dev`, `.test`, `.internal`)
+- Non-standard ports (e.g., `:8080`, `:8443`)
+
+**Manual Override**:
+```bash
+# Force skip SSL verification
+export AGB_CLI_SKIP_SSL_VERIFY=true
+
+# Force SSL verification (even for IP addresses)
+export AGB_CLI_SKIP_SSL_VERIFY=false
+```
+
+### Authentication
+
+```bash
+# Log in using OAuth in browser
+agbcloud login
 ```
 
 ## Environment Variables
 
-- `AGB_API_KEY`: Your AgbCloud API key
+- `AGB_CLI_API_KEY`: Your AgbCloud API key
+- `AGB_CLI_ENDPOINT`: AgbCloud API endpoint domain (default: agb.cloud, https:// prefix added automatically)
+- `AGB_CLI_SKIP_SSL_VERIFY`: Override SSL verification behavior ("true" to skip, "false" to enforce)
 
 ## Configuration
 
-The CLI uses the following default configuration:
+The CLI uses the following configuration:
 
-- **API Endpoint**: `https://agb.cloud`
-- **API Key**: Retrieved from `AGB_API_KEY` environment variable
+- **API Endpoint**: 
+  - `AGB_CLI_ENDPOINT` environment variable (domain only, https:// added automatically)
+  - Default: `agb.cloud`
+- **API Key**: 
+  - `AGB_CLI_API_KEY` environment variable
+- **SSL Verification**: 
+  - Automatic based on endpoint type (IP addresses, localhost, .local/.dev/.test/.internal domains, non-standard ports skip verification)
+  - Override with `AGB_CLI_SKIP_SSL_VERIFY` environment variable
 
 ## Development
 
