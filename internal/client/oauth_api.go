@@ -16,6 +16,7 @@ type OAuthAPI interface {
 	GetLoginProviderURL(ctx context.Context, fromUrlPath, loginClient, oauthProvider string) (OAuthLoginProviderResponse, *http.Response, error)
 	LoginTranslate(ctx context.Context, loginClient, oauthProvider, authCode string) (OAuthLoginTranslateResponse, *http.Response, error)
 	RefreshToken(ctx context.Context, keepAliveToken, sessionId string) (OAuthRefreshTokenResponse, *http.Response, error)
+	Logout(ctx context.Context, sessionToken, sessionId string) (OAuthLogoutResponse, *http.Response, error)
 }
 
 // OAuthAPIService implements OAuthAPI interface
@@ -72,6 +73,21 @@ type OAuthRefreshTokenData struct {
 	SessionId      string `json:"sessionId"`
 	KeepAliveToken string `json:"keepAliveToken"`
 	ExpiresAt      string `json:"expiresAt"`
+}
+
+// OAuthLogoutResponse represents the response from OAuth logout API
+type OAuthLogoutResponse struct {
+	Code           string          `json:"code"`
+	RequestID      string          `json:"requestId"`
+	Success        bool            `json:"success"`
+	Data           OAuthLogoutData `json:"data"`
+	TraceID        string          `json:"traceId"`
+	HTTPStatusCode int             `json:"httpStatusCode"`
+}
+
+// OAuthLogoutData represents the data field in OAuth logout response
+type OAuthLogoutData struct {
+	Message string `json:"message"`
 }
 
 // GetLoginProviderURL retrieves the OAuth login provider URL with loginClient parameter
@@ -270,6 +286,80 @@ func (o *OAuthAPIService) LoginTranslate(ctx context.Context, loginClient, oauth
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: "authCode parameter is required"}
 	}
 	localVarQueryParams.Add("authCode", authCode)
+
+	// Prepare request
+	req, err := o.client.prepareRequest(ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := o.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = o.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+// Logout logs out the user by invalidating the session
+func (o *OAuthAPIService) Logout(ctx context.Context, sessionToken, sessionId string) (OAuthLogoutResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		localVarReturnValue OAuthLogoutResponse
+	)
+
+	// Build the request path
+	localVarPath := "/api/biz_login/logout"
+
+	// Use the configured server URL (defaults to agb.cloud)
+	serverURL, err := o.client.cfg.ServerURLWithContext(ctx, "Logout")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath = serverURL + localVarPath
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+
+	// Set headers
+	localVarHeaderParams["Accept"] = "application/json"
+
+	// Add required query parameters
+	if sessionToken == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "sessionToken parameter is required"}
+	}
+	localVarQueryParams.Add("sessionToken", sessionToken)
+
+	if sessionId == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "sessionId parameter is required"}
+	}
+	localVarQueryParams.Add("sessionId", sessionId)
 
 	// Prepare request
 	req, err := o.client.prepareRequest(ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams)
