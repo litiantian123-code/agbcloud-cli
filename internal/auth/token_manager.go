@@ -22,18 +22,13 @@ func RefreshTokenIfNeeded(ctx context.Context) error {
 		return err
 	}
 
-	activeProfile, err := cfg.GetActiveProfile()
-	if err != nil {
-		return err
-	}
-
 	// Check if we have tokens
-	if activeProfile.Api.Token == nil {
+	if cfg.Token == nil {
 		return fmt.Errorf("no valid token found, use 'agbcloud-cli login' to reauthenticate")
 	}
 
 	// Check if token is about to expire (within 5 minutes)
-	if time.Until(activeProfile.Api.Token.ExpiresAt) > 5*time.Minute {
+	if time.Until(cfg.Token.ExpiresAt) > 5*time.Minute {
 		log.Debug("Token is still valid, no refresh needed")
 		return nil
 	}
@@ -45,19 +40,17 @@ func RefreshTokenIfNeeded(ctx context.Context) error {
 
 	// Perform token refresh
 	response, _, err := apiClient.OAuthAPI.RefreshToken(ctx,
-		activeProfile.Api.Token.KeepAliveToken,
-		activeProfile.Api.Token.SessionId)
+		cfg.Token.KeepAliveToken,
+		cfg.Token.SessionId)
 	if err != nil {
 		// If refresh fails, clear the tokens
-		activeProfile.Api.Token = nil
-		cfg.EditProfile(activeProfile)
+		cfg.ClearTokens()
 		return fmt.Errorf("use 'agbcloud-cli login' to reauthenticate: %w", err)
 	}
 
 	if !response.Success {
 		// If refresh fails, clear the tokens
-		activeProfile.Api.Token = nil
-		cfg.EditProfile(activeProfile)
+		cfg.ClearTokens()
 		return fmt.Errorf("use 'agbcloud-cli login' to reauthenticate: refresh failed with code %s", response.Code)
 	}
 
@@ -134,13 +127,6 @@ func ClearAuthTokens() error {
 		return err
 	}
 
-	activeProfile, err := cfg.GetActiveProfile()
-	if err != nil {
-		return err
-	}
-
 	// Clear tokens
-	activeProfile.Api.Token = nil
-
-	return cfg.EditProfile(activeProfile)
+	return cfg.ClearTokens()
 }

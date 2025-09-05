@@ -14,20 +14,10 @@ import (
 var apiClient *client.APIClient
 
 // NewClient creates an API client with automatic token refresh for seamless authentication
-func NewClient(profile *config.Profile, defaultHeaders map[string]string) (*client.APIClient, error) {
+func NewClient(defaultHeaders map[string]string) (*client.APIClient, error) {
 	cfg, err := config.GetConfig()
 	if err != nil {
 		return nil, err
-	}
-
-	var activeProfile config.Profile
-	if profile == nil {
-		activeProfile, err = cfg.GetActiveProfile()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		activeProfile = *profile
 	}
 
 	// If we have an existing client using token auth, refresh if needed
@@ -40,10 +30,7 @@ func NewClient(profile *config.Profile, defaultHeaders map[string]string) (*clie
 	}
 
 	// Create new API client using the factory
-	newApiClient, err := client.NewWithConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
+	newApiClient := client.NewFromConfig(cfg)
 
 	// Add any additional default headers
 	for headerKey, headerValue := range defaultHeaders {
@@ -51,7 +38,7 @@ func NewClient(profile *config.Profile, defaultHeaders map[string]string) (*clie
 	}
 
 	// If using token auth, refresh if needed before returning
-	if activeProfile.Api.Token != nil {
+	if cfg.Token != nil {
 		err = auth.RefreshTokenIfNeeded(context.Background())
 		if err != nil {
 			return nil, err
@@ -67,7 +54,7 @@ func NewClientWithDefaults() (*client.APIClient, error) {
 	defaultHeaders := map[string]string{
 		"X-AgbCloud-Source": "cli",
 	}
-	return NewClient(nil, defaultHeaders)
+	return NewClient(defaultHeaders)
 }
 
 // HandleAPIError handles API errors and attempts token refresh if needed
@@ -80,7 +67,7 @@ func EnsureValidToken(ctx context.Context) error {
 	return auth.RefreshTokenIfNeeded(ctx)
 }
 
-// ClearAuthTokens clears stored tokens
-func ClearAuthTokens() error {
-	return auth.ClearAuthTokens()
+// ClearCachedClient clears the cached API client (useful for testing or logout)
+func ClearCachedClient() {
+	apiClient = nil
 }

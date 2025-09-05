@@ -13,27 +13,11 @@ import (
 	"time"
 )
 
-// Config represents the CLI configuration with profile support
+// Config represents the CLI configuration
 type Config struct {
-	ActiveProfileId string    `json:"activeProfile"`
-	Profiles        []Profile `json:"profiles"`
-	// Legacy fields for backward compatibility
 	Endpoint     string `json:"endpoint,omitempty"`
 	CallbackPort string `json:"callback_port,omitempty"`
-}
-
-// Profile represents a user profile with authentication information
-type Profile struct {
-	Id       string    `json:"id"`
-	Name     string    `json:"name"`
-	Api      ServerApi `json:"api"`
-	Endpoint string    `json:"endpoint"`
-}
-
-// ServerApi holds API configuration and authentication information
-type ServerApi struct {
-	Url   string `json:"url"`
-	Token *Token `json:"token,omitempty"` // OAuth token authentication
+	Token        *Token `json:"token,omitempty"` // OAuth token authentication
 }
 
 // Token represents AgbCloud authentication tokens
@@ -45,54 +29,59 @@ type Token struct {
 }
 
 var (
-	ErrNoProfilesFound = errors.New("no profiles found. Run 'agbcloud-cli login' to authenticate")
-	ErrNoActiveProfile = errors.New("no active profile found. Run 'agbcloud-cli login' to authenticate")
+	ErrNoTokenFound = errors.New("no authentication token found. Run 'agbcloud-cli login' to authenticate")
 )
 
 // GetConfig loads the configuration from file or creates a new one
+// Environment variables take precedence over config file values
 func GetConfig() (*Config, error) {
 	configFilePath, err := getConfigPath()
 	if err != nil {
 		return nil, err
 	}
 
+	var c Config
+
+	// Try to load existing config file
 	_, err = os.Stat(configFilePath)
 	if os.IsNotExist(err) {
-		config := &Config{}
-		return config, config.Save()
-	}
-
-	if err != nil {
+		// No config file exists, create new config
+		c = Config{}
+	} else if err != nil {
 		return nil, err
-	}
+	} else {
+		// Config file exists, load it
+		configContent, err := os.ReadFile(configFilePath)
+		if err != nil {
+			return nil, err
+		}
 
-	var c Config
-	configContent, err := os.ReadFile(configFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(configContent, &c)
-	if err != nil {
-		return nil, err
-	}
-
-	return &c, nil
-}
-
-// GetActiveProfile returns the currently active profile
-func (c *Config) GetActiveProfile() (Profile, error) {
-	if len(c.Profiles) == 0 {
-		return Profile{}, ErrNoProfilesFound
-	}
-
-	for _, profile := range c.Profiles {
-		if profile.Id == c.ActiveProfileId {
-			return profile, nil
+		err = json.Unmarshal(configContent, &c)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return Profile{}, ErrNoActiveProfile
+	// Apply environment variable overrides (highest priority)
+	envEndpoint := os.Getenv("AGB_CLI_ENDPOINT")
+	if envEndpoint != "" {
+		// Ensure endpoint has https:// prefix
+		if !strings.HasPrefix(envEndpoint, "http://") && !strings.HasPrefix(envEndpoint, "https://") {
+			envEndpoint = "https://" + envEndpoint
+		}
+		c.Endpoint = envEndpoint
+	} else if c.Endpoint == "" {
+		// No env var and no config file value, use default
+		c.Endpoint = "https://agb.cloud"
+	}
+
+	// Apply callback port environment variable override
+	envCallbackPort := os.Getenv("AGB_CLI_CALLBACK_PORT")
+	if envCallbackPort != "" {
+		c.CallbackPort = envCallbackPort
+	}
+
+	return &c, nil
 }
 
 // Save writes the configuration to file
@@ -115,136 +104,46 @@ func (c *Config) Save() error {
 	return os.WriteFile(configFilePath, configContent, 0600) // More secure permissions for auth data
 }
 
-// AddProfile adds a new profile and sets it as active
-func (c *Config) AddProfile(profile Profile) error {
-	c.Profiles = append(c.Profiles, profile)
-	c.ActiveProfileId = profile.Id
-
-	return c.Save()
+// GetTokens retrieves authentication tokens
+func (c *Config) GetTokens() (*Token, error) {
+	if c.Token == nil {
+		return nil, ErrNoTokenFound
+	}
+	return c.Token, nil
 }
 
-// EditProfile updates an existing profile
-func (c *Config) EditProfile(profile Profile) error {
-	for i, p := range c.Profiles {
-		if p.Id == profile.Id {
-			c.Profiles[i] = profile
-			return c.Save()
-		}
-	}
-
-	return fmt.Errorf("profile with id %s not found", profile.Id)
-}
-
-// RemoveProfile removes a profile by ID
-func (c *Config) RemoveProfile(profileId string) error {
-	if c.ActiveProfileId == profileId {
-		return errors.New("cannot remove active profile")
-	}
-
-	var profiles []Profile
-	for _, profile := range c.Profiles {
-		if profile.Id != profileId {
-			profiles = append(profiles, profile)
-		}
-	}
-
-	c.Profiles = profiles
-	return c.Save()
-}
-
-// GetProfile returns a profile by ID
-func (c *Config) GetProfile(profileId string) (Profile, error) {
-	for _, profile := range c.Profiles {
-		if profile.Id == profileId {
-			return profile, nil
-		}
-	}
-
-	return Profile{}, errors.New("profile not found")
-}
-
-// SaveTokens saves authentication tokens to the active profile
+// SaveTokens saves authentication tokens to the configuration
 func (c *Config) SaveTokens(loginToken, sessionId, keepAliveToken, expiresAt string) error {
-	activeProfile, err := c.GetActiveProfile()
-	if err != nil {
-		if err == ErrNoProfilesFound {
-			// Create initial profile
-			activeProfile, err = c.createInitialProfile()
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-
 	// Parse expiresAt time
 	var expiresAtTime time.Time
 	if expiresAt != "" {
+		var err error
 		expiresAtTime, err = time.Parse(time.RFC3339, expiresAt)
 		if err != nil {
 			return fmt.Errorf("failed to parse expiresAt time: %w", err)
 		}
 	}
 
-	// Update profile with tokens
-	activeProfile.Api.Token = &Token{
+	// Update config with tokens
+	c.Token = &Token{
 		LoginToken:     loginToken,
 		SessionId:      sessionId,
 		KeepAliveToken: keepAliveToken,
 		ExpiresAt:      expiresAtTime,
 	}
 
-	return c.EditProfile(activeProfile)
+	return c.Save()
 }
 
-// GetTokens retrieves authentication tokens from the active profile
-func (c *Config) GetTokens() (*Token, error) {
-	activeProfile, err := c.GetActiveProfile()
-	if err != nil {
-		return nil, err
-	}
-
-	if activeProfile.Api.Token == nil {
-		return nil, errors.New("no authentication tokens found. Run 'agbcloud-cli login' to authenticate")
-	}
-
-	return activeProfile.Api.Token, nil
+// ClearTokens removes authentication tokens from the configuration
+func (c *Config) ClearTokens() error {
+	c.Token = nil
+	return c.Save()
 }
 
 // IsAuthenticated checks if the user is authenticated (has tokens)
 func (c *Config) IsAuthenticated() bool {
-	activeProfile, err := c.GetActiveProfile()
-	if err != nil {
-		return false
-	}
-
-	return activeProfile.Api.Token != nil
-}
-
-// createInitialProfile creates the first profile for new users
-func (c *Config) createInitialProfile() (Profile, error) {
-	endpoint := os.Getenv("AGB_CLI_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "agb.cloud"
-	}
-
-	// Ensure endpoint has https:// prefix
-	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
-		endpoint = "https://" + endpoint
-	}
-
-	profile := Profile{
-		Id:       "default",
-		Name:     "Default Profile",
-		Endpoint: endpoint,
-		Api: ServerApi{
-			Url: endpoint,
-		},
-	}
-
-	err := c.AddProfile(profile)
-	return profile, err
+	return c.Token != nil
 }
 
 // getConfigPath returns the path to the configuration file
