@@ -63,7 +63,7 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 		// Return success page
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(getSuccessHTML()))
+		w.Write([]byte(GetSuccessHTML()))
 
 		// Delay server close to ensure browser receives the success page
 		go func() {
@@ -114,8 +114,8 @@ func GenerateRandomState() (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-// getSuccessHTML returns the HTML page shown after successful authentication
-func getSuccessHTML() string {
+// GetSuccessHTML returns the HTML page shown after successful authentication
+func GetSuccessHTML() string {
 	return `<!DOCTYPE html>
 <html>
 <head>
@@ -158,6 +158,13 @@ func getSuccessHTML() string {
         <h1>Authentication Successful!</h1>
         <p>You can now close this window and return to the CLI.</p>
     </div>
+
+    <script>
+        // Function to close the page after 10 seconds
+        setTimeout(function () {
+            window.close()
+        }, 10 * 1000)
+    </script>
 </body>
 </html>`
 }

@@ -160,7 +160,7 @@ func runLogin(cmd *cobra.Command) error {
 		if translateResponse.Success {
 			fmt.Println("\n🔑 Authentication Token Information:")
 			if translateResponse.Data.LoginToken != "" {
-				fmt.Printf("🎫 Login Token: %s...\n", translateResponse.Data.LoginToken[:min(len(translateResponse.Data.LoginToken), 30)])
+				fmt.Printf("🎫 Login Token: %s\n", translateResponse.Data.LoginToken)
 			} else {
 				fmt.Println("⚠️  Login Token: (empty)")
 			}
@@ -170,7 +170,7 @@ func runLogin(cmd *cobra.Command) error {
 				fmt.Println("⚠️  Session ID: (empty)")
 			}
 			if translateResponse.Data.KeepAliveToken != "" {
-				fmt.Printf("🔄 Keep Alive Token: %s...\n", translateResponse.Data.KeepAliveToken[:min(len(translateResponse.Data.KeepAliveToken), 30)])
+				fmt.Printf("🔄 Keep Alive Token: %s", translateResponse.Data.KeepAliveToken)
 			} else {
 				fmt.Println("⚠️  Keep Alive Token: (empty)")
 			}

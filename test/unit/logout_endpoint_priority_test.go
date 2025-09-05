@@ -30,10 +30,10 @@ func TestLogoutUsesEnvironmentEndpoint(t *testing.T) {
 		}
 
 		// Verify query parameters
-		sessionToken := r.URL.Query().Get("sessionToken")
+		loginToken := r.URL.Query().Get("loginToken")
 		sessionId := r.URL.Query().Get("sessionId")
-		if sessionToken != "test-login-token" {
-			t.Errorf("Expected sessionToken 'test-login-token', got %s", sessionToken)
+		if loginToken != "test-login-token" {
+			t.Errorf("Expected loginToken 'test-login-token', got %s", loginToken)
 		}
 		if sessionId != "test-session-id" {
 			t.Errorf("Expected sessionId 'test-session-id', got %s", sessionId)

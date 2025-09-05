@@ -16,7 +16,7 @@ type OAuthAPI interface {
 	GetLoginProviderURL(ctx context.Context, fromUrlPath, loginClient, oauthProvider string) (OAuthLoginProviderResponse, *http.Response, error)
 	LoginTranslate(ctx context.Context, loginClient, oauthProvider, authCode string) (OAuthLoginTranslateResponse, *http.Response, error)
 	RefreshToken(ctx context.Context, keepAliveToken, sessionId string) (OAuthRefreshTokenResponse, *http.Response, error)
-	Logout(ctx context.Context, sessionToken, sessionId string) (OAuthLogoutResponse, *http.Response, error)
+	Logout(ctx context.Context, loginToken, sessionId string) (OAuthLogoutResponse, *http.Response, error)
 }
 
 // OAuthAPIService implements OAuthAPI interface
@@ -326,7 +326,7 @@ func (o *OAuthAPIService) LoginTranslate(ctx context.Context, loginClient, oauth
 }
 
 // Logout logs out the user by invalidating the session
-func (o *OAuthAPIService) Logout(ctx context.Context, sessionToken, sessionId string) (OAuthLogoutResponse, *http.Response, error) {
+func (o *OAuthAPIService) Logout(ctx context.Context, loginToken, sessionId string) (OAuthLogoutResponse, *http.Response, error) {
 	var (
 		localVarHTTPMethod  = http.MethodGet
 		localVarPostBody    interface{}
@@ -351,10 +351,10 @@ func (o *OAuthAPIService) Logout(ctx context.Context, sessionToken, sessionId st
 	localVarHeaderParams["Accept"] = "application/json"
 
 	// Add required query parameters
-	if sessionToken == "" {
-		return localVarReturnValue, nil, &GenericOpenAPIError{error: "sessionToken parameter is required"}
+	if loginToken == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "loginToken parameter is required"}
 	}
-	localVarQueryParams.Add("sessionToken", sessionToken)
+	localVarQueryParams.Add("loginToken", loginToken)
 
 	if sessionId == "" {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: "sessionId parameter is required"}

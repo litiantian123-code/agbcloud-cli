@@ -17,7 +17,7 @@ import (
 func TestLogout(t *testing.T) {
 	tests := []struct {
 		name           string
-		sessionToken   string
+		loginToken     string
 		sessionId      string
 		mockResponse   client.OAuthLogoutResponse
 		mockStatusCode int
@@ -25,9 +25,9 @@ func TestLogout(t *testing.T) {
 		errorContains  string
 	}{
 		{
-			name:         "successful logout",
-			sessionToken: "test-session-token",
-			sessionId:    "test-session-id",
+			name:       "successful logout",
+			loginToken: "test-login-token",
+			sessionId:  "test-session-id",
 			mockResponse: client.OAuthLogoutResponse{
 				Code:           "200",
 				RequestID:      "test-request-id",
@@ -40,23 +40,23 @@ func TestLogout(t *testing.T) {
 			expectError:    false,
 		},
 		{
-			name:          "logout with empty sessionToken",
-			sessionToken:  "",
+			name:          "logout with empty loginToken",
+			loginToken:    "",
 			sessionId:     "test-session-id",
 			expectError:   true,
-			errorContains: "sessionToken parameter is required",
+			errorContains: "loginToken parameter is required",
 		},
 		{
 			name:          "logout with empty sessionId",
-			sessionToken:  "test-session-token",
+			loginToken:    "test-login-token",
 			sessionId:     "",
 			expectError:   true,
 			errorContains: "sessionId parameter is required",
 		},
 		{
-			name:         "server error response",
-			sessionToken: "test-session-token",
-			sessionId:    "test-session-id",
+			name:       "server error response",
+			loginToken: "test-login-token",
+			sessionId:  "test-session-id",
 			mockResponse: client.OAuthLogoutResponse{
 				Code:           "500",
 				RequestID:      "test-request-id",
@@ -83,11 +83,11 @@ func TestLogout(t *testing.T) {
 				}
 
 				// Verify query parameters
-				sessionToken := r.URL.Query().Get("sessionToken")
+				loginToken := r.URL.Query().Get("loginToken")
 				sessionId := r.URL.Query().Get("sessionId")
 
-				if tt.sessionToken != "" && sessionToken != tt.sessionToken {
-					t.Errorf("Expected sessionToken=%s, got %s", tt.sessionToken, sessionToken)
+				if tt.loginToken != "" && loginToken != tt.loginToken {
+					t.Errorf("Expected loginToken=%s, got %s", tt.loginToken, loginToken)
 				}
 				if tt.sessionId != "" && sessionId != tt.sessionId {
 					t.Errorf("Expected sessionId=%s, got %s", tt.sessionId, sessionId)
@@ -113,7 +113,7 @@ func TestLogout(t *testing.T) {
 
 			// Call the logout API
 			ctx := context.Background()
-			response, httpResp, err := apiClient.OAuthAPI.Logout(ctx, tt.sessionToken, tt.sessionId)
+			response, httpResp, err := apiClient.OAuthAPI.Logout(ctx, tt.loginToken, tt.sessionId)
 
 			// Check error expectations
 			if tt.expectError {

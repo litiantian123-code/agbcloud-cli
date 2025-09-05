@@ -32,34 +32,34 @@ func TestLogoutIntegration(t *testing.T) {
 
 	// Test cases for integration testing
 	tests := []struct {
-		name         string
-		sessionToken string
-		sessionId    string
-		expectError  bool
+		name        string
+		loginToken  string
+		sessionId   string
+		expectError bool
 	}{
 		{
-			name:         "logout with valid parameters",
-			sessionToken: "test-session-token",
-			sessionId:    "test-session-id",
-			expectError:  false, // May succeed or fail depending on server state
+			name:        "logout with valid parameters",
+			loginToken:  "test-login-token",
+			sessionId:   "test-session-id",
+			expectError: false, // May succeed or fail depending on server state
 		},
 		{
-			name:         "logout with empty sessionToken",
-			sessionToken: "",
-			sessionId:    "test-session-id",
-			expectError:  true,
+			name:        "logout with empty loginToken",
+			loginToken:  "",
+			sessionId:   "test-session-id",
+			expectError: true,
 		},
 		{
-			name:         "logout with empty sessionId",
-			sessionToken: "test-session-token",
-			sessionId:    "",
-			expectError:  true,
+			name:        "logout with empty sessionId",
+			loginToken:  "test-login-token",
+			sessionId:   "",
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, httpResp, err := apiClient.OAuthAPI.Logout(ctx, tt.sessionToken, tt.sessionId)
+			response, httpResp, err := apiClient.OAuthAPI.Logout(ctx, tt.loginToken, tt.sessionId)
 
 			// Check error expectations
 			if tt.expectError {
