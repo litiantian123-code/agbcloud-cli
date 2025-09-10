@@ -116,7 +116,7 @@ if [ "$RUN_INTEGRATION" = true ]; then
         print_status "Running integration tests against real API..."
         print_warning "Note: Integration tests WILL FAIL if network connectivity to https://agb.cloud is unavailable"
         
-        if go test $VERBOSE_FLAG -tags=integration ./test/integration/...; then
+        if go test $VERBOSE_FLAG -timeout=45m -tags=integration ./test/integration/...; then
             print_status "✅ Integration tests passed"
         else
             print_error "❌ Integration tests failed"

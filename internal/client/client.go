@@ -31,6 +31,7 @@ type APIClient struct {
 
 	// API Services
 	OAuthAPI OAuthAPI
+	ImageAPI ImageAPI
 }
 
 type service struct {
@@ -51,6 +52,7 @@ func NewAPIClient(cfg *Configuration) *APIClient {
 
 	// API Services
 	c.OAuthAPI = (*OAuthAPIService)(&c.common)
+	c.ImageAPI = (*ImageAPIService)(&c.common)
 
 	return c
 }
