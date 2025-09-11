@@ -1,0 +1,114 @@
+name: Cleanup Old Test Packages
+
+on:
+  schedule:
+    # Run every Sunday at 2:00 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (only show what would be deleted)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup environment
+      run: |
+        echo "RETENTION_DAYS=30" >> $GITHUB_ENV
+        echo "DRY_RUN=${{ github.event.inputs.dry_run || 'false' }}" >> $GITHUB_ENV
+    
+    - name: Find old test Formula files
+      id: find_old_formulas
+      run: |
+        echo "Finding Formula files older than $RETENTION_DAYS days..."
+        
+        # Find all test Formula files (agbcloud@dev-*.rb)
+        OLD_FORMULAS=""
+        CUTOFF_DATE=$(date -d "$RETENTION_DAYS days ago" +%Y%m%d)
+        
+        for formula in Formula/agbcloud@dev-*.rb; do
+          if [[ -f "$formula" ]]; then
+            # Extract timestamp from filename (agbcloud@dev-YYYYMMDD-HHMM.rb)
+            if [[ "$formula" =~ agbcloud@dev-([0-9]{8})-([0-9]{4})\.rb ]]; then
+              formula_date="${BASH_REMATCH[1]}"
+              
+              if [[ "$formula_date" < "$CUTOFF_DATE" ]]; then
+                OLD_FORMULAS="$OLD_FORMULAS $formula"
+                echo "Found old formula: $formula (date: $formula_date, cutoff: $CUTOFF_DATE)"
+              fi
+            fi
+          fi
+        done
+        
+        echo "old_formulas=$OLD_FORMULAS" >> $GITHUB_OUTPUT
+        echo "Total old formulas found: $(echo $OLD_FORMULAS | wc -w)"
+    
+    - name: Remove old Formula files
+      if: steps.find_old_formulas.outputs.old_formulas != ''
+      run: |
+        OLD_FORMULAS="${{ steps.find_old_formulas.outputs.old_formulas }}"
+        
+        if [[ "$DRY_RUN" == "true" ]]; then
+          echo "DRY RUN: Would delete the following Formula files:"
+          for formula in $OLD_FORMULAS; do
+            echo "  - $formula"
+          done
+        else
+          echo "Deleting old Formula files..."
+          for formula in $OLD_FORMULAS; do
+            if [[ -f "$formula" ]]; then
+              echo "Deleting: $formula"
+              rm "$formula"
+            fi
+          done
+          
+          # Configure git
+          git config user.name "Cleanup Bot"
+          git config user.email "cleanup@your-company.com"
+          
+                     # Commit changes if any files were deleted
+           if [[ -n "$(git status --porcelain)" ]]; then
+             git add Formula/
+             git commit -m "Cleanup: Remove test packages older than $RETENTION_DAYS days - Retention policy: $RETENTION_DAYS days - Cleanup date: $(date -u \"+%Y-%m-%d %H:%M:%S UTC\")"
+            
+            git push origin main
+            echo "✓ Old Formula files removed and changes pushed"
+          else
+            echo "No files to delete"
+          fi
+        fi
+    
+    - name: Cleanup summary
+      run: |
+        OLD_FORMULAS="${{ steps.find_old_formulas.outputs.old_formulas }}"
+        FORMULA_COUNT=$(echo $OLD_FORMULAS | wc -w)
+        
+        echo "## Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Retention period**: $RETENTION_DAYS days" >> $GITHUB_STEP_SUMMARY
+        echo "- **Dry run**: $DRY_RUN" >> $GITHUB_STEP_SUMMARY
+        echo "- **Old formulas found**: $FORMULA_COUNT" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ $FORMULA_COUNT -gt 0 ]]; then
+          echo "- **Files processed**:" >> $GITHUB_STEP_SUMMARY
+          for formula in $OLD_FORMULAS; do
+            echo "  - \`$(basename $formula)\`" >> $GITHUB_STEP_SUMMARY
+          done
+        fi
+        
+        if [[ "$DRY_RUN" == "true" ]]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **This was a dry run. No files were actually deleted.**" >> $GITHUB_STEP_SUMMARY
+        fi 
