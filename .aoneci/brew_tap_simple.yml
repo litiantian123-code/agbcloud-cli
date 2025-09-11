@@ -1,5 +1,5 @@
-# Aone CICD Configuration for AgbCloud CLI Test Package Distribution
-# This pipeline builds and distributes test packages via Homebrew Tap
+# Simplified Aone CICD Configuration for AgbCloud CLI
+# This is a minimal configuration that should work with Aone platform
 
 image: registry.cn-hangzhou.aliyuncs.com/acs/golang:1.23
 
@@ -9,43 +9,18 @@ variables:
   OSS_ENDPOINT: oss-cn-hangzhou.aliyuncs.com
   BREW_TAP_REPO: git@gitlab.alibaba-inc.com:InnoArchClub/homebrew-agbcloud.git
 
-# Test stage - run all tests
-test_unit:
-  stage: test
+test:
   script:
-    - echo "Running unit tests..."
+    - echo "Running tests..."
     - make test-unit
-  artifacts:
-    reports:
-      junit: test-results.xml
-    expire_in: 1 day
-
-test_integration:
-  stage: test
-  script:
-    - echo "Running integration tests..."
     - make test-integration
-  artifacts:
-    reports:
-      junit: integration-test-results.xml
-    expire_in: 1 day
-
-lint:
-  stage: test
-  script:
-    - echo "Running linter..."
     - make lint
 
-# Build stage - create binaries for all platforms
 build:
-  stage: build
   script:
     - echo "Building for all platforms..."
     - export VERSION="dev-$(date +%Y%m%d-%H%M)"
     - export GIT_COMMIT=$(git rev-parse --short HEAD)
-    - export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    - echo "Building version $VERSION"
-    - echo "Git commit $GIT_COMMIT"
     - make build-all
     - ls -la bin/
   artifacts:
@@ -56,11 +31,7 @@ build:
     - master
     - main
 
-# Package stage - create tar.gz packages with SHA256
 package:
-  stage: package
-  dependencies:
-    - build
   script:
     - echo "Creating packages..."
     - export VERSION="dev-$(date +%Y%m%d-%H%M)"
@@ -70,14 +41,10 @@ package:
         if [[ -f "$binary" ]]; then
           filename=$(basename "$binary")
           platform_arch=${filename#agbcloud-}
-          
           temp_dir=$(mktemp -d)
           cp "$binary" "$temp_dir/agbcloud"
-          
           tar -czf "packages/agbcloud-$VERSION-$platform_arch.tar.gz" -C "$temp_dir" agbcloud
-          
           sha256sum "packages/agbcloud-$VERSION-$platform_arch.tar.gz" > "packages/agbcloud-$VERSION-$platform_arch.tar.gz.sha256"
-          
           rm -rf "$temp_dir"
           echo "Created package agbcloud-$VERSION-$platform_arch.tar.gz"
         fi
@@ -87,32 +54,23 @@ package:
     paths:
       - packages/
     expire_in: 7 days
+  dependencies:
+    - build
   only:
     - master
     - main
 
-# Upload stage - upload packages to OSS
-upload_oss:
-  stage: upload
-  dependencies:
-    - package
+upload:
   script:
     - echo "Uploading packages to OSS..."
     - export VERSION="dev-$(date +%Y%m%d-%H%M)"
-    - export PACKAGE_DIR="packages"
     - |
-      if [[ -z "$OSS_ACCESS_KEY_ID" ]]; then
-        echo "Error OSS_ACCESS_KEY_ID not set"
-        exit 1
-      fi
-    - |
-      if [[ -z "$OSS_ACCESS_KEY_SECRET" ]]; then
-        echo "Error OSS_ACCESS_KEY_SECRET not set"
+      if [[ -z "$OSS_ACCESS_KEY_ID" ]] || [[ -z "$OSS_ACCESS_KEY_SECRET" ]]; then
+        echo "Error: OSS credentials not set"
         exit 1
       fi
     - |
       if ! command -v ossutil >/dev/null 2>&1; then
-        echo "Installing ossutil..."
         curl -L "https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip" -o ossutil.zip
         unzip -q ossutil.zip
         chmod +x ossutil*
@@ -121,53 +79,34 @@ upload_oss:
       fi
     - ossutil config -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET"
     - |
-      for package in packages/*.tar.gz; do
+      for package in packages/*.tar.gz packages/*.sha256; do
         if [[ -f "$package" ]]; then
           filename=$(basename "$package")
-          echo "Uploading $filename..."
           ossutil cp "$package" "oss://$OSS_BUCKET/agbcloud/releases/$filename" --force
           ossutil set-acl "oss://$OSS_BUCKET/agbcloud/releases/$filename" public-read
-          echo "Uploaded https://$OSS_BUCKET.$OSS_ENDPOINT/agbcloud/releases/$filename"
-        fi
-      done
-    - |
-      for sha256_file in packages/*.sha256; do
-        if [[ -f "$sha256_file" ]]; then
-          filename=$(basename "$sha256_file")
-          ossutil cp "$sha256_file" "oss://$OSS_BUCKET/agbcloud/releases/$filename" --force
-          ossutil set-acl "oss://$OSS_BUCKET/agbcloud/releases/$filename" public-read
+          echo "Uploaded $filename"
         fi
       done
     - echo "All packages uploaded successfully!"
+  dependencies:
+    - package
   only:
     - master
     - main
 
-# Deploy stage - update Homebrew Tap
-deploy_brew_tap:
-  stage: deploy
-  dependencies:
-    - package
+deploy:
   script:
     - echo "Updating Homebrew Tap..."
     - export VERSION="dev-$(date +%Y%m%d-%H%M)"
     - export GIT_COMMIT=$(git rev-parse --short HEAD)
     - export TIMESTAMP=$(date +%Y%m%d-%H%M)
-    - export PACKAGE_DIR="packages"
     - git clone "$BREW_TAP_REPO" homebrew-agbcloud
     - cd homebrew-agbcloud
     - git config user.name "Aone CICD Bot"
     - git config user.email "cicd@alibaba-inc.com"
     - |
-      cat > generate-formula.sh << 'EOF'
-      #!/bin/bash
-      set -e
-      
-      VERSION=$1
-      GIT_COMMIT=$2
-      TIMESTAMP=$3
       SANITIZED_TIMESTAMP=$(echo "$TIMESTAMP" | tr '-' '')
-      PACKAGE_DIR=${PACKAGE_DIR:-"../packages"}
+      PACKAGE_DIR="../packages"
       
       get_sha256() {
           local platform_arch=$1
@@ -186,7 +125,7 @@ deploy_brew_tap:
       
       FORMULA_FILE="Formula/agbcloud@dev-$TIMESTAMP.rb"
       
-      cat > "$FORMULA_FILE" << FORMULA_EOF
+      cat > "$FORMULA_FILE" << EOF
       class AgbcloudAT${SANITIZED_TIMESTAMP} < Formula
         desc "AgbCloud CLI - Test Build $TIMESTAMP"
         homepage "https://alibaba-inc.com/agbcloud"
@@ -217,56 +156,17 @@ deploy_brew_tap:
         test do
           system "#{bin}/agbcloud", "version"
         end
-      
-        def caveats
-          <<~EOS
-            This is a test build of AgbCloud CLI.
-            Build timestamp: $TIMESTAMP
-            Git commit: $GIT_COMMIT
-            
-            To switch between versions:
-              brew unlink agbcloud@${SANITIZED_TIMESTAMP}
-              brew link agbcloud@other-version
-          EOS
-        end
       end
-      FORMULA_EOF
-      
-      echo "Formula generated $FORMULA_FILE"
       EOF
-    - chmod +x generate-formula.sh
-    - ./generate-formula.sh "$VERSION" "$GIT_COMMIT" "$TIMESTAMP"
+      
+      echo "Formula generated: $FORMULA_FILE"
     - git add "Formula/agbcloud@dev-$TIMESTAMP.rb"
-    - git commit -m "Add test build agbcloud@dev-$TIMESTAMP - Version $VERSION - Git commit $GIT_COMMIT - Build timestamp $TIMESTAMP"
+    - git commit -m "Add test build agbcloud@dev-$TIMESTAMP"
     - git push origin main
     - echo "Homebrew Tap updated successfully!"
-    - echo "Users can now install with brew install agbcloud@dev-$TIMESTAMP"
-  only:
-    - master
-    - main
-
-# Notification stage - send build results
-notify:
-  stage: deploy
-  script:
-    - echo "Sending build notification..."
-    - export VERSION="dev-$(date +%Y%m%d-%H%M)"
-    - export TIMESTAMP=$(date +%Y%m%d-%H%M)
-    - |
-      echo "AgbCloud CLI test build completed successfully!
-      
-      Version: $VERSION
-      Timestamp: $TIMESTAMP
-      Git commit: $(git rev-parse --short HEAD)
-      
-      Install command:
-      brew install agbcloud@dev-$TIMESTAMP
-      
-      Download URLs:
-      - macOS Intel: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-amd64.tar.gz
-      - macOS Apple Silicon: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-arm64.tar.gz
-      - Linux amd64: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-amd64.tar.gz
-      - Linux arm64: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-arm64.tar.gz"
+    - echo "Users can install with: brew install agbcloud@dev-$TIMESTAMP"
+  dependencies:
+    - package
   only:
     - master
     - main 
