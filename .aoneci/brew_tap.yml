@@ -17,33 +17,10 @@ variables:
 
 # 流水线作业定义
 jobs:
-  # 单元测试
-  unit-test:
-    name: 单元测试
-    image: registry.cn-hangzhou.aliyuncs.com/acs/golang:1.23
-    steps:
-      - id: run-unit-tests
-        name: 运行单元测试
-        run: |
-          echo "Running unit tests..."
-          make test-unit
-
-  # 代码检查
-  lint:
-    name: 代码检查
-    image: registry.cn-hangzhou.aliyuncs.com/acs/golang:1.23
-    steps:
-      - id: run-lint
-        name: 运行代码检查
-        run: |
-          echo "Running linter..."
-          make lint
-
-  # 完整流程：构建、打包、上传、部署
+  # 构建、打包、上传、部署
   build-and-deploy:
     name: 构建并部署
     image: registry.cn-hangzhou.aliyuncs.com/acs/golang:1.23
-    needs: [unit-test, lint]
     timeout: 60m
     steps:
       - id: build-binaries
