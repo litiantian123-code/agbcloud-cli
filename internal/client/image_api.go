@@ -6,6 +6,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,6 +17,7 @@ type ImageAPI interface {
 	GetUploadCredential(ctx context.Context, loginToken, sessionId string) (ImageUploadCredentialResponse, *http.Response, error)
 	CreateImage(ctx context.Context, loginToken, sessionId, imageName, taskId, sourceImageId string) (ImageCreateResponse, *http.Response, error)
 	GetImageTask(ctx context.Context, loginToken, sessionId, taskId string) (ImageTaskResponse, *http.Response, error)
+	ListImages(ctx context.Context, loginToken, sessionId, imageType string, page, pageSize int) (ImageListResponse, *http.Response, error)
 }
 
 // ImageAPIService implements ImageAPI interface
@@ -72,6 +74,37 @@ type ImageCreateData struct {
 	ImageName string `json:"imageName,omitempty"`
 	Status    string `json:"status,omitempty"`
 	Message   string `json:"message,omitempty"`
+}
+
+// ImageListResponse represents the response from /api/image/list API
+type ImageListResponse struct {
+	Code           string        `json:"code"`
+	RequestID      string        `json:"requestId"`
+	Success        bool          `json:"success"`
+	Data           ImageListData `json:"data"`
+	TraceID        string        `json:"traceId"`
+	HTTPStatusCode int           `json:"httpStatusCode"`
+}
+
+// ImageListData represents the data field in image list response
+type ImageListData struct {
+	Images   []ImageInfo `json:"imageList"` // API returns "imageList" not "images"
+	Total    int         `json:"total"`
+	Page     int         `json:"page"`
+	PageSize int         `json:"pageSize"`
+}
+
+// ImageInfo represents individual image information
+type ImageInfo struct {
+	ImageID      string  `json:"imageId"`
+	ImageName    string  `json:"imageName"`
+	Status       string  `json:"status"`
+	Type         string  `json:"type"`
+	OSType       string  `json:"osType"`
+	UpdateTime   string  `json:"updateTime"`   // API uses "updateTime" not "updatedAt"
+	GmtCreate    *string `json:"gmtCreate"`    // Can be null
+	GmtUpdate    *string `json:"gmtUpdate"`    // Can be null
+	LastUsedTime *string `json:"lastUsedTime"` // Can be null
 }
 
 // GetUploadCredential retrieves upload credentials for image upload
@@ -276,6 +309,96 @@ func (i *ImageAPIService) GetImageTask(ctx context.Context, loginToken, sessionI
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: "taskId parameter is required"}
 	}
 	localVarQueryParams.Add("taskId", taskId)
+
+	// Prepare request
+	req, err := i.client.prepareRequest(ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := i.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = i.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+// ListImages retrieves a list of images with pagination
+func (i *ImageAPIService) ListImages(ctx context.Context, loginToken, sessionId, imageType string, page, pageSize int) (ImageListResponse, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		localVarReturnValue ImageListResponse
+	)
+
+	// Build the request path
+	localVarPath := "/api/image/list"
+
+	// Use the configured server URL (defaults to agb.cloud)
+	serverURL, err := i.client.cfg.ServerURLWithContext(ctx, "ListImages")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath = serverURL + localVarPath
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+
+	// Set headers
+	localVarHeaderParams["Accept"] = "application/json"
+
+	// Validate required parameters
+	if loginToken == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "loginToken parameter is required"}
+	}
+	localVarQueryParams.Add("loginToken", loginToken)
+
+	if sessionId == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "sessionId parameter is required"}
+	}
+	localVarQueryParams.Add("sessionId", sessionId)
+
+	if imageType == "" {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "imageType parameter is required"}
+	}
+	localVarQueryParams.Add("imageType", imageType)
+
+	// Validate pagination parameters
+	if page <= 0 {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "page must be greater than 0"}
+	}
+	localVarQueryParams.Add("page", fmt.Sprintf("%d", page))
+
+	if pageSize <= 0 {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: "pageSize must be greater than 0"}
+	}
+	localVarQueryParams.Add("pageSize", fmt.Sprintf("%d", pageSize))
 
 	// Prepare request
 	req, err := i.client.prepareRequest(ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams)

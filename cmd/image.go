@@ -62,6 +62,20 @@ var imageActivateCmd = &cobra.Command{
 	},
 }
 
+var imageListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List images",
+	Long: `List images with pagination support.
+
+Image types:
+  User   - Custom images created by users
+  System - System-provided base images`,
+	Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runImageList(cmd, args)
+	},
+}
+
 func init() {
 	// Add flags for create command
 	imageCreateCmd.Flags().StringP("dockerfile", "f", "", "Path to Dockerfile (required)")
@@ -72,9 +86,15 @@ func init() {
 	imageActivateCmd.Flags().IntP("cpu", "c", 0, "CPU cores")
 	imageActivateCmd.Flags().IntP("memory", "m", 0, "Memory in GB")
 
+	// Add flags for list command
+	imageListCmd.Flags().StringP("type", "t", "User", "Image type: User (custom images) or System (base images)")
+	imageListCmd.Flags().IntP("page", "p", 1, "Page number (default: 1)")
+	imageListCmd.Flags().IntP("size", "s", 10, "Page size (default: 10)")
+
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
 	ImageCmd.AddCommand(imageActivateCmd)
+	ImageCmd.AddCommand(imageListCmd)
 }
 
 func runImageCreate(cmd *cobra.Command, args []string) error {
@@ -194,6 +214,72 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runImageList(cmd *cobra.Command, args []string) error {
+	imageType, _ := cmd.Flags().GetString("type")
+	page, _ := cmd.Flags().GetInt("page")
+	pageSize, _ := cmd.Flags().GetInt("size")
+
+	fmt.Printf("📋 Listing %s images (Page %d, Size %d)...\n", imageType, page, pageSize)
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if cfg.Token == nil || cfg.Token.LoginToken == "" || cfg.Token.SessionId == "" {
+		return fmt.Errorf("not authenticated. Please run 'agbcloud login' first")
+	}
+
+	// Create API client
+	apiClient := client.NewFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Call ListImages API
+	fmt.Println("🔍 Fetching image list...")
+	listResp, httpResp, err := apiClient.ImageAPI.ListImages(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageType, page, pageSize)
+	if err != nil {
+		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			if httpResp != nil {
+				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+			}
+			return fmt.Errorf("failed to list images: %s", apiErr.Error())
+		}
+		return fmt.Errorf("network error: %v", err)
+	}
+
+	if !listResp.Success {
+		fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+		return fmt.Errorf("failed to list images: %s", listResp.Code)
+	}
+
+	// Display results
+	fmt.Printf("✅ Found %d images (Total: %d)\n", len(listResp.Data.Images), listResp.Data.Total)
+	fmt.Printf("📄 Page %d of %d (Page Size: %d)\n\n", listResp.Data.Page, (listResp.Data.Total+listResp.Data.PageSize-1)/listResp.Data.PageSize, listResp.Data.PageSize)
+
+	if len(listResp.Data.Images) == 0 {
+		fmt.Println("📭 No images found.")
+		return nil
+	}
+
+	// Display image table
+	fmt.Printf("%-15s %-25s %-12s %-20s %-20s\n", "IMAGE ID", "IMAGE NAME", "STATUS", "TYPE", "UPDATED AT")
+	fmt.Printf("%-15s %-25s %-12s %-20s %-20s\n", "--------", "----------", "------", "----", "----------")
+
+	for _, image := range listResp.Data.Images {
+		fmt.Printf("%-15s %-25s %-12s %-20s %-20s\n",
+			truncateString(image.ImageID, 15),
+			truncateString(image.ImageName, 25),
+			formatImageStatus(image.Status),
+			truncateString(image.Type, 20),
+			formatTimestamp(image.UpdateTime))
+	}
+
+	return nil
+}
+
 // uploadDockerfile uploads the dockerfile content to the provided OSS URL
 func uploadDockerfile(dockerfilePath, ossURL string) error {
 	// Read dockerfile content
@@ -291,5 +377,45 @@ func pollImageTask(ctx context.Context, apiClient *client.APIClient, loginToken,
 				continue
 			}
 		}
+	}
+}
+
+// truncateString truncates a string to the specified length with ellipsis
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
+}
+
+// formatTimestamp formats a timestamp string for display
+func formatTimestamp(timestamp string) string {
+	if timestamp == "" {
+		return "-"
+	}
+	// Try to parse and format the timestamp
+	if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
+		return t.Format("2006-01-02 15:04")
+	}
+	// If parsing fails, return the original string truncated
+	return truncateString(timestamp, 20)
+}
+
+// formatImageStatus formats image status for better readability
+func formatImageStatus(status string) string {
+	switch status {
+	case "IMAGE_AVAILABLE":
+		return "Available"
+	case "IMAGE_BUILDING":
+		return "Building"
+	case "IMAGE_FAILED":
+		return "Failed"
+	case "IMAGE_PENDING":
+		return "Pending"
+	default:
+		return status
 	}
 }

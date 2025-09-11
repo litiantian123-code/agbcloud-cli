@@ -22,20 +22,23 @@ func TestImageCommand(t *testing.T) {
 
 	// Test that subcommands exist
 	subcommands := cmd.ImageCmd.Commands()
-	assert.Len(t, subcommands, 2)
+	assert.Len(t, subcommands, 3)
 
-	var createCmd, activateCmd *cobra.Command
+	var createCmd, activateCmd, listCmd *cobra.Command
 	for _, subcmd := range subcommands {
-		switch subcmd.Use {
-		case "create <image-name>":
+		switch {
+		case strings.HasPrefix(subcmd.Use, "create"):
 			createCmd = subcmd
-		case "activate <image-id>":
+		case strings.HasPrefix(subcmd.Use, "activate"):
 			activateCmd = subcmd
+		case subcmd.Use == "list":
+			listCmd = subcmd
 		}
 	}
 
 	require.NotNil(t, createCmd, "create subcommand should exist")
 	require.NotNil(t, activateCmd, "activate subcommand should exist")
+	require.NotNil(t, listCmd, "list subcommand should exist")
 }
 
 func TestImageCreateCommand(t *testing.T) {
@@ -81,12 +84,62 @@ func TestImageActivateCommand(t *testing.T) {
 	assert.Equal(t, "activate <image-id>", activateCmd.Use)
 	assert.Equal(t, "Activate an image", activateCmd.Short)
 
-	// Test optional flags
+	// Test flags
 	cpuFlag := activateCmd.Flag("cpu")
 	require.NotNil(t, cpuFlag, "cpu flag should exist")
 
 	memoryFlag := activateCmd.Flag("memory")
 	require.NotNil(t, memoryFlag, "memory flag should exist")
+}
+
+func TestImageListCommand(t *testing.T) {
+	// Get list subcommand
+	var listCmd *cobra.Command
+	for _, subcmd := range cmd.ImageCmd.Commands() {
+		if subcmd.Use == "list" {
+			listCmd = subcmd
+			break
+		}
+	}
+	require.NotNil(t, listCmd, "list subcommand should exist")
+
+	// Test command structure
+	assert.Equal(t, "list", listCmd.Use)
+	assert.Equal(t, "List images", listCmd.Short)
+	expectedLong := `List images with pagination support.
+
+Image types:
+  User   - Custom images created by users
+  System - System-provided base images`
+	assert.Equal(t, expectedLong, listCmd.Long)
+
+	// Test flags
+	typeFlag := listCmd.Flag("type")
+	require.NotNil(t, typeFlag, "type flag should exist")
+	assert.Equal(t, "User", typeFlag.DefValue, "type flag default should be 'User'")
+
+	pageFlag := listCmd.Flag("page")
+	require.NotNil(t, pageFlag, "page flag should exist")
+	assert.Equal(t, "1", pageFlag.DefValue, "page flag default should be '1'")
+
+	sizeFlag := listCmd.Flag("size")
+	require.NotNil(t, sizeFlag, "size flag should exist")
+	assert.Equal(t, "10", sizeFlag.DefValue, "size flag default should be '10'")
+}
+
+func TestImageCommandStructure(t *testing.T) {
+	// Test that all expected subcommands exist
+	subcommands := cmd.ImageCmd.Commands()
+	assert.Len(t, subcommands, 3, "Should have 3 subcommands: create, activate, list")
+
+	commandNames := make([]string, len(subcommands))
+	for i, subcmd := range subcommands {
+		commandNames[i] = strings.Split(subcmd.Use, " ")[0] // Get the first word (command name)
+	}
+
+	assert.Contains(t, commandNames, "create", "Should have create subcommand")
+	assert.Contains(t, commandNames, "activate", "Should have activate subcommand")
+	assert.Contains(t, commandNames, "list", "Should have list subcommand")
 }
 
 func TestImageCreateCommandArgumentValidation(t *testing.T) {

@@ -356,6 +356,206 @@ func TestImageAPIGetImageTask(t *testing.T) {
 	t.Logf("   - ImageID: %v", response.Data.ImageID)
 }
 
+// TestImageAPIListImages tests the ListImages method with mock server
+func TestImageAPIListImages(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify request method and path
+		if r.Method != "GET" {
+			t.Errorf("Expected GET request, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/image/list" {
+			t.Errorf("Expected path /api/image/list, got %s", r.URL.Path)
+		}
+
+		// Verify query parameters
+		loginToken := r.URL.Query().Get("loginToken")
+		sessionId := r.URL.Query().Get("sessionId")
+		imageType := r.URL.Query().Get("imageType")
+		page := r.URL.Query().Get("page")
+		pageSize := r.URL.Query().Get("pageSize")
+
+		if loginToken != "test-login-token" {
+			t.Errorf("Expected loginToken test-login-token, got %s", loginToken)
+		}
+		if sessionId != "test-session-id" {
+			t.Errorf("Expected sessionId test-session-id, got %s", sessionId)
+		}
+		if imageType != "User" {
+			t.Errorf("Expected imageType User, got %s", imageType)
+		}
+		if page != "1" {
+			t.Errorf("Expected page 1, got %s", page)
+		}
+		if pageSize != "10" {
+			t.Errorf("Expected pageSize 10, got %s", pageSize)
+		}
+
+		// Mock successful response
+		response := client.ImageListResponse{
+			Code:      "success",
+			RequestID: "test-list-request-id",
+			Success:   true,
+			Data: client.ImageListData{
+				Images: []client.ImageInfo{
+					{
+						ImageID:    "img-12345",
+						ImageName:  "my-custom-image",
+						Status:     "IMAGE_AVAILABLE",
+						Type:       "CodeSpace",
+						OSType:     "Linux",
+						UpdateTime: "2025-01-01T10:30:00Z",
+					},
+					{
+						ImageID:    "img-67890",
+						ImageName:  "another-image",
+						Status:     "IMAGE_BUILDING",
+						Type:       "CodeSpace",
+						OSType:     "Linux",
+						UpdateTime: "2025-01-01T11:15:00Z",
+					},
+				},
+				Total:    2,
+				Page:     1,
+				PageSize: 10,
+			},
+			TraceID:        "test-list-trace-id",
+			HTTPStatusCode: 200,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	// Create client configuration
+	cfg := client.NewConfiguration()
+	cfg.Servers[0].URL = server.URL
+
+	// Create API client
+	apiClient := client.NewAPIClient(cfg)
+
+	// Test context
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Call ListImages
+	response, httpResp, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 1, 10)
+
+	// Verify no error
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	// Verify HTTP response
+	if httpResp.StatusCode != 200 {
+		t.Errorf("Expected status code 200, got %d", httpResp.StatusCode)
+	}
+
+	// Verify response data
+	if !response.Success {
+		t.Error("Expected success to be true")
+	}
+	if response.Code != "success" {
+		t.Errorf("Expected code 'success', got '%s'", response.Code)
+	}
+	if response.Data.Total != 2 {
+		t.Errorf("Expected Total 2, got %d", response.Data.Total)
+	}
+	if response.Data.Page != 1 {
+		t.Errorf("Expected Page 1, got %d", response.Data.Page)
+	}
+	if response.Data.PageSize != 10 {
+		t.Errorf("Expected PageSize 10, got %d", response.Data.PageSize)
+	}
+	if len(response.Data.Images) != 2 {
+		t.Errorf("Expected 2 images, got %d", len(response.Data.Images))
+	}
+
+	// Verify first image
+	firstImage := response.Data.Images[0]
+	if firstImage.ImageID != "img-12345" {
+		t.Errorf("Expected first image ID 'img-12345', got '%s'", firstImage.ImageID)
+	}
+	if firstImage.ImageName != "my-custom-image" {
+		t.Errorf("Expected first image name 'my-custom-image', got '%s'", firstImage.ImageName)
+	}
+	if firstImage.Status != "IMAGE_AVAILABLE" {
+		t.Errorf("Expected first image status 'IMAGE_AVAILABLE', got '%s'", firstImage.Status)
+	}
+
+	t.Logf("✅ ListImages test passed!")
+	t.Logf("   - Total images: %d", response.Data.Total)
+	t.Logf("   - Page: %d, PageSize: %d", response.Data.Page, response.Data.PageSize)
+	t.Logf("   - First image: %s (%s)", firstImage.ImageName, firstImage.Status)
+}
+
+// TestImageAPIListImagesParameterValidation tests parameter validation for ListImages
+func TestImageAPIListImagesParameterValidation(t *testing.T) {
+	// Create client configuration
+	cfg := client.NewConfiguration()
+	cfg.Servers[0].URL = "http://localhost:8080" // Dummy URL
+
+	// Create API client
+	apiClient := client.NewAPIClient(cfg)
+
+	// Test context
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	t.Run("ListImages_EmptyLoginToken", func(t *testing.T) {
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "", "test-session-id", "User", 1, 10)
+		if err == nil {
+			t.Error("Expected error for empty loginToken")
+		}
+		if !contains(err.Error(), "loginToken parameter is required") {
+			t.Errorf("Expected loginToken error message, got: %s", err.Error())
+		}
+	})
+
+	t.Run("ListImages_EmptySessionId", func(t *testing.T) {
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "", "User", 1, 10)
+		if err == nil {
+			t.Error("Expected error for empty sessionId")
+		}
+		if !contains(err.Error(), "sessionId parameter is required") {
+			t.Errorf("Expected sessionId error message, got: %s", err.Error())
+		}
+	})
+
+	t.Run("ListImages_EmptyImageType", func(t *testing.T) {
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "", 1, 10)
+		if err == nil {
+			t.Error("Expected error for empty imageType")
+		}
+		if !contains(err.Error(), "imageType parameter is required") {
+			t.Errorf("Expected imageType error message, got: %s", err.Error())
+		}
+	})
+
+	t.Run("ListImages_InvalidPage", func(t *testing.T) {
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 0, 10)
+		if err == nil {
+			t.Error("Expected error for invalid page")
+		}
+		if !contains(err.Error(), "page must be greater than 0") {
+			t.Errorf("Expected page validation error message, got: %s", err.Error())
+		}
+	})
+
+	t.Run("ListImages_InvalidPageSize", func(t *testing.T) {
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 1, 0)
+		if err == nil {
+			t.Error("Expected error for invalid pageSize")
+		}
+		if !contains(err.Error(), "pageSize must be greater than 0") {
+			t.Errorf("Expected pageSize validation error message, got: %s", err.Error())
+		}
+	})
+
+	t.Logf("✅ ListImages parameter validation tests passed!")
+}
+
 // Helper function to check if string contains substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || (len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || containsAt(s, substr))))
