@@ -64,71 +64,71 @@ func (c *APIClient) GetConfig() *Configuration {
 
 // callAPI do the request.
 func (c *APIClient) callAPI(request *http.Request) (*http.Response, error) {
-	// Always log request information for debugging (similar to Python version)
-	log.Printf("\n=== HTTP Request Information ===")
-	log.Printf("URL: %s", request.URL.String())
-	log.Printf("Method: %s", request.Method)
-	log.Printf("Headers: %v", request.Header)
+	// Log request information for debugging (only shown with -v flag)
+	log.Debugf("\n=== HTTP Request Information ===")
+	log.Debugf("URL: %s", request.URL.String())
+	log.Debugf("Method: %s", request.Method)
+	log.Debugf("Headers: %v", request.Header)
 
 	if request.Body != nil {
 		// Read body for logging without consuming it
 		bodyBytes, err := io.ReadAll(request.Body)
 		if err == nil {
-			log.Printf("Request Body: %s", string(bodyBytes))
+			log.Debugf("Request Body: %s", string(bodyBytes))
 			// Restore the body
 			request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		}
 	} else {
-		log.Printf("Request Body: None")
+		log.Debugf("Request Body: None")
 	}
-	log.Printf("=" + strings.Repeat("=", 49))
+	log.Debugf("=" + strings.Repeat("=", 49))
 
 	if c.cfg.Debug {
 		dump, err := httputil.DumpRequestOut(request, true)
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("\n%s\n", string(dump))
+		log.Debugf("\n%s\n", string(dump))
 	}
 
 	resp, err := c.cfg.HTTPClient.Do(request)
 	if err != nil {
-		log.Printf("\n=== HTTP Request Error ===")
-		log.Printf("Error Type: %T", err)
-		log.Printf("Error Message: %s", err.Error())
-		log.Printf("Request URL: %s", request.URL.String())
-		log.Printf("=" + strings.Repeat("=", 49))
+		log.Debugf("\n=== HTTP Request Error ===")
+		log.Debugf("Error Type: %T", err)
+		log.Debugf("Error Message: %s", err.Error())
+		log.Debugf("Request URL: %s", request.URL.String())
+		log.Debugf("=" + strings.Repeat("=", 49))
 		return resp, err
 	}
 
-	// Log response information
-	log.Printf("\n=== HTTP Response Information ===")
-	log.Printf("Status Code: %d", resp.StatusCode)
-	log.Printf("Status: %s", resp.Status)
-	log.Printf("Headers: %v", resp.Header)
+	// Log response information for debugging (only shown with -v flag)
+	log.Debugf("\n=== HTTP Response Information ===")
+	log.Debugf("Status Code: %d", resp.StatusCode)
+	log.Debugf("Status: %s", resp.Status)
+	log.Debugf("Headers: %v", resp.Header)
 
-	// Always log response body for debugging
+	// Log response body for debugging
 	if resp.Body != nil {
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err == nil {
-			log.Printf("Response Body: %s", string(bodyBytes))
+			log.Debugf("Response Body: %s", string(bodyBytes))
 			// Restore the body
 			resp.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		} else {
-			log.Printf("Response Body: Error reading body - %v", err)
+			log.Debugf("Response Body: Error reading body - %v", err)
 		}
 	} else {
-		log.Printf("Response Body: None")
+		log.Debugf("Response Body: None")
 	}
 
-	log.Printf("=" + strings.Repeat("=", 49))
+	log.Debugf("=" + strings.Repeat("=", 49))
 
 	if c.cfg.Debug {
 		dump, err := httputil.DumpResponse(resp, true)
 		if err != nil {
 			return resp, err
 		}
-		log.Printf("\n%s\n", string(dump))
+		log.Debugf("\n%s\n", string(dump))
 	}
 	return resp, err
 }

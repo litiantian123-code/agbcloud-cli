@@ -444,7 +444,7 @@ func TestImageAPIListImages(t *testing.T) {
 	defer cancel()
 
 	// Call ListImages
-	response, httpResp, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 1, 10, nil)
+	response, httpResp, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 1, 10)
 
 	// Verify no error
 	if err != nil {
@@ -508,7 +508,7 @@ func TestImageAPIListImagesParameterValidation(t *testing.T) {
 	defer cancel()
 
 	t.Run("ListImages_EmptyLoginToken", func(t *testing.T) {
-		_, _, err := apiClient.ImageAPI.ListImages(ctx, "", "test-session-id", "User", 1, 10, nil)
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "", "test-session-id", "User", 1, 10)
 		if err == nil {
 			t.Error("Expected error for empty loginToken")
 		}
@@ -518,7 +518,7 @@ func TestImageAPIListImagesParameterValidation(t *testing.T) {
 	})
 
 	t.Run("ListImages_EmptySessionId", func(t *testing.T) {
-		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "", "User", 1, 10, nil)
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "", "User", 1, 10)
 		if err == nil {
 			t.Error("Expected error for empty sessionId")
 		}
@@ -528,7 +528,7 @@ func TestImageAPIListImagesParameterValidation(t *testing.T) {
 	})
 
 	t.Run("ListImages_EmptyImageType", func(t *testing.T) {
-		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "", 1, 10, nil)
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "", 1, 10)
 		if err == nil {
 			t.Error("Expected error for empty imageType")
 		}
@@ -538,7 +538,7 @@ func TestImageAPIListImagesParameterValidation(t *testing.T) {
 	})
 
 	t.Run("ListImages_InvalidPage", func(t *testing.T) {
-		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 0, 10, nil)
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 0, 10)
 		if err == nil {
 			t.Error("Expected error for invalid page")
 		}
@@ -548,7 +548,7 @@ func TestImageAPIListImagesParameterValidation(t *testing.T) {
 	})
 
 	t.Run("ListImages_InvalidPageSize", func(t *testing.T) {
-		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 1, 0, nil)
+		_, _, err := apiClient.ImageAPI.ListImages(ctx, "test-login-token", "test-session-id", "User", 1, 0)
 		if err == nil {
 			t.Error("Expected error for invalid pageSize")
 		}
@@ -785,10 +785,13 @@ func TestImageAPIService_StopImage(t *testing.T) {
 
 			// Send success response
 			response := client.ImageStopResponse{
-				Code:           "SUCCESS",
-				RequestID:      "req-stop-12345",
-				Success:        true,
-				Data:           true,
+				Code:      "SUCCESS",
+				RequestID: "req-stop-12345",
+				Success:   true,
+				Data: client.ImageStopData{
+					InstanceID: "inst-67890",
+					Status:     "STOPPING",
+				},
 				TraceID:        "trace-stop-12345",
 				HTTPStatusCode: 200,
 			}
@@ -815,8 +818,8 @@ func TestImageAPIService_StopImage(t *testing.T) {
 		assert.True(t, resp.Success)
 		assert.Equal(t, "SUCCESS", resp.Code)
 		assert.Equal(t, "req-stop-12345", resp.RequestID)
-		assert.True(t, resp.Data)
-
+		assert.Equal(t, "inst-67890", resp.Data.InstanceID)
+		assert.Equal(t, "STOPPING", resp.Data.Status)
 	})
 
 	// Test missing required parameters
@@ -860,7 +863,7 @@ func TestImageAPIService_StopImage(t *testing.T) {
 				Code:      "INVALID_IMAGE_ID",
 				RequestID: "req-error-stop-123",
 				Success:   false,
-				Data:      false,
+				Data:      client.ImageStopData{},
 				TraceID:   "trace-error-stop-123",
 			}
 

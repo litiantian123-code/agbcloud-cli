@@ -62,6 +62,24 @@ var imageActivateCmd = &cobra.Command{
 	},
 }
 
+var imageDeactivateCmd = &cobra.Command{
+	Use:   "deactivate <image-id>",
+	Short: "Deactivate an image",
+	Long:  "Deactivate a running image instance",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("❌ Missing required argument: <image-id>\n\n💡 Usage: agbcloud image deactivate <image-id>\n📝 Example: agbcloud image deactivate img-7a8b9c1d0e")
+		}
+		if len(args) > 1 {
+			return fmt.Errorf("❌ Too many arguments provided. Expected 1 argument (image ID), got %d\n\n💡 Usage: agbcloud image deactivate <image-id>\n📝 Example: agbcloud image deactivate img-7a8b9c1d0e", len(args))
+		}
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runImageDeactivate(cmd, args)
+	},
+}
+
 var imageListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List images",
@@ -94,6 +112,7 @@ func init() {
 	// Add subcommands to image command
 	ImageCmd.AddCommand(imageCreateCmd)
 	ImageCmd.AddCommand(imageActivateCmd)
+	ImageCmd.AddCommand(imageDeactivateCmd)
 	ImageCmd.AddCommand(imageListCmd)
 }
 
@@ -205,11 +224,145 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	memory, _ := cmd.Flags().GetInt("memory")
 
 	fmt.Printf("🚀 Activating image '%s'...\n", imageId)
-	fmt.Printf("💾 CPU: %d cores, Memory: %d GB\n", cpu, memory)
+	if cpu > 0 || memory > 0 {
+		fmt.Printf("💾 CPU: %d cores, Memory: %d GB\n", cpu, memory)
+	}
 
-	// TODO: Implement activate logic when API is ready
-	fmt.Println("⚠️  Image activation API is not yet available")
-	fmt.Println("📝 This command will be implemented when the backend API is ready")
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if cfg.Token == nil || cfg.Token.LoginToken == "" || cfg.Token.SessionId == "" {
+		return fmt.Errorf("not authenticated. Please run 'agbcloud login' first")
+	}
+
+	// Create API client
+	apiClient := client.NewFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Check current image status first
+	fmt.Println("🔍 Checking current image status...")
+	listResp, httpResp, err := apiClient.ImageAPI.ListImages(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, "User", 1, 1, []string{imageId})
+	if err != nil {
+		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			if httpResp != nil {
+				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+			}
+			return fmt.Errorf("failed to check image status: %s", apiErr.Error())
+		}
+		return fmt.Errorf("network error: %v", err)
+	}
+
+	if !listResp.Success {
+		fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+		return fmt.Errorf("failed to check image status: %s", listResp.Code)
+	}
+
+	// Check if image exists
+	if len(listResp.Data.Images) == 0 {
+		return fmt.Errorf("image not found: %s", imageId)
+	}
+
+	image := listResp.Data.Images[0]
+	currentStatus := image.Status
+	formattedStatus := formatImageStatus(currentStatus)
+
+	fmt.Printf("📊 Current Status: %s\n", formattedStatus)
+
+	// Handle different current statuses
+	switch currentStatus {
+	case "RESOURCE_PUBLISHED":
+		fmt.Printf("✅ Image is already activated! Image ID: %s\n", imageId)
+		fmt.Printf("📊 Status: %s\n", formattedStatus)
+		return nil
+	case "RESOURCE_DEPLOYING":
+		fmt.Printf("🔄 Image is already activating, joining the activation process...\n")
+		fmt.Println("⏳ Monitoring image activation status...")
+		return pollImageActivationStatus(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
+	case "RESOURCE_FAILED", "RESOURCE_CEASED":
+		fmt.Printf("⚠️  Image is in failed state (%s), attempting to restart activation...\n", formattedStatus)
+	case "IMAGE_AVAILABLE":
+		fmt.Printf("✅ Image is available, proceeding with activation...\n")
+	default:
+		fmt.Printf("📊 Image status: %s, proceeding with activation...\n", formattedStatus)
+	}
+
+	// Call StartImage API
+	fmt.Println("🔄 Starting image activation...")
+	startResp, httpResp, err := apiClient.ImageAPI.StartImage(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageId, cpu, memory)
+	if err != nil {
+		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			if httpResp != nil {
+				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+			}
+			return fmt.Errorf("failed to start image: %s", apiErr.Error())
+		}
+		return fmt.Errorf("network error: %v", err)
+	}
+
+	if !startResp.Success {
+		fmt.Printf("🔍 Request ID: %s\n", startResp.RequestID)
+		return fmt.Errorf("failed to start image: %s", startResp.Code)
+	}
+
+	// Display success information
+	fmt.Printf("✅ Image activation initiated successfully!\n")
+	fmt.Printf("📊 Operation Status: %v\n", startResp.Data)
+	fmt.Printf("🔍 Request ID: %s\n", startResp.RequestID)
+
+	// Start status polling
+	fmt.Println("⏳ Monitoring image activation status...")
+	return pollImageActivationStatus(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
+}
+
+func runImageDeactivate(cmd *cobra.Command, args []string) error {
+	imageId := args[0]
+
+	fmt.Printf("🛑 Deactivating image '%s'...\n", imageId)
+
+	// Load configuration and check authentication
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	if cfg.Token == nil || cfg.Token.LoginToken == "" || cfg.Token.SessionId == "" {
+		return fmt.Errorf("not authenticated. Please run 'agbcloud login' first")
+	}
+
+	// Create API client
+	apiClient := client.NewFromConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Call StopImage API
+	fmt.Println("🔄 Deactivating image instance...")
+	stopResp, httpResp, err := apiClient.ImageAPI.StopImage(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
+	if err != nil {
+		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			if httpResp != nil {
+				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+			}
+			return fmt.Errorf("failed to deactivate image: %s", apiErr.Error())
+		}
+		return fmt.Errorf("network error: %v", err)
+	}
+
+	if !stopResp.Success {
+		fmt.Printf("🔍 Request ID: %s\n", stopResp.RequestID)
+		return fmt.Errorf("failed to deactivate image: %s", stopResp.Code)
+	}
+
+	// Display success information
+	fmt.Printf("✅ Image deactivation initiated successfully!\n")
+	fmt.Printf("📊 Operation Status: %v\n", stopResp.Data)
+	fmt.Printf("🔍 Request ID: %s\n", stopResp.RequestID)
 
 	return nil
 }
@@ -238,7 +391,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 
 	// Call ListImages API
 	fmt.Println("🔍 Fetching image list...")
-	listResp, httpResp, err := apiClient.ImageAPI.ListImages(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageType, page, pageSize)
+	listResp, httpResp, err := apiClient.ImageAPI.ListImages(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageType, page, pageSize, nil)
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
 			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
@@ -265,15 +418,15 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Display image table
-	fmt.Printf("%-15s %-25s %-12s %-20s %-20s\n", "IMAGE ID", "IMAGE NAME", "STATUS", "TYPE", "UPDATED AT")
-	fmt.Printf("%-15s %-25s %-12s %-20s %-20s\n", "--------", "----------", "------", "----", "----------")
+	fmt.Printf("%-25s %-25s %-20s %-15s %-20s\n", "IMAGE ID", "IMAGE NAME", "STATUS", "TYPE", "UPDATED AT")
+	fmt.Printf("%-25s %-25s %-20s %-15s %-20s\n", "--------", "----------", "------", "----", "----------")
 
 	for _, image := range listResp.Data.Images {
-		fmt.Printf("%-15s %-25s %-12s %-20s %-20s\n",
-			truncateString(image.ImageID, 15),
+		fmt.Printf("%-25s %-25s %-20s %-15s %-20s\n",
+			image.ImageID, // Show full IMAGE ID without truncation
 			truncateString(image.ImageName, 25),
 			formatImageStatus(image.Status),
-			truncateString(image.Type, 20),
+			truncateString(image.Type, 15),
 			formatTimestamp(image.UpdateTime))
 	}
 
@@ -391,14 +544,16 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// formatTimestamp formats a timestamp string for display
+// formatTimestamp formats a timestamp string for display in local timezone
 func formatTimestamp(timestamp string) string {
 	if timestamp == "" {
 		return "-"
 	}
-	// Try to parse and format the timestamp
+	// Try to parse the UTC timestamp and convert to local timezone
 	if t, err := time.Parse(time.RFC3339, timestamp); err == nil {
-		return t.Format("2006-01-02 15:04")
+		// Convert UTC time to local timezone
+		localTime := t.Local()
+		return localTime.Format("2006-01-02 15:04")
 	}
 	// If parsing fails, return the original string truncated
 	return truncateString(timestamp, 20)
@@ -407,15 +562,97 @@ func formatTimestamp(timestamp string) string {
 // formatImageStatus formats image status for better readability
 func formatImageStatus(status string) string {
 	switch status {
+	// Image creation related statuses
+	case "IMAGE_CREATING":
+		return "Creating"
+	case "IMAGE_CREATE_FAILED":
+		return "Create Failed"
 	case "IMAGE_AVAILABLE":
 		return "Available"
-	case "IMAGE_BUILDING":
-		return "Building"
-	case "IMAGE_FAILED":
-		return "Failed"
-	case "IMAGE_PENDING":
-		return "Pending"
+
+	// Resource activation related statuses
+	case "RESOURCE_DEPLOYING":
+		return "Activating"
+	case "RESOURCE_PUBLISHED":
+		return "Activated"
+	case "RESOURCE_DELETING":
+		return "Deactivating"
+	case "RESOURCE_FAILED":
+		return "Activate Failed"
+	case "RESOURCE_CEASED":
+		return "Ceased Billing"
+
 	default:
 		return status
+	}
+}
+
+// pollImageActivationStatus polls the image activation status until completion or failure
+func pollImageActivationStatus(ctx context.Context, apiClient *client.APIClient, loginToken, sessionId, imageId string) error {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	// Create a new context with longer timeout for polling
+	pollCtx, pollCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer pollCancel()
+
+	for {
+		select {
+		case <-pollCtx.Done():
+			fmt.Printf("📋 Image ID: %s\n", imageId)
+			return fmt.Errorf("timeout waiting for image activation to complete")
+		case <-ticker.C:
+			// Query specific image status using ListImages with imageIds filter
+			listResp, httpResp, err := apiClient.ImageAPI.ListImages(pollCtx, loginToken, sessionId, "User", 1, 1, []string{imageId})
+			if err != nil {
+				if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+					fmt.Printf("⚠️  Warning: Failed to check image status: %s\n", apiErr.Error())
+					if httpResp != nil {
+						fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+					}
+					fmt.Printf("📋 Image ID: %s\n", imageId)
+					continue // Continue polling on API errors
+				}
+				fmt.Printf("📋 Image ID: %s\n", imageId)
+				return fmt.Errorf("network error checking image status: %v", err)
+			}
+
+			if !listResp.Success {
+				fmt.Printf("⚠️  Warning: Image status check failed: %s\n", listResp.Code)
+				fmt.Printf("📋 Image ID: %s\n", imageId)
+				fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+				continue // Continue polling on API errors
+			}
+
+			// Check if we found the image
+			if len(listResp.Data.Images) == 0 {
+				fmt.Printf("⚠️  Warning: Image not found: %s\n", imageId)
+				continue // Continue polling
+			}
+
+			image := listResp.Data.Images[0]
+			status := image.Status
+			formattedStatus := formatImageStatus(status)
+
+			fmt.Printf("📊 Status: %s", formattedStatus)
+			fmt.Println()
+
+			switch status {
+			case "RESOURCE_PUBLISHED":
+				fmt.Printf("🎉 Image activated successfully! Image ID: %s\n", imageId)
+				fmt.Printf("📊 Final Status: %s\n", formattedStatus)
+				return nil
+			case "RESOURCE_FAILED", "RESOURCE_CEASED":
+				fmt.Printf("📋 Image ID: %s\n", imageId)
+				fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+				return fmt.Errorf("image activation failed with status: %s", formattedStatus)
+			case "RESOURCE_DEPLOYING":
+				// Continue polling
+				continue
+			default:
+				fmt.Printf("🔄 Unknown status '%s', continuing to monitor...\n", formattedStatus)
+				continue
+			}
+		}
 	}
 }

@@ -40,7 +40,25 @@ func init() {
 	// Global flags
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
 	rootCmd.PersistentFlags().BoolP("help", "", false, "help for agbcloud")
-	rootCmd.Flags().BoolP("version", "v", false, "Display the version of AgbCloud CLI")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
+	rootCmd.Flags().BoolP("version", "", false, "Display the version of AgbCloud CLI")
+
+	// Handle version flag and verbose flag
+	rootCmd.PersistentPreRun = func(command *cobra.Command, args []string) {
+		// Set up logging based on verbose flag
+		verbose, _ := command.Flags().GetBool("verbose")
+		if verbose {
+			log.SetLevel(log.DebugLevel)
+		} else {
+			log.SetLevel(log.InfoLevel)
+		}
+
+		// Set log format to be more CLI-friendly
+		log.SetFormatter(&log.TextFormatter{
+			DisableTimestamp: true,
+			DisableColors:    false,
+		})
+	}
 
 	// Handle version flag
 	rootCmd.PreRun = func(command *cobra.Command, args []string) {
