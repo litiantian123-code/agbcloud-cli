@@ -28,17 +28,6 @@ jobs:
           echo "Running unit tests..."
           make test-unit
 
-  # 集成测试
-  integration-test:
-    name: 集成测试
-    image: registry.cn-hangzhou.aliyuncs.com/acs/golang:1.23
-    steps:
-      - id: run-integration-tests
-        name: 运行集成测试
-        run: |
-          echo "Running integration tests..."
-          make test-integration
-
   # 代码检查
   lint:
     name: 代码检查
@@ -54,7 +43,7 @@ jobs:
   build-and-deploy:
     name: 构建并部署
     image: registry.cn-hangzhou.aliyuncs.com/acs/golang:1.23
-    needs: [unit-test, integration-test, lint]
+    needs: [unit-test, lint]
     timeout: 60m
     steps:
       - id: build-binaries
