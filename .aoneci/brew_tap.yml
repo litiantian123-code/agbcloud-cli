@@ -20,9 +20,15 @@ jobs:
   # 构建、打包、上传、部署
   build-and-deploy:
     name: 构建并部署
-    image: registry.cn-hangzhou.aliyuncs.com/acs/golang:1.23
+    runs-on: 4-16Gi
     timeout: 60m
     steps:
+      - uses: checkout
+      - uses: setup-env
+        inputs:
+          go-version: "1.23"
+          go-mod-cache: true
+          go-cache: false
       - id: build-binaries
         name: 构建多平台二进制文件
         run: |
