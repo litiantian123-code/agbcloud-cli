@@ -13,7 +13,7 @@ if ($Help) {
     Write-Host "AgbCloud CLI Installation Script"
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  .\install.ps1 [options]"
+    Write-Host "  .\install-windows-simple.ps1 [options]"
     Write-Host ""
     Write-Host "Options:"
     Write-Host "  -Version <version>      Specify version to install (e.g., 'v1.0.0', 'latest')"
@@ -28,9 +28,9 @@ if ($Help) {
     Write-Host "  AGBCLOUD_DOWNLOAD_URL   Default download base URL"
     Write-Host ""
     Write-Host "Examples:"
-    Write-Host "  .\install.ps1                    # Install latest version"
-    Write-Host "  .\install.ps1 -Version v1.2.3    # Install specific version"
-    Write-Host "  .\install.ps1 -Version latest    # Install latest version"
+    Write-Host "  .\install-windows-simple.ps1                    # Install latest version"
+    Write-Host "  .\install-windows-simple.ps1 -Version v1.2.3    # Install specific version"
+    Write-Host "  .\install-windows-simple.ps1 -Version latest    # Install latest version"
     exit 0
 }
 

@@ -70,6 +70,64 @@ $env:AGBCLOUD_VERSION = "v1.1.0"
 
 The server deployment version of the installation script with the same functionality as the main script.
 
+## Build and Release Scripts
+
+### generate-server-files.sh
+
+Generates server files and installation commands for distribution. This script is typically run after a successful build to provide installation instructions.
+
+#### Usage
+
+```bash
+# Generate files for a specific version
+VERSION="v1.2.3" ./scripts/generate-server-files.sh
+
+# Generate files with default dev version
+./scripts/generate-server-files.sh
+```
+
+#### Generated Installation Commands
+
+The script generates two types of installation commands for Windows users:
+
+**1. Latest Version Installation (Production)**
+```powershell
+powershell -Command "irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex"
+```
+
+**2. Specific Version Installation (Testing)**
+```powershell
+powershell -Command "irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex" -Version v1.2.3
+```
+
+#### Additional Installation Options
+
+The generated commands also include examples for:
+- Custom installation directory
+- Specific architecture selection
+- Help information
+
+#### Testing Team Workflow
+
+1. **For Production Testing**: Use the latest version command
+2. **For Version-Specific Testing**: Use the specific version command with the exact version number
+3. **For Custom Scenarios**: Use additional parameters as needed
+
+Example build notification output:
+```
+📋 Windows Installation Commands:
+
+🔄 Install Latest Version (recommended for production):
+   powershell -Command "irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex"
+
+🎯 Install Specific Version v1.2.3 (for testing):
+   powershell -Command "irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex" -Version v1.2.3
+
+💡 Testing Team Usage:
+   Use the specific version command above to test version v1.2.3
+   Use the latest version command for general testing
+```
+
 ## Features
 
 - **Version Selection**: Install specific versions or latest
@@ -80,6 +138,7 @@ The server deployment version of the installation script with the same functiona
 - **Comprehensive Help**: Built-in help system with examples
 - **Error Handling**: Robust error handling and fallback mechanisms
 - **PATH Management**: Automatic PATH updates with manual fallback instructions
+- **Build Integration**: Automatic generation of installation commands for CI/CD
 
 ## Compatibility
 
