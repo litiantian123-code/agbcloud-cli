@@ -197,6 +197,53 @@ jobs:
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
           export SANITIZED_TIMESTAMP=$(echo "$TIMESTAMP" | tr -d '-')
           
+          echo "=== SSH Key Setup ==="
+          # 设置SSH密钥
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # 检查SSH私钥是否设置
+          if [[ -z "${{secrets.AONE_CI_DEPLOY_KEY}}" ]]; then
+            echo "Error: AONE_CI_DEPLOY_KEY not set in secrets"
+            exit 1
+          fi
+          
+          # 将私钥写入文件
+          echo "${{secrets.AONE_CI_DEPLOY_KEY}}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # 验证私钥文件（不显示内容）
+          if [[ -f ~/.ssh/id_rsa ]]; then
+            echo "✓ SSH private key file created"
+            echo "Private key file size: $(wc -c < ~/.ssh/id_rsa) bytes"
+          else
+            echo "✗ Failed to create SSH private key file"
+            exit 1
+          fi
+          
+          # 创建SSH配置文件
+          cat > ~/.ssh/config << EOF
+          Host gitlab.alibaba-inc.com
+              HostName gitlab.alibaba-inc.com
+              User git
+              IdentityFile ~/.ssh/id_rsa
+              StrictHostKeyChecking no
+              UserKnownHostsFile /dev/null
+          EOF
+          chmod 600 ~/.ssh/config
+          
+          # 启动ssh-agent并添加密钥
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+          
+          # 测试SSH连接
+          echo "Testing SSH connection to GitLab..."
+          if ssh -T git@gitlab.alibaba-inc.com; then
+            echo "✓ SSH connection successful"
+          else
+            echo "⚠ SSH connection test completed (this is expected for GitLab)"
+          fi
+          
           echo "=== Homebrew Tap Update Debug Info ==="
           echo "VERSION: $VERSION"
           echo "GIT_COMMIT: $GIT_COMMIT"
@@ -210,19 +257,15 @@ jobs:
           export BREW_TAP_REPO="git@gitlab.alibaba-inc.com:InnoArchClub/homebrew-agbcloud.git"
           
           # 克隆 tap 仓库
+          echo "=== Git Repository Clone ==="
           echo "Cloning Homebrew Tap repository: $BREW_TAP_REPO"
+          
           if git clone "$BREW_TAP_REPO" homebrew-agbcloud; then
-            echo "✓ Successfully cloned tap repository"
+            echo "✓ Successfully cloned tap repository via SSH"
           else
-            echo "✗ Failed to clone tap repository, trying HTTPS..."
-            # 尝试使用HTTPS
-            HTTPS_REPO="https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
-            if git clone "$HTTPS_REPO" homebrew-agbcloud; then
-              echo "✓ Successfully cloned tap repository via HTTPS"
-            else
-              echo "✗ Failed to clone tap repository via both SSH and HTTPS"
-              exit 1
-            fi
+            echo "✗ Failed to clone tap repository via SSH"
+            echo "SSH key setup may have failed or repository access denied"
+            exit 1
           fi
           
           cd homebrew-agbcloud
@@ -317,17 +360,27 @@ jobs:
           Build timestamp: $TIMESTAMP"
           
           # 检查当前分支并推送
+          echo "=== Git Push ==="
           CURRENT_BRANCH=$(git branch --show-current)
-          echo "Pushing to branch: $CURRENT_BRANCH"
+          echo "Current branch: $CURRENT_BRANCH"
+          echo "Remote URL: $(git remote get-url origin)"
           
+          # 确保使用SSH URL
+          git remote set-url origin "$BREW_TAP_REPO"
+          echo "Updated remote URL to: $(git remote get-url origin)"
+          
+          echo "Pushing to branch: $CURRENT_BRANCH"
           if git push origin "$CURRENT_BRANCH"; then
-            echo "✓ Successfully pushed to $CURRENT_BRANCH"
+            echo "✓ Successfully pushed to $CURRENT_BRANCH via SSH"
           else
             echo "✗ Failed to push to $CURRENT_BRANCH, trying master..."
             if git push origin master; then
-              echo "✓ Successfully pushed to master"
+              echo "✓ Successfully pushed to master via SSH"
             else
               echo "✗ Failed to push to both $CURRENT_BRANCH and master"
+              echo "Checking git status and remote configuration..."
+              git status
+              git remote -v
               exit 1
             fi
           fi
