@@ -39,9 +39,33 @@ jobs:
           
           # Install golangci-lint for linting
           echo "Installing golangci-lint..."
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
-          export PATH=$PATH:$(go env GOPATH)/bin
-          echo "golangci-lint version: $(golangci-lint --version)"
+          
+          # Create bin directory if it doesn't exist
+          mkdir -p /usr/local/bin
+          
+          # Try primary installation method
+          if curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.55.2; then
+            echo "✅ golangci-lint installed successfully via install script"
+          else
+            echo "⚠️ Install script failed, trying alternative method..."
+            # Alternative: install via go install
+            go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+            
+            # Copy to /usr/local/bin if installed in GOPATH
+            if [ -f "$(go env GOPATH)/bin/golangci-lint" ]; then
+              cp "$(go env GOPATH)/bin/golangci-lint" /usr/local/bin/
+              echo "✅ golangci-lint copied to /usr/local/bin"
+            fi
+          fi
+          
+          # Verify installation
+          if command -v golangci-lint >/dev/null 2>&1; then
+            echo "✅ golangci-lint installed at: $(which golangci-lint)"
+            echo "golangci-lint version: $(golangci-lint --version)"
+          else
+            echo "❌ golangci-lint installation failed"
+            exit 1
+          fi
       
       - id: code-formatting-check
         name: 代码格式检查
@@ -58,7 +82,17 @@ jobs:
         name: 静态代码分析
         run: |
           echo "Running static code analysis..."
-          export PATH=$PATH:$(go env GOPATH)/bin
+          
+          # Verify golangci-lint is available
+          if ! command -v golangci-lint >/dev/null 2>&1; then
+            echo "❌ golangci-lint not found in PATH"
+            echo "Available commands in /usr/local/bin:"
+            ls -la /usr/local/bin/ | grep golangci || echo "No golangci-lint found"
+            exit 1
+          fi
+          
+          echo "Using golangci-lint: $(which golangci-lint)"
+          echo "golangci-lint version: $(golangci-lint --version)"
           
           if ! golangci-lint run --timeout=5m; then
             echo "❌ Static analysis failed"
