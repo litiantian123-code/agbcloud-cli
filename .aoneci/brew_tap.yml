@@ -316,7 +316,14 @@ jobs:
                 Build timestamp: $TIMESTAMP
                 Git commit: $GIT_COMMIT
                 
-                To switch between versions:
+                🚀 Quick Start:
+                  agbcloud version        # Check version
+                  agbcloud --help         # Show help
+                  agbcloud login          # Login to AgbCloud
+                
+                📝 Note: The executable is named 'agbcloud', not 'agbcloud-dev-${TIMESTAMP}'
+                
+                🔄 To switch between versions:
                   brew unlink agbcloud-dev-${TIMESTAMP}
                   brew link agbcloud-dev-other-version
               EOS
@@ -348,8 +355,24 @@ jobs:
           echo "1. Add tap (only needed once):"
           echo "   brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
           echo ""
-          echo "2. Install this version:"
+          echo "2. Update tap information:"
+          echo "   brew update"
+          echo ""
+          echo "3. Install this version:"
           echo "   brew install agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "4. Use the CLI (executable name is 'agbcloud'):"
+          echo "   agbcloud version"
+          echo "   agbcloud --help"
+          echo ""
+          echo "🔄 Version Switching:"
+          echo "   # Switch to this test version:"
+          echo "   brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true"
+          echo "   brew link agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "   # Switch back to official version:"
+          echo "   brew unlink agbcloud-dev-* 2>/dev/null || true"
+          echo "   brew link agbcloud"
 
       - id: send-notification
         name: 发送通知
@@ -367,5 +390,27 @@ jobs:
           1. 添加 tap (仅首次需要):
              brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git
           
-          2. 安装此版本:
-             brew install agbcloud-dev-$TIMESTAMP" 
+          2. 更新 tap 信息:
+             brew update
+          
+          3. 安装此版本:
+             brew install agbcloud-dev-$TIMESTAMP
+          
+          4. 使用命令:
+             agbcloud version
+             agbcloud --help
+          
+          🔄 版本切换:
+          # 切换到此测试版本
+          brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true
+          brew link agbcloud-dev-$TIMESTAMP
+          
+          # 切换到正式版本 (如果已安装)
+          brew unlink agbcloud-dev-* 2>/dev/null || true
+          brew link agbcloud
+          
+          # 查看已安装的版本
+          brew list | grep agbcloud
+          
+          # 卸载测试版本
+          brew uninstall agbcloud-dev-$TIMESTAMP" 
