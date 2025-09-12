@@ -70,9 +70,13 @@ jobs:
           echo "Uploading packages to OSS..."
           export VERSION="dev-$(date +%Y%m%d-%H%M)"
           
-          # 检查环境变量
+          # 设置 OSS 凭证
+          export OSS_ACCESS_KEY_ID="${{secrets.OSS_ACCESS_KEY_ID}}"
+          export OSS_ACCESS_KEY_SECRET="${{secrets.OSS_ACCESS_KEY_SECRET}}"
+          
+          # 检查凭证是否设置
           if [[ -z "$OSS_ACCESS_KEY_ID" ]] || [[ -z "$OSS_ACCESS_KEY_SECRET" ]]; then
-            echo "Error: OSS credentials not set"
+            echo "Error: OSS credentials not set in secrets"
             exit 1
           fi
           
