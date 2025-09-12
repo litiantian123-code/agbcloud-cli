@@ -102,16 +102,72 @@ jobs:
               filename=$(basename "$binary")
               platform_arch=${filename#agbcloud-}
               
+              # Create both .tar.gz (for compatibility) and direct .exe (for Windows PowerShell installer)
               temp_dir=$(mktemp -d)
               cp "$binary" "$temp_dir/agbcloud"
               tar -czf "packages/agbcloud-$VERSION-$platform_arch.tar.gz" -C "$temp_dir" agbcloud
               sha256sum "packages/agbcloud-$VERSION-$platform_arch.tar.gz" > "packages/agbcloud-$VERSION-$platform_arch.tar.gz.sha256"
+              
+              # For Windows, also create direct .exe files for PowerShell installer
+              if [[ "$platform_arch" == windows-* ]]; then
+                cp "$binary" "packages/agbcloud-$VERSION-$platform_arch.exe"
+                sha256sum "packages/agbcloud-$VERSION-$platform_arch.exe" > "packages/agbcloud-$VERSION-$platform_arch.exe.sha256"
+                echo "✓ Created Windows executable: agbcloud-$VERSION-$platform_arch.exe"
+              fi
+              
               rm -rf "$temp_dir"
               echo "✓ Created package: agbcloud-$VERSION-$platform_arch.tar.gz"
             fi
           done
           
           ls -la packages/
+          
+          # Verify Windows executables were created
+          echo ""
+          echo "🔍 Verifying Windows executables:"
+          for exe in packages/*windows*.exe; do
+            if [[ -f "$exe" ]]; then
+              echo "✓ Found: $(basename "$exe")"
+              # Verify it's a valid PE executable
+              if file "$exe" | grep -q "PE32"; then
+                echo "  ✓ Valid Windows executable"
+              else
+                echo "  ⚠ Warning: May not be a valid Windows executable"
+              fi
+            fi
+          done
+
+      - id: create-server-files
+        name: 创建服务端文件
+        run: |
+          echo "Creating server files..."
+          export VERSION="dev-$(date +%Y%m%d-%H%M)"
+          
+          # Make the script executable and run it
+          chmod +x scripts/generate-server-files.sh
+          ./scripts/generate-server-files.sh
+          
+          # Verify critical server files were created
+          echo ""
+          echo "🔍 Verifying server files:"
+          if [[ -f "server-files/install.ps1" ]]; then
+            echo "✓ PowerShell installer script created"
+            echo "  Size: $(wc -c < server-files/install.ps1) bytes"
+          else
+            echo "❌ PowerShell installer script missing!"
+            exit 1
+          fi
+          
+          if [[ -f "server-files/latest.json" ]]; then
+            echo "✓ Version API file created"
+            echo "  Content preview:"
+            head -5 server-files/latest.json | sed 's/^/    /'
+          else
+            echo "❌ Version API file missing!"
+            exit 1
+          fi
+          
+          echo "✅ Server files created successfully"
 
       - id: upload-to-oss
         name: 上传到 OSS
@@ -219,19 +275,39 @@ jobs:
           
           echo "OSS configuration successful, uploading packages..."
           
-          for package in packages/*.tar.gz packages/*.sha256; do
+          # Upload binary packages (including .exe files for Windows)
+          for package in packages/*.tar.gz packages/*.exe packages/*.sha256; do
             if [[ -f "$package" ]]; then
               filename=$(basename "$package")
               echo "Uploading $filename..."
               
-              if ossutil cp "$package" "oss://$OSS_BUCKET/agbcloud/releases/$filename" --force; then
-                if ossutil set-acl "oss://$OSS_BUCKET/agbcloud/releases/$filename" public-read; then
+              if ossutil cp "$package" "oss://$OSS_BUCKET/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/$filename" public-read; then
                   echo "✓ Uploaded and set public: $filename"
                 else
                   echo "⚠ Uploaded but failed to set ACL: $filename"
                 fi
               else
                 echo "✗ Failed to upload: $filename"
+                exit 1
+              fi
+            fi
+          done
+          
+          # Upload server files (installer script, version info, etc.)
+          for serverfile in server-files/*; do
+            if [[ -f "$serverfile" ]]; then
+              filename=$(basename "$serverfile")
+              echo "Uploading server file: $filename..."
+              
+              if ossutil cp "$serverfile" "oss://$OSS_BUCKET/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/$filename" public-read; then
+                  echo "✓ Uploaded and set public: $filename"
+                else
+                  echo "⚠ Uploaded but failed to set ACL: $filename"
+                fi
+              else
+                echo "✗ Failed to upload server file: $filename"
                 exit 1
               fi
             fi
@@ -435,44 +511,86 @@ jobs:
           export VERSION="dev-$(date +%Y%m%d-%H%M)"
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
           
-          echo "🎉 AgbCloud CLI 测试包构建完成！"
+          echo "🎉 AgbCloud CLI 多平台测试包构建完成！"
           echo ""
           echo "📦 版本: $VERSION"
           echo "🕒 时间戳: $TIMESTAMP"
           echo "📝 Git 提交: $(git rev-parse --short HEAD)"
           echo "✅ 测试状态: 单元测试通过 ✓"
+          echo "🌍 支持平台: macOS, Linux, Windows"
           echo ""
-          echo "🍺 安装命令:"
-          echo "1. 添加 tap (仅首次需要):"
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "💻 Windows 用户"
+          echo "═══════════════════════════════════════════════════════════════"
+          echo ""
+          echo "🚀 一键安装 (推荐):"
+          echo "   powershell -Command \"irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex\""
+          echo ""
+          echo "📦 手动下载:"
+          echo "   • Windows x64:   https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-windows-amd64.exe"
+          echo "   • Windows ARM64: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-windows-arm64.exe"
+          echo ""
+          echo "📋 使用方法:"
+          echo "   agbcloud version        # 查看版本"
+          echo "   agbcloud --help         # 显示帮助"
+          echo "   agbcloud login          # 登录 AgbCloud"
+          echo ""
+          echo "💡 提示:"
+          echo "   • 安装后重启终端或运行 refreshenv 刷新环境变量"
+          echo "   • 可执行文件将安装到 %APPDATA%\\bin\\agbcloud\\"
+          echo "   • 支持环境变量自定义: AGBCLOUD_PATH, AGBCLOUD_VERSION"
+          echo ""
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "🍎🐧 macOS / Linux 用户"
+          echo "═══════════════════════════════════════════════════════════════"
+          echo ""
+          echo "🍺 macOS - Homebrew 安装 (推荐):"
+          echo "   # 添加 tap (仅首次需要)"
           echo "   brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
-          echo ""
-          echo "2. 更新 tap 信息:"
-          echo "   brew update"
-          echo ""
-          echo "3. 安装此版本:"
+          echo "   "
+          echo "   # 安装此版本"
           echo "   brew install agbcloud-dev-$TIMESTAMP"
-          echo ""
-          echo "4. 强制链接到最新版本 (推荐):"
+          echo "   "
+          echo "   # 强制链接到最新版本"
           echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
           echo ""
-          echo "5. 使用命令:"
-          echo "   agbcloud version"
-          echo "   agbcloud --help"
+          echo "🐧 Linux - 手动安装:"
+          echo "   # AMD64 (Intel/AMD 64位)"
+          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-amd64.tar.gz | tar -xz"
+          echo "   sudo mv agbcloud /usr/local/bin/"
+          echo "   "
+          echo "   # ARM64 (ARM 64位)"
+          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-arm64.tar.gz | tar -xz"
+          echo "   sudo mv agbcloud /usr/local/bin/"
           echo ""
-          echo "🔄 版本切换:"
-          echo "# 切换到此测试版本 (强制覆盖)"
-          echo "brew link --overwrite agbcloud-dev-$TIMESTAMP"
+          echo "📦 手动下载链接:"
+          echo "   • macOS Intel:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-darwin-amd64.tar.gz"
+          echo "   • macOS Apple Silicon: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-darwin-arm64.tar.gz"
+          echo "   • Linux x64:          https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-amd64.tar.gz"
+          echo "   • Linux ARM64:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-arm64.tar.gz"
           echo ""
-          echo "# 或者手动解除链接后再链接"
-          echo "brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true"
-          echo "brew link agbcloud-dev-$TIMESTAMP"
+          echo "📋 使用方法:"
+          echo "   agbcloud version        # 查看版本"
+          echo "   agbcloud --help         # 显示帮助"
+          echo "   agbcloud login          # 登录 AgbCloud"
           echo ""
-          echo "# 切换到正式版本 (如果已安装)"
-          echo "brew unlink agbcloud-dev-* 2>/dev/null || true"
-          echo "brew link --overwrite agbcloud"
+          echo "🔄 macOS 版本管理:"
+          echo "   # 切换到此测试版本"
+          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
+          echo "   "
+          echo "   # 切换回正式版本"
+          echo "   brew unlink agbcloud-dev-* 2>/dev/null || true"
+          echo "   brew link --overwrite agbcloud"
+          echo "   "
+          echo "   # 查看已安装版本"
+          echo "   brew list | grep agbcloud"
+          echo "   "
+          echo "   # 卸载测试版本"
+          echo "   brew uninstall agbcloud-dev-$TIMESTAMP"
           echo ""
-          echo "# 查看已安装的版本"
-          echo "brew list | grep agbcloud"
-          echo ""
-          echo "# 卸载测试版本"
-          echo "brew uninstall agbcloud-dev-$TIMESTAMP" 
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "📚 更多信息"
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "• 文档: https://docs.agbcloud.com"
+          echo "• 源码: https://github.com/your-org/agbcloud-cli"
+          echo "• 问题反馈: https://github.com/your-org/agbcloud-cli/issues"
