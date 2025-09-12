@@ -110,9 +110,10 @@ jobs:
               
               # For Windows, also create direct .exe files for PowerShell installer
               if [[ "$platform_arch" == windows-* ]]; then
-                cp "$binary" "packages/agbcloud-$VERSION-$platform_arch.exe"
-                sha256sum "packages/agbcloud-$VERSION-$platform_arch.exe" > "packages/agbcloud-$VERSION-$platform_arch.exe.sha256"
-                echo "✓ Created Windows executable: agbcloud-$VERSION-$platform_arch.exe"
+                # Windows binaries already have .exe extension, so just copy directly
+                cp "$binary" "packages/agbcloud-$VERSION-$platform_arch"
+                sha256sum "packages/agbcloud-$VERSION-$platform_arch" > "packages/agbcloud-$VERSION-$platform_arch.sha256"
+                echo "✓ Created Windows executable: agbcloud-$VERSION-$platform_arch"
               fi
               
               rm -rf "$temp_dir"
