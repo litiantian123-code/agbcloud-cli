@@ -91,14 +91,32 @@ jobs:
           fi
           
           # 配置并上传
-          ossutil config -e "$OSS_ENDPOINT" -i "$OSS_ACCESS_KEY_ID" -k "$OSS_ACCESS_KEY_SECRET"
+          echo "Configuring ossutil..."
+          ossutil config --endpoint="$OSS_ENDPOINT" --access-key-id="$OSS_ACCESS_KEY_ID" --access-key-secret="$OSS_ACCESS_KEY_SECRET"
+          
+          # 验证配置
+          if ! ossutil ls oss://$OSS_BUCKET/ >/dev/null 2>&1; then
+            echo "Error: Failed to connect to OSS bucket. Please check credentials and bucket access."
+            exit 1
+          fi
+          
+          echo "OSS configuration successful, uploading packages..."
           
           for package in packages/*.tar.gz packages/*.sha256; do
             if [[ -f "$package" ]]; then
               filename=$(basename "$package")
-              ossutil cp "$package" "oss://$OSS_BUCKET/agbcloud/releases/$filename" --force
-              ossutil set-acl "oss://$OSS_BUCKET/agbcloud/releases/$filename" public-read
-              echo "✓ Uploaded: $filename"
+              echo "Uploading $filename..."
+              
+              if ossutil cp "$package" "oss://$OSS_BUCKET/agbcloud/releases/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/agbcloud/releases/$filename" public-read; then
+                  echo "✓ Uploaded and set public: $filename"
+                else
+                  echo "⚠ Uploaded but failed to set ACL: $filename"
+                fi
+              else
+                echo "✗ Failed to upload: $filename"
+                exit 1
+              fi
             fi
           done
 
