@@ -195,11 +195,42 @@ jobs:
           export VERSION="dev-$(date +%Y%m%d-%H%M)"
           export GIT_COMMIT=$(git rev-parse --short HEAD)
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
-          export SANITIZED_TIMESTAMP=$(echo "$TIMESTAMP" | tr '-' '')
+          export SANITIZED_TIMESTAMP=$(echo "$TIMESTAMP" | tr -d '-')
+          
+          echo "=== Homebrew Tap Update Debug Info ==="
+          echo "VERSION: $VERSION"
+          echo "GIT_COMMIT: $GIT_COMMIT"
+          echo "TIMESTAMP: $TIMESTAMP"
+          echo "SANITIZED_TIMESTAMP: $SANITIZED_TIMESTAMP"
+          echo "Current directory: $(pwd)"
+          echo "Available packages:"
+          ls -la packages/ || echo "No packages directory found"
+          
+          # 设置 Homebrew Tap 仓库地址
+          export BREW_TAP_REPO="git@gitlab.alibaba-inc.com:InnoArchClub/homebrew-agbcloud.git"
           
           # 克隆 tap 仓库
-          git clone "$BREW_TAP_REPO" homebrew-agbcloud
+          echo "Cloning Homebrew Tap repository: $BREW_TAP_REPO"
+          if git clone "$BREW_TAP_REPO" homebrew-agbcloud; then
+            echo "✓ Successfully cloned tap repository"
+          else
+            echo "✗ Failed to clone tap repository, trying HTTPS..."
+            # 尝试使用HTTPS
+            HTTPS_REPO="https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
+            if git clone "$HTTPS_REPO" homebrew-agbcloud; then
+              echo "✓ Successfully cloned tap repository via HTTPS"
+            else
+              echo "✗ Failed to clone tap repository via both SSH and HTTPS"
+              exit 1
+            fi
+          fi
+          
           cd homebrew-agbcloud
+          
+          # 检查当前分支
+          echo "Current branch: $(git branch --show-current)"
+          echo "Available branches:"
+          git branch -a
           
           # 配置 git
           git config user.name "Aone CICD Bot"
@@ -222,7 +253,11 @@ jobs:
           LINUX_ARM64_SHA256=$(get_sha256 "linux-arm64")
           
           # 生成 Formula
+          echo "Creating Formula directory if it doesn't exist..."
+          mkdir -p Formula
+          
           FORMULA_FILE="Formula/agbcloud@dev-$TIMESTAMP.rb"
+          echo "Creating Formula file: $FORMULA_FILE"
           
           cat > "$FORMULA_FILE" << EOF
           class AgbcloudAT${SANITIZED_TIMESTAMP} < Formula
@@ -271,14 +306,31 @@ jobs:
           EOF
           
           # 提交更改
+          echo "Adding Formula file to git..."
           git add "$FORMULA_FILE"
+          
+          echo "Committing changes..."
           git commit -m "Add test build agbcloud@dev-$TIMESTAMP
 
           Version: $VERSION
           Git commit: $GIT_COMMIT
           Build timestamp: $TIMESTAMP"
           
-          git push origin main
+          # 检查当前分支并推送
+          CURRENT_BRANCH=$(git branch --show-current)
+          echo "Pushing to branch: $CURRENT_BRANCH"
+          
+          if git push origin "$CURRENT_BRANCH"; then
+            echo "✓ Successfully pushed to $CURRENT_BRANCH"
+          else
+            echo "✗ Failed to push to $CURRENT_BRANCH, trying master..."
+            if git push origin master; then
+              echo "✓ Successfully pushed to master"
+            else
+              echo "✗ Failed to push to both $CURRENT_BRANCH and master"
+              exit 1
+            fi
+          fi
           
           echo "✅ Homebrew Tap updated successfully!"
           echo "Users can install with: brew install agbcloud@dev-$TIMESTAMP"
