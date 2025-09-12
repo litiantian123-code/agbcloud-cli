@@ -435,46 +435,44 @@ jobs:
           export VERSION="dev-$(date +%Y%m%d-%H%M)"
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
           
-          cat << EOF
-          🎉 AgbCloud CLI 测试包构建完成！
-          
-          📦 版本: $VERSION
-          🕒 时间戳: $TIMESTAMP
-          📝 Git 提交: $(git rev-parse --short HEAD)
-          ✅ 测试状态: 单元测试通过 ✓
-          
-          🍺 安装命令:
-          1. 添加 tap (仅首次需要):
-             brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git
-          
-          2. 更新 tap 信息:
-             brew update
-          
-          3. 安装此版本:
-             brew install agbcloud-dev-$TIMESTAMP
-          
-          4. 强制链接到最新版本 (推荐):
-             brew link --overwrite agbcloud-dev-$TIMESTAMP
-          
-          5. 使用命令:
-             agbcloud version
-             agbcloud --help
-          
-          🔄 版本切换:
-          # 切换到此测试版本 (强制覆盖)
-          brew link --overwrite agbcloud-dev-$TIMESTAMP
-          
-          # 或者手动解除链接后再链接
-          brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true
-          brew link agbcloud-dev-$TIMESTAMP
-          
-          # 切换到正式版本 (如果已安装)
-          brew unlink agbcloud-dev-* 2>/dev/null || true
-          brew link --overwrite agbcloud
-          
-          # 查看已安装的版本
-          brew list | grep agbcloud
-          
-          # 卸载测试版本
-          brew uninstall agbcloud-dev-$TIMESTAMP
-          EOF 
+          echo "🎉 AgbCloud CLI 测试包构建完成！"
+          echo ""
+          echo "📦 版本: $VERSION"
+          echo "🕒 时间戳: $TIMESTAMP"
+          echo "📝 Git 提交: $(git rev-parse --short HEAD)"
+          echo "✅ 测试状态: 单元测试通过 ✓"
+          echo ""
+          echo "🍺 安装命令:"
+          echo "1. 添加 tap (仅首次需要):"
+          echo "   brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
+          echo ""
+          echo "2. 更新 tap 信息:"
+          echo "   brew update"
+          echo ""
+          echo "3. 安装此版本:"
+          echo "   brew install agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "4. 强制链接到最新版本 (推荐):"
+          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "5. 使用命令:"
+          echo "   agbcloud version"
+          echo "   agbcloud --help"
+          echo ""
+          echo "🔄 版本切换:"
+          echo "# 切换到此测试版本 (强制覆盖)"
+          echo "brew link --overwrite agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "# 或者手动解除链接后再链接"
+          echo "brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true"
+          echo "brew link agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "# 切换到正式版本 (如果已安装)"
+          echo "brew unlink agbcloud-dev-* 2>/dev/null || true"
+          echo "brew link --overwrite agbcloud"
+          echo ""
+          echo "# 查看已安装的版本"
+          echo "brew list | grep agbcloud"
+          echo ""
+          echo "# 卸载测试版本"
+          echo "brew uninstall agbcloud-dev-$TIMESTAMP" 
