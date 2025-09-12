@@ -435,12 +435,13 @@ jobs:
           export VERSION="dev-$(date +%Y%m%d-%H%M)"
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
           
-          echo "🎉 AgbCloud CLI 测试包构建完成！
+          cat << EOF
+          🎉 AgbCloud CLI 测试包构建完成！
           
           📦 版本: $VERSION
           🕒 时间戳: $TIMESTAMP
           📝 Git 提交: $(git rev-parse --short HEAD)
-          ✅ 测试状态: 单元测试通过 ✓"
+          ✅ 测试状态: 单元测试通过 ✓
           
           🍺 安装命令:
           1. 添加 tap (仅首次需要):
@@ -475,4 +476,5 @@ jobs:
           brew list | grep agbcloud
           
           # 卸载测试版本
-          brew uninstall agbcloud-dev-$TIMESTAMP" 
+          brew uninstall agbcloud-dev-$TIMESTAMP
+          EOF 
