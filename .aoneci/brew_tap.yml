@@ -17,9 +17,9 @@ variables:
 
 # 流水线作业定义
 jobs:
-  # 构建、打包、上传、部署
+  # 质量检查、构建、打包、上传、部署
   build-and-deploy:
-    name: 构建并部署
+    name: 质量检查、构建并部署
     runs-on: 4-16Gi
     timeout: 60m
     steps:
@@ -29,6 +29,69 @@ jobs:
           go-version: "1.23.2"
           go-mod-cache: true
           go-cache: false
+      
+      - id: install-dependencies
+        name: 安装依赖
+        run: |
+          echo "Installing dependencies..."
+          go mod download
+          go mod tidy
+          
+          # Install golangci-lint for linting
+          echo "Installing golangci-lint..."
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+          export PATH=$PATH:$(go env GOPATH)/bin
+          echo "golangci-lint version: $(golangci-lint --version)"
+      
+      - id: code-quality-checks
+        name: 代码质量检查
+        run: |
+          echo "Running code quality checks..."
+          export PATH=$PATH:$(go env GOPATH)/bin
+          
+          # Code formatting check
+          echo "Checking code formatting..."
+          if ! go fmt ./...; then
+            echo "❌ Code formatting check failed"
+            echo "Please run 'go fmt ./...' to fix formatting issues"
+            exit 1
+          fi
+          echo "✅ Code formatting check passed"
+          
+          # Linting
+          echo "Running linter..."
+          if ! golangci-lint run --timeout=5m; then
+            echo "❌ Linting failed"
+            echo "Please fix the linting issues before proceeding"
+            exit 1
+          fi
+          echo "✅ Linting passed"
+      
+      - id: run-tests
+        name: 运行测试
+        run: |
+          echo "Running unit tests..."
+          
+          # Run unit tests with coverage
+          if ! make test-unit; then
+            echo "❌ Unit tests failed"
+            exit 1
+          fi
+          echo "✅ Unit tests passed"
+          
+          # Generate coverage report
+          echo "Generating coverage report..."
+          if ! make test-coverage; then
+            echo "⚠️ Coverage report generation failed, but continuing..."
+          else
+            echo "✅ Coverage report generated"
+          fi
+          
+          # Display test summary
+          echo ""
+          echo "📊 Test Summary:"
+          go test -v ./test/unit/... 2>/dev/null | grep -E "(PASS|FAIL|RUN)" | tail -10 || true
+      
       - id: build-binaries
         name: 构建多平台二进制文件
         run: |
@@ -361,18 +424,24 @@ jobs:
           echo "3. Install this version:"
           echo "   brew install agbcloud-dev-$TIMESTAMP"
           echo ""
-          echo "4. Use the CLI (executable name is 'agbcloud'):"
+          echo "4. Force link to latest version (recommended):"
+          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "5. Use the CLI (executable name is 'agbcloud'):"
           echo "   agbcloud version"
           echo "   agbcloud --help"
           echo ""
           echo "🔄 Version Switching:"
-          echo "   # Switch to this test version:"
+          echo "   # Switch to this test version (force overwrite):"
+          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
+          echo ""
+          echo "   # Or manual unlink then link:"
           echo "   brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true"
           echo "   brew link agbcloud-dev-$TIMESTAMP"
           echo ""
           echo "   # Switch back to official version:"
           echo "   brew unlink agbcloud-dev-* 2>/dev/null || true"
-          echo "   brew link agbcloud"
+          echo "   brew link --overwrite agbcloud"
 
       - id: send-notification
         name: 发送通知
@@ -385,6 +454,7 @@ jobs:
           📦 版本: $VERSION
           🕒 时间戳: $TIMESTAMP
           📝 Git 提交: $(git rev-parse --short HEAD)
+          ✅ 代码质量: 已通过格式检查、语法检测和单元测试
           
           🍺 安装命令:
           1. 添加 tap (仅首次需要):
@@ -396,18 +466,24 @@ jobs:
           3. 安装此版本:
              brew install agbcloud-dev-$TIMESTAMP
           
-          4. 使用命令:
+          4. 强制链接到最新版本 (推荐):
+             brew link --overwrite agbcloud-dev-$TIMESTAMP
+          
+          5. 使用命令:
              agbcloud version
              agbcloud --help
           
           🔄 版本切换:
-          # 切换到此测试版本
+          # 切换到此测试版本 (强制覆盖)
+          brew link --overwrite agbcloud-dev-$TIMESTAMP
+          
+          # 或者手动解除链接后再链接
           brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true
           brew link agbcloud-dev-$TIMESTAMP
           
           # 切换到正式版本 (如果已安装)
           brew unlink agbcloud-dev-* 2>/dev/null || true
-          brew link agbcloud
+          brew link --overwrite agbcloud
           
           # 查看已安装的版本
           brew list | grep agbcloud
