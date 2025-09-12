@@ -26,7 +26,7 @@ jobs:
       - uses: checkout
       - uses: setup-env
         inputs:
-          go-version: "1.23"
+          go-version: "1.23.2"
           go-mod-cache: true
           go-cache: false
       - id: build-binaries
