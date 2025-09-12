@@ -74,10 +74,36 @@ jobs:
           export OSS_ACCESS_KEY_ID="${{secrets.OSS_ACCESS_KEY_ID}}"
           export OSS_ACCESS_KEY_SECRET="${{secrets.OSS_ACCESS_KEY_SECRET}}"
           
+          # 调试信息 - 检查凭证长度和前缀（不泄露完整凭证）
+          echo "=== OSS Credentials Debug Info ==="
+          echo "OSS_ACCESS_KEY_ID length: ${#OSS_ACCESS_KEY_ID}"
+          echo "OSS_ACCESS_KEY_SECRET length: ${#OSS_ACCESS_KEY_SECRET}"
+          echo "OSS_ACCESS_KEY_ID prefix: ${OSS_ACCESS_KEY_ID:0:8}..."
+          echo "OSS_ACCESS_KEY_SECRET prefix: ${OSS_ACCESS_KEY_SECRET:0:8}..."
+          echo "OSS_ENDPOINT: $OSS_ENDPOINT"
+          echo "OSS_BUCKET: $OSS_BUCKET"
+          
           # 检查凭证是否设置
           if [[ -z "$OSS_ACCESS_KEY_ID" ]] || [[ -z "$OSS_ACCESS_KEY_SECRET" ]]; then
             echo "Error: OSS credentials not set in secrets"
+            echo "OSS_ACCESS_KEY_ID is empty: $([ -z "$OSS_ACCESS_KEY_ID" ] && echo 'YES' || echo 'NO')"
+            echo "OSS_ACCESS_KEY_SECRET is empty: $([ -z "$OSS_ACCESS_KEY_SECRET" ] && echo 'YES' || echo 'NO')"
             exit 1
+          fi
+          
+          # 网络连接测试
+          echo "=== Network Connectivity Test ==="
+          echo "Testing connectivity to OSS endpoint..."
+          if ping -c 3 oss-cn-hangzhou.aliyuncs.com; then
+            echo "✓ Ping to OSS endpoint successful"
+          else
+            echo "⚠ Ping to OSS endpoint failed"
+          fi
+          
+          if curl -I --connect-timeout 10 https://oss-cn-hangzhou.aliyuncs.com; then
+            echo "✓ HTTP connection to OSS endpoint successful"
+          else
+            echo "⚠ HTTP connection to OSS endpoint failed"
           fi
           
           # 安装 ossutil
@@ -85,18 +111,53 @@ jobs:
             echo "Installing ossutil..."
             curl -L "https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip" -o ossutil.zip
             unzip -q ossutil.zip
-            chmod +x ossutil*
-            mv ossutil* /usr/local/bin/ossutil
+            
+            # 查找正确的ossutil二进制文件
+            OSSUTIL_BINARY=$(find . -name "ossutil*" -type f | head -1)
+            if [[ -z "$OSSUTIL_BINARY" ]]; then
+              echo "Error: Failed to find ossutil binary after extraction"
+              exit 1
+            fi
+            
+            chmod +x "$OSSUTIL_BINARY"
+            mv "$OSSUTIL_BINARY" /usr/local/bin/ossutil
             rm -f ossutil.zip
+            rm -rf ossutil*/
+            
+            echo "✓ ossutil installed successfully"
+          else
+            echo "✓ ossutil already installed"
           fi
           
           # 配置并上传
-          echo "Configuring ossutil..."
-          ossutil config --endpoint="$OSS_ENDPOINT" --access-key-id="$OSS_ACCESS_KEY_ID" --access-key-secret="$OSS_ACCESS_KEY_SECRET"
+          echo "=== OSS Configuration ==="
+          echo "Configuring ossutil with verbose output..."
           
-          # 验证配置
-          if ! ossutil ls oss://$OSS_BUCKET/ >/dev/null 2>&1; then
-            echo "Error: Failed to connect to OSS bucket. Please check credentials and bucket access."
+          # 使用详细模式配置ossutil
+          if ossutil config --endpoint="$OSS_ENDPOINT" --access-key-id="$OSS_ACCESS_KEY_ID" --access-key-secret="$OSS_ACCESS_KEY_SECRET"; then
+            echo "✓ ossutil configuration successful"
+          else
+            echo "✗ ossutil configuration failed"
+            exit 1
+          fi
+          
+          # 验证配置 - 使用详细模式
+          echo "=== OSS Connection Test ==="
+          echo "Testing connection to bucket: $OSS_BUCKET"
+          
+          if ossutil ls oss://$OSS_BUCKET/ -v; then
+            echo "✓ Successfully connected to OSS bucket: $OSS_BUCKET"
+          else
+            echo "✗ Failed to connect to OSS bucket: $OSS_BUCKET"
+            echo "Attempting to diagnose the issue..."
+            
+            # 尝试更详细的诊断
+            echo "Testing basic OSS connectivity..."
+            ossutil ls oss:// -v || true
+            
+            echo "Testing bucket existence..."
+            ossutil stat oss://$OSS_BUCKET/ -v || true
+            
             exit 1
           fi
           
