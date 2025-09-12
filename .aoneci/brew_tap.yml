@@ -197,7 +197,7 @@ jobs:
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
           export SANITIZED_TIMESTAMP=$(echo "$TIMESTAMP" | tr -d '-')
           
-          echo "=== SSH Key Setup ==="
+          echo "Setting up SSH key..."
           # 设置SSH密钥
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -212,46 +212,10 @@ jobs:
           echo "${{secrets.AONE_CI_DEPLOY_KEY}}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           
-          # 验证私钥文件（不显示内容）
-          if [[ -f ~/.ssh/id_rsa ]]; then
-            echo "✓ SSH private key file created"
-            echo "Private key file size: $(wc -c < ~/.ssh/id_rsa) bytes"
-          else
-            echo "✗ Failed to create SSH private key file"
-            exit 1
-          fi
-          
           # 检查私钥格式并转换如果需要
-          echo "Checking SSH key format..."
-          KEY_HEADER=$(head -1 ~/.ssh/id_rsa)
-          echo "Key header: $KEY_HEADER"
-          
-          if echo "$KEY_HEADER" | grep -q "BEGIN OPENSSH PRIVATE KEY"; then
-            echo "Detected OpenSSH format key, converting to PEM format..."
-            # 备份原始密钥
-            cp ~/.ssh/id_rsa ~/.ssh/id_rsa.backup
+          if head -1 ~/.ssh/id_rsa | grep -q "BEGIN OPENSSH PRIVATE KEY"; then
             # 转换为PEM格式（不设置密码）
-            if ssh-keygen -p -m PEM -f ~/.ssh/id_rsa -P "" -N ""; then
-              echo "✓ Successfully converted key to PEM format"
-              echo "New key header: $(head -1 ~/.ssh/id_rsa)"
-            else
-              echo "⚠ Key conversion failed, restoring original format"
-              cp ~/.ssh/id_rsa.backup ~/.ssh/id_rsa
-            fi
-          elif echo "$KEY_HEADER" | grep -q "BEGIN RSA PRIVATE KEY\|BEGIN PRIVATE KEY"; then
-            echo "✓ Key is already in PEM format"
-          else
-            echo "⚠ Unknown key format: $KEY_HEADER"
-            echo "Proceeding with original format..."
-          fi
-          
-          # 验证私钥语法
-          if ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null 2>&1; then
-            echo "✓ SSH private key syntax is valid"
-          else
-            echo "✗ SSH private key syntax validation failed"
-            echo "Key format issue detected. Please check the private key format."
-            exit 1
+            ssh-keygen -p -m PEM -f ~/.ssh/id_rsa -P "" -N "" > /dev/null 2>&1 || true
           fi
           
           # 创建SSH配置文件
@@ -266,74 +230,25 @@ jobs:
           chmod 600 ~/.ssh/config
           
           # 启动ssh-agent并添加密钥
-          eval "$(ssh-agent -s)"
+          eval "$(ssh-agent -s)" > /dev/null
+          ssh-add ~/.ssh/id_rsa > /dev/null 2>&1
           
-          # 添加密钥到ssh-agent
-          echo "Adding SSH key to ssh-agent..."
-          if ssh-add ~/.ssh/id_rsa; then
-            echo "✓ SSH key added to ssh-agent successfully"
-          else
-            echo "✗ Failed to add SSH key to ssh-agent"
-            echo "Trying to add key with verbose output..."
-            ssh-add -v ~/.ssh/id_rsa || true
-          fi
-          
-          # 列出ssh-agent中的密钥
-          echo "Keys in ssh-agent:"
-          ssh-add -l || echo "No keys in ssh-agent"
-          
-          # 测试SSH连接
-          echo "Testing SSH connection to GitLab..."
-          echo "Using verbose SSH connection test..."
-          
-          # 使用verbose模式测试连接
-          if ssh -v -T git@gitlab.alibaba-inc.com 2>&1 | tee /tmp/ssh_test.log; then
-            echo "✓ SSH connection successful"
-          else
-            SSH_EXIT_CODE=$?
-            echo "SSH connection test exit code: $SSH_EXIT_CODE"
-            
-            # 检查是否是GitLab的正常响应
-            if grep -q "Welcome to GitLab" /tmp/ssh_test.log || grep -q "successfully authenticated" /tmp/ssh_test.log; then
-              echo "✓ SSH authentication successful (GitLab connection confirmed)"
-            else
-              echo "✗ SSH connection failed"
-              echo "SSH test log:"
-              cat /tmp/ssh_test.log
-              exit 1
-            fi
-          fi
-          
-          echo "=== Homebrew Tap Update Debug Info ==="
-          echo "VERSION: $VERSION"
-          echo "GIT_COMMIT: $GIT_COMMIT"
-          echo "TIMESTAMP: $TIMESTAMP"
-          echo "SANITIZED_TIMESTAMP: $SANITIZED_TIMESTAMP"
-          echo "Current directory: $(pwd)"
-          echo "Available packages:"
-          ls -la packages/ || echo "No packages directory found"
+
           
           # 设置 Homebrew Tap 仓库地址
           export BREW_TAP_REPO="git@gitlab.alibaba-inc.com:InnoArchClub/homebrew-agbcloud.git"
           
           # 克隆 tap 仓库
-          echo "=== Git Repository Clone ==="
-          echo "Cloning Homebrew Tap repository: $BREW_TAP_REPO"
+          echo "Cloning Homebrew Tap repository..."
           
-          if git clone "$BREW_TAP_REPO" homebrew-agbcloud; then
-            echo "✓ Successfully cloned tap repository via SSH"
+          if git clone "$BREW_TAP_REPO" homebrew-agbcloud > /dev/null 2>&1; then
+            echo "✓ Successfully cloned tap repository"
           else
-            echo "✗ Failed to clone tap repository via SSH"
-            echo "SSH key setup may have failed or repository access denied"
+            echo "✗ Failed to clone tap repository"
             exit 1
           fi
           
           cd homebrew-agbcloud
-          
-          # 检查当前分支
-          echo "Current branch: $(git branch --show-current)"
-          echo "Available branches:"
-          git branch -a
           
           # 配置 git
           git config user.name "Aone CICD Bot"
@@ -356,11 +271,9 @@ jobs:
           LINUX_ARM64_SHA256=$(get_sha256 "linux-arm64")
           
           # 生成 Formula
-          echo "Creating Formula directory if it doesn't exist..."
+          echo "Creating Formula file..."
           mkdir -p Formula
-          
           FORMULA_FILE="Formula/agbcloud@dev-$TIMESTAMP.rb"
-          echo "Creating Formula file: $FORMULA_FILE"
           
           cat > "$FORMULA_FILE" << EOF
           class AgbcloudAT${SANITIZED_TIMESTAMP} < Formula
@@ -409,44 +322,31 @@ jobs:
           EOF
           
           # 提交更改
-          echo "Adding Formula file to git..."
+          echo "Committing and pushing changes..."
           git add "$FORMULA_FILE"
-          
-          echo "Committing changes..."
           git commit -m "Add test build agbcloud@dev-$TIMESTAMP
 
           Version: $VERSION
           Git commit: $GIT_COMMIT
-          Build timestamp: $TIMESTAMP"
+          Build timestamp: $TIMESTAMP" > /dev/null
           
-          # 检查当前分支并推送
-          echo "=== Git Push ==="
+          # 推送更改
           CURRENT_BRANCH=$(git branch --show-current)
-          echo "Current branch: $CURRENT_BRANCH"
-          echo "Remote URL: $(git remote get-url origin)"
-          
-          # 确保使用SSH URL
-          git remote set-url origin "$BREW_TAP_REPO"
-          echo "Updated remote URL to: $(git remote get-url origin)"
-          
-          echo "Pushing to branch: $CURRENT_BRANCH"
-          if git push origin "$CURRENT_BRANCH"; then
-            echo "✓ Successfully pushed to $CURRENT_BRANCH via SSH"
+          if git push origin "$CURRENT_BRANCH" > /dev/null 2>&1; then
+            echo "✓ Successfully pushed to $CURRENT_BRANCH"
           else
-            echo "✗ Failed to push to $CURRENT_BRANCH, trying master..."
-            if git push origin master; then
-              echo "✓ Successfully pushed to master via SSH"
-            else
-              echo "✗ Failed to push to both $CURRENT_BRANCH and master"
-              echo "Checking git status and remote configuration..."
-              git status
-              git remote -v
-              exit 1
-            fi
+            echo "✗ Failed to push changes"
+            exit 1
           fi
           
           echo "✅ Homebrew Tap updated successfully!"
-          echo "Users can install with: brew install agbcloud@dev-$TIMESTAMP"
+          echo ""
+          echo "📋 Installation Instructions:"
+          echo "1. Add tap (only needed once):"
+          echo "   brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
+          echo ""
+          echo "2. Install this version:"
+          echo "   brew install agbcloud@dev-$TIMESTAMP"
 
       - id: send-notification
         name: 发送通知
@@ -461,4 +361,8 @@ jobs:
           📝 Git 提交: $(git rev-parse --short HEAD)
           
           🍺 安装命令:
-          brew install agbcloud@dev-$TIMESTAMP" 
+          1. 添加 tap (仅首次需要):
+             brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git
+          
+          2. 安装此版本:
+             brew install agbcloud@dev-$TIMESTAMP" 
