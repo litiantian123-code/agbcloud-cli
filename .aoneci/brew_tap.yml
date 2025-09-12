@@ -273,10 +273,13 @@ jobs:
           # 生成 Formula
           echo "Creating Formula file..."
           mkdir -p Formula
-          FORMULA_FILE="Formula/agbcloud@dev-$TIMESTAMP.rb"
+          
+          # 使用简化的命名方式，避免@符号问题
+          FORMULA_FILE="Formula/agbcloud-dev-$TIMESTAMP.rb"
+          FORMULA_CLASS_NAME="AgbcloudDev${SANITIZED_TIMESTAMP}"
           
           cat > "$FORMULA_FILE" << EOF
-          class AgbcloudAT${SANITIZED_TIMESTAMP} < Formula
+          class ${FORMULA_CLASS_NAME} < Formula
             desc "AgbCloud CLI - Test Build $TIMESTAMP"
             homepage "https://alibaba-inc.com/agbcloud"
             version "$VERSION"
@@ -314,8 +317,8 @@ jobs:
                 Git commit: $GIT_COMMIT
                 
                 To switch between versions:
-                  brew unlink agbcloud@${SANITIZED_TIMESTAMP}
-                  brew link agbcloud@other-version
+                  brew unlink agbcloud-dev-${TIMESTAMP}
+                  brew link agbcloud-dev-other-version
               EOS
             end
           end
@@ -324,7 +327,7 @@ jobs:
           # 提交更改
           echo "Committing and pushing changes..."
           git add "$FORMULA_FILE"
-          git commit -m "Add test build agbcloud@dev-$TIMESTAMP
+          git commit -m "Add test build agbcloud-dev-$TIMESTAMP
 
           Version: $VERSION
           Git commit: $GIT_COMMIT
@@ -346,7 +349,7 @@ jobs:
           echo "   brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
           echo ""
           echo "2. Install this version:"
-          echo "   brew install agbcloud@dev-$TIMESTAMP"
+          echo "   brew install agbcloud-dev-$TIMESTAMP"
 
       - id: send-notification
         name: 发送通知
@@ -365,4 +368,4 @@ jobs:
              brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git
           
           2. 安装此版本:
-             brew install agbcloud@dev-$TIMESTAMP" 
+             brew install agbcloud-dev-$TIMESTAMP" 
