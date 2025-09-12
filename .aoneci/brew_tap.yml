@@ -221,6 +221,39 @@ jobs:
             exit 1
           fi
           
+          # 检查私钥格式并转换如果需要
+          echo "Checking SSH key format..."
+          KEY_HEADER=$(head -1 ~/.ssh/id_rsa)
+          echo "Key header: $KEY_HEADER"
+          
+          if echo "$KEY_HEADER" | grep -q "BEGIN OPENSSH PRIVATE KEY"; then
+            echo "Detected OpenSSH format key, converting to PEM format..."
+            # 备份原始密钥
+            cp ~/.ssh/id_rsa ~/.ssh/id_rsa.backup
+            # 转换为PEM格式（不设置密码）
+            if ssh-keygen -p -m PEM -f ~/.ssh/id_rsa -P "" -N ""; then
+              echo "✓ Successfully converted key to PEM format"
+              echo "New key header: $(head -1 ~/.ssh/id_rsa)"
+            else
+              echo "⚠ Key conversion failed, restoring original format"
+              cp ~/.ssh/id_rsa.backup ~/.ssh/id_rsa
+            fi
+          elif echo "$KEY_HEADER" | grep -q "BEGIN RSA PRIVATE KEY\|BEGIN PRIVATE KEY"; then
+            echo "✓ Key is already in PEM format"
+          else
+            echo "⚠ Unknown key format: $KEY_HEADER"
+            echo "Proceeding with original format..."
+          fi
+          
+          # 验证私钥语法
+          if ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null 2>&1; then
+            echo "✓ SSH private key syntax is valid"
+          else
+            echo "✗ SSH private key syntax validation failed"
+            echo "Key format issue detected. Please check the private key format."
+            exit 1
+          fi
+          
           # 创建SSH配置文件
           cat > ~/.ssh/config << EOF
           Host gitlab.alibaba-inc.com
@@ -234,14 +267,41 @@ jobs:
           
           # 启动ssh-agent并添加密钥
           eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
+          
+          # 添加密钥到ssh-agent
+          echo "Adding SSH key to ssh-agent..."
+          if ssh-add ~/.ssh/id_rsa; then
+            echo "✓ SSH key added to ssh-agent successfully"
+          else
+            echo "✗ Failed to add SSH key to ssh-agent"
+            echo "Trying to add key with verbose output..."
+            ssh-add -v ~/.ssh/id_rsa || true
+          fi
+          
+          # 列出ssh-agent中的密钥
+          echo "Keys in ssh-agent:"
+          ssh-add -l || echo "No keys in ssh-agent"
           
           # 测试SSH连接
           echo "Testing SSH connection to GitLab..."
-          if ssh -T git@gitlab.alibaba-inc.com; then
+          echo "Using verbose SSH connection test..."
+          
+          # 使用verbose模式测试连接
+          if ssh -v -T git@gitlab.alibaba-inc.com 2>&1 | tee /tmp/ssh_test.log; then
             echo "✓ SSH connection successful"
           else
-            echo "⚠ SSH connection test completed (this is expected for GitLab)"
+            SSH_EXIT_CODE=$?
+            echo "SSH connection test exit code: $SSH_EXIT_CODE"
+            
+            # 检查是否是GitLab的正常响应
+            if grep -q "Welcome to GitLab" /tmp/ssh_test.log || grep -q "successfully authenticated" /tmp/ssh_test.log; then
+              echo "✓ SSH authentication successful (GitLab connection confirmed)"
+            else
+              echo "✗ SSH connection failed"
+              echo "SSH test log:"
+              cat /tmp/ssh_test.log
+              exit 1
+            fi
           fi
           
           echo "=== Homebrew Tap Update Debug Info ==="
