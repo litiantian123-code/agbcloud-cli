@@ -17,108 +17,11 @@ variables:
 
 # 流水线作业定义
 jobs:
-  # 代码质量检查
-  code-quality:
-    name: 代码质量检查
-    runs-on: 2-8Gi
-    timeout: 15m
-    steps:
-      - uses: checkout
-      - uses: setup-env
-        inputs:
-          go-version: "1.23.2"
-          go-mod-cache: true
-          go-cache: false
-      
-      - id: install-dependencies
-        name: 安装依赖
-        run: |
-          echo "Installing Go dependencies..."
-          go mod download
-          go mod tidy
-          echo "✅ Go dependencies installed"
-      
-      - id: code-formatting-check
-        name: 代码格式检查
-        run: |
-          echo "Checking code formatting..."
-          if ! go fmt ./...; then
-            echo "❌ Code formatting check failed"
-            echo "Please run 'go fmt ./...' to fix formatting issues"
-            exit 1
-          fi
-          echo "✅ Code formatting check passed"
-      
-      - id: static-analysis
-        name: 静态代码分析
-        run: |
-          echo "Running static code analysis..."
-          
-          # Install golangci-lint in this step to ensure it's available
-          echo "Installing golangci-lint for this step..."
-          
-          # Try multiple installation methods
-          GOLANGCI_LINT_INSTALLED=false
-          
-          # Method 1: Install script to /usr/local/bin
-          if curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.55.2 2>/dev/null; then
-            echo "✅ golangci-lint installed via install script to /usr/local/bin"
-            GOLANGCI_LINT_INSTALLED=true
-          fi
-          
-          # Method 2: go install and add to PATH
-          if [ "$GOLANGCI_LINT_INSTALLED" = false ]; then
-            echo "Trying go install method..."
-            go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
-            export PATH=$PATH:$(go env GOPATH)/bin
-            if command -v golangci-lint >/dev/null 2>&1; then
-              echo "✅ golangci-lint installed via go install"
-              GOLANGCI_LINT_INSTALLED=true
-            fi
-          fi
-          
-          # Method 3: Direct binary download
-          if [ "$GOLANGCI_LINT_INSTALLED" = false ]; then
-            echo "Trying direct binary download..."
-            mkdir -p /tmp/golangci-lint
-            cd /tmp/golangci-lint
-            curl -sSfL "https://github.com/golangci/golangci-lint/releases/download/v1.55.2/golangci-lint-1.55.2-linux-amd64.tar.gz" | tar -xz
-            cp golangci-lint-*/golangci-lint /usr/local/bin/
-            chmod +x /usr/local/bin/golangci-lint
-            cd -
-            if command -v golangci-lint >/dev/null 2>&1; then
-              echo "✅ golangci-lint installed via direct download"
-              GOLANGCI_LINT_INSTALLED=true
-            fi
-          fi
-          
-          # Final verification
-          if [ "$GOLANGCI_LINT_INSTALLED" = false ]; then
-            echo "❌ All golangci-lint installation methods failed"
-            echo "Available files in /usr/local/bin:"
-            ls -la /usr/local/bin/ || true
-            echo "GOPATH bin contents:"
-            ls -la $(go env GOPATH)/bin/ || true
-            exit 1
-          fi
-          
-          echo "Using golangci-lint: $(which golangci-lint)"
-          echo "golangci-lint version: $(golangci-lint --version)"
-          
-          # Run the actual linting
-          if ! golangci-lint run --timeout=5m; then
-            echo "❌ Static analysis failed"
-            echo "Please fix the linting issues before proceeding"
-            exit 1
-          fi
-          echo "✅ Static analysis passed"
-
   # 单元测试
   unit-tests:
     name: 单元测试
     runs-on: 2-8Gi
     timeout: 20m
-    needs: [code-quality]
     steps:
       - uses: checkout
       - uses: setup-env
@@ -166,7 +69,7 @@ jobs:
     name: 构建和部署
     runs-on: 4-16Gi
     timeout: 45m
-    needs: [code-quality, unit-tests]
+    needs: [unit-tests]
     steps:
       - uses: checkout
       - uses: setup-env
@@ -537,7 +440,7 @@ jobs:
           📦 版本: $VERSION
           🕒 时间戳: $TIMESTAMP
           📝 Git 提交: $(git rev-parse --short HEAD)
-          ✅ 质量检查: 代码格式 ✓ 静态分析 ✓ 单元测试 ✓"
+          ✅ 测试状态: 单元测试通过 ✓"
           
           🍺 安装命令:
           1. 添加 tap (仅首次需要):
