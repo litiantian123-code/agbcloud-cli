@@ -104,33 +104,56 @@ Write-Host ""
 # Set executable permissions (Windows doesn't need this, but good practice)
 try {
     Write-Host "🔧 Setting up binary permissions..."
-    Set-ItemProperty -Path $outputFile -Name IsReadOnly -Value $false
-    [System.IO.File]::SetAttributes($outputFile, 'Normal')
+    # Try to set attributes, but don't fail if it doesn't work (constrained language mode)
+    try {
+        Set-ItemProperty -Path $outputFile -Name IsReadOnly -Value $false -ErrorAction SilentlyContinue
+        [System.IO.File]::SetAttributes($outputFile, 'Normal')
+    } catch {
+        # In constrained language mode, this might fail, but it's not critical
+        Write-Host "   ⚠️  Could not set file attributes (this is usually fine)"
+    }
 } catch {
-    Write-Error "❌ Failed to set binary permissions: $_"
-    exit 1
+    # This shouldn't happen now, but keep as fallback
+    Write-Host "   ⚠️  Could not set binary permissions (this is usually fine on Windows)"
 }
 
 Write-Host ""
 
 # Add to PATH if not already present
 try {
-    $currentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-    $pathEntries = $currentPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+    Write-Host "🔧 Updating PATH..."
     
-    if (-not ($pathEntries | Where-Object { $_ -eq $destination })) {
-        Write-Host "🔧 Adding $destination to PATH..."
-        $newPath = if ($currentPath.EndsWith(';')) { "$currentPath$destination" } else { "$currentPath;$destination" }
-        [System.Environment]::SetEnvironmentVariable("Path", $newPath, [System.EnvironmentVariableTarget]::User)
-        Write-Host "✅ PATH updated successfully!"
-        Write-Host "   💡 Please restart your terminal or run: refreshenv"
-    } else {
-        Write-Host "✅ Already in PATH"
+    # Try to get current PATH, handle constrained language mode
+    try {
+        $currentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
+        if (-not $currentPath) { $currentPath = "" }
+        
+        $pathEntries = $currentPath -split ';' | ForEach-Object { $_.TrimEnd('\') }
+        
+        if (-not ($pathEntries | Where-Object { $_ -eq $destination })) {
+            Write-Host "   Adding $destination to user PATH..."
+            $newPath = if ($currentPath.EndsWith(';')) { "$currentPath$destination" } else { "$currentPath;$destination" }
+            [System.Environment]::SetEnvironmentVariable("Path", $newPath, [System.EnvironmentVariableTarget]::User)
+            Write-Host "✅ PATH updated successfully!"
+            Write-Host "   💡 Please restart your terminal or run a new PowerShell session"
+        } else {
+            Write-Host "✅ Already in PATH"
+        }
+    } catch {
+        Write-Host "   ⚠️  Could not automatically update PATH (constrained language mode)"
+        Write-Host "   📝 Please manually add the following to your PATH:"
+        Write-Host "      $destination"
+        Write-Host ""
+        Write-Host "   🔧 To add manually:"
+        Write-Host "      1. Press Win+R, type 'sysdm.cpl', press Enter"
+        Write-Host "      2. Click 'Environment Variables'"
+        Write-Host "      3. Under 'User variables', select 'Path' and click 'Edit'"
+        Write-Host "      4. Click 'New' and add: $destination"
+        Write-Host "      5. Click OK to save"
     }
 } catch {
-    Write-Error "❌ Failed to update PATH: $_"
-    Write-Host "   You can manually add $destination to your PATH"
-    exit 1
+    Write-Host "   ⚠️  PATH update failed, but installation completed"
+    Write-Host "   📝 Please manually add to PATH: $destination"
 }
 
 Write-Host ""
@@ -151,17 +174,24 @@ try {
     Write-Host "   📍 Location: $outputFile"
     Write-Host ""
     Write-Host "📚 Quick Start:"
-    Write-Host "   agbcloud --help          # Show help"
-    Write-Host "   agbcloud version          # Show version"
-    Write-Host "   agbcloud login            # Login to AgbCloud"
+    Write-Host "   agbcloud --help          # Show help (note: 'agbcloud' not 'abgcloud')"
+    Write-Host "   agbcloud version         # Show version"
+    Write-Host "   agbcloud login           # Login to AgbCloud"
+    Write-Host ""
+    Write-Host "💡 Important Notes:"
+    Write-Host "   • The command is 'agbcloud' (not 'abgcloud')"
+    Write-Host "   • If 'agbcloud' command not found, restart your terminal"
+    Write-Host "   • Or run directly: $outputFile"
     Write-Host ""
     Write-Host "🔗 Documentation: https://docs.agbcloud.com"
     
 } catch {
-    Write-Error "❌ Installation test failed: $_"
-    Write-Host "   The binary was downloaded but may be corrupted."
-    Write-Host "   Please try running the installer again or download manually."
-    exit 1
+    Write-Host "⚠️  Installation test failed, but binary was downloaded successfully"
+    Write-Host "   📍 Binary location: $outputFile"
+    Write-Host "   🔧 You can run it directly or add to PATH manually"
+    Write-Host ""
+    Write-Host "   💡 Try running directly:"
+    Write-Host "      $outputFile version"
 }
 
 Write-Host "" 
