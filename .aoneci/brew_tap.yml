@@ -70,6 +70,10 @@ jobs:
           echo "Uploading packages to OSS..."
           export VERSION="dev-$(date +%Y%m%d-%H%M)"
           
+          # 设置 OSS 配置变量
+          export OSS_BUCKET="agbcloud-internal"
+          export OSS_ENDPOINT="oss-cn-hangzhou.aliyuncs.com"
+          
           # 设置 OSS 凭证
           export OSS_ACCESS_KEY_ID="${{secrets.OSS_ACCESS_KEY_ID}}"
           export OSS_ACCESS_KEY_SECRET="${{secrets.OSS_ACCESS_KEY_SECRET}}"
@@ -145,7 +149,7 @@ jobs:
           echo "=== OSS Connection Test ==="
           echo "Testing connection to bucket: $OSS_BUCKET"
           
-          if ossutil ls oss://$OSS_BUCKET/ -v; then
+          if ossutil ls oss://$OSS_BUCKET/; then
             echo "✓ Successfully connected to OSS bucket: $OSS_BUCKET"
           else
             echo "✗ Failed to connect to OSS bucket: $OSS_BUCKET"
@@ -153,10 +157,13 @@ jobs:
             
             # 尝试更详细的诊断
             echo "Testing basic OSS connectivity..."
-            ossutil ls oss:// -v || true
+            ossutil ls oss:// || true
             
-            echo "Testing bucket existence..."
-            ossutil stat oss://$OSS_BUCKET/ -v || true
+            echo "Testing bucket existence with stat command..."
+            ossutil stat oss://$OSS_BUCKET/ || true
+            
+            echo "Checking ossutil configuration..."
+            ossutil config || true
             
             exit 1
           fi
