@@ -30,42 +30,13 @@ jobs:
           go-mod-cache: true
           go-cache: false
       
-      - id: install-lint-dependencies
-        name: 安装代码检查依赖
+      - id: install-dependencies
+        name: 安装依赖
         run: |
-          echo "Installing linting dependencies..."
+          echo "Installing Go dependencies..."
           go mod download
           go mod tidy
-          
-          # Install golangci-lint for linting
-          echo "Installing golangci-lint..."
-          
-          # Create bin directory if it doesn't exist
-          mkdir -p /usr/local/bin
-          
-          # Try primary installation method
-          if curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.55.2; then
-            echo "✅ golangci-lint installed successfully via install script"
-          else
-            echo "⚠️ Install script failed, trying alternative method..."
-            # Alternative: install via go install
-            go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
-            
-            # Copy to /usr/local/bin if installed in GOPATH
-            if [ -f "$(go env GOPATH)/bin/golangci-lint" ]; then
-              cp "$(go env GOPATH)/bin/golangci-lint" /usr/local/bin/
-              echo "✅ golangci-lint copied to /usr/local/bin"
-            fi
-          fi
-          
-          # Verify installation
-          if command -v golangci-lint >/dev/null 2>&1; then
-            echo "✅ golangci-lint installed at: $(which golangci-lint)"
-            echo "golangci-lint version: $(golangci-lint --version)"
-          else
-            echo "❌ golangci-lint installation failed"
-            exit 1
-          fi
+          echo "✅ Go dependencies installed"
       
       - id: code-formatting-check
         name: 代码格式检查
@@ -83,17 +54,58 @@ jobs:
         run: |
           echo "Running static code analysis..."
           
-          # Verify golangci-lint is available
-          if ! command -v golangci-lint >/dev/null 2>&1; then
-            echo "❌ golangci-lint not found in PATH"
-            echo "Available commands in /usr/local/bin:"
-            ls -la /usr/local/bin/ | grep golangci || echo "No golangci-lint found"
+          # Install golangci-lint in this step to ensure it's available
+          echo "Installing golangci-lint for this step..."
+          
+          # Try multiple installation methods
+          GOLANGCI_LINT_INSTALLED=false
+          
+          # Method 1: Install script to /usr/local/bin
+          if curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.55.2 2>/dev/null; then
+            echo "✅ golangci-lint installed via install script to /usr/local/bin"
+            GOLANGCI_LINT_INSTALLED=true
+          fi
+          
+          # Method 2: go install and add to PATH
+          if [ "$GOLANGCI_LINT_INSTALLED" = false ]; then
+            echo "Trying go install method..."
+            go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
+            export PATH=$PATH:$(go env GOPATH)/bin
+            if command -v golangci-lint >/dev/null 2>&1; then
+              echo "✅ golangci-lint installed via go install"
+              GOLANGCI_LINT_INSTALLED=true
+            fi
+          fi
+          
+          # Method 3: Direct binary download
+          if [ "$GOLANGCI_LINT_INSTALLED" = false ]; then
+            echo "Trying direct binary download..."
+            mkdir -p /tmp/golangci-lint
+            cd /tmp/golangci-lint
+            curl -sSfL "https://github.com/golangci/golangci-lint/releases/download/v1.55.2/golangci-lint-1.55.2-linux-amd64.tar.gz" | tar -xz
+            cp golangci-lint-*/golangci-lint /usr/local/bin/
+            chmod +x /usr/local/bin/golangci-lint
+            cd -
+            if command -v golangci-lint >/dev/null 2>&1; then
+              echo "✅ golangci-lint installed via direct download"
+              GOLANGCI_LINT_INSTALLED=true
+            fi
+          fi
+          
+          # Final verification
+          if [ "$GOLANGCI_LINT_INSTALLED" = false ]; then
+            echo "❌ All golangci-lint installation methods failed"
+            echo "Available files in /usr/local/bin:"
+            ls -la /usr/local/bin/ || true
+            echo "GOPATH bin contents:"
+            ls -la $(go env GOPATH)/bin/ || true
             exit 1
           fi
           
           echo "Using golangci-lint: $(which golangci-lint)"
           echo "golangci-lint version: $(golangci-lint --version)"
           
+          # Run the actual linting
           if ! golangci-lint run --timeout=5m; then
             echo "❌ Static analysis failed"
             echo "Please fix the linting issues before proceeding"
