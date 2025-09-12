@@ -17,11 +17,11 @@ variables:
 
 # 流水线作业定义
 jobs:
-  # 质量检查、构建、打包、上传、部署
-  build-and-deploy:
-    name: 质量检查、构建并部署
-    runs-on: 4-16Gi
-    timeout: 60m
+  # 代码质量检查
+  code-quality:
+    name: 代码质量检查
+    runs-on: 2-8Gi
+    timeout: 15m
     steps:
       - uses: checkout
       - uses: setup-env
@@ -30,10 +30,10 @@ jobs:
           go-mod-cache: true
           go-cache: false
       
-      - id: install-dependencies
-        name: 安装依赖
+      - id: install-lint-dependencies
+        name: 安装代码检查依赖
         run: |
-          echo "Installing dependencies..."
+          echo "Installing linting dependencies..."
           go mod download
           go mod tidy
           
@@ -43,13 +43,9 @@ jobs:
           export PATH=$PATH:$(go env GOPATH)/bin
           echo "golangci-lint version: $(golangci-lint --version)"
       
-      - id: code-quality-checks
-        name: 代码质量检查
+      - id: code-formatting-check
+        name: 代码格式检查
         run: |
-          echo "Running code quality checks..."
-          export PATH=$PATH:$(go env GOPATH)/bin
-          
-          # Code formatting check
           echo "Checking code formatting..."
           if ! go fmt ./...; then
             echo "❌ Code formatting check failed"
@@ -57,18 +53,43 @@ jobs:
             exit 1
           fi
           echo "✅ Code formatting check passed"
+      
+      - id: static-analysis
+        name: 静态代码分析
+        run: |
+          echo "Running static code analysis..."
+          export PATH=$PATH:$(go env GOPATH)/bin
           
-          # Linting
-          echo "Running linter..."
           if ! golangci-lint run --timeout=5m; then
-            echo "❌ Linting failed"
+            echo "❌ Static analysis failed"
             echo "Please fix the linting issues before proceeding"
             exit 1
           fi
-          echo "✅ Linting passed"
+          echo "✅ Static analysis passed"
+
+  # 单元测试
+  unit-tests:
+    name: 单元测试
+    runs-on: 2-8Gi
+    timeout: 20m
+    needs: [code-quality]
+    steps:
+      - uses: checkout
+      - uses: setup-env
+        inputs:
+          go-version: "1.23.2"
+          go-mod-cache: true
+          go-cache: false
       
-      - id: run-tests
-        name: 运行测试
+      - id: install-test-dependencies
+        name: 安装测试依赖
+        run: |
+          echo "Installing test dependencies..."
+          go mod download
+          go mod tidy
+      
+      - id: run-unit-tests
+        name: 运行单元测试
         run: |
           echo "Running unit tests..."
           
@@ -78,8 +99,10 @@ jobs:
             exit 1
           fi
           echo "✅ Unit tests passed"
-          
-          # Generate coverage report
+      
+      - id: generate-coverage
+        name: 生成覆盖率报告
+        run: |
           echo "Generating coverage report..."
           if ! make test-coverage; then
             echo "⚠️ Coverage report generation failed, but continuing..."
@@ -91,6 +114,20 @@ jobs:
           echo ""
           echo "📊 Test Summary:"
           go test -v ./test/unit/... 2>/dev/null | grep -E "(PASS|FAIL|RUN)" | tail -10 || true
+
+  # 构建和部署
+  build-and-deploy:
+    name: 构建和部署
+    runs-on: 4-16Gi
+    timeout: 45m
+    needs: [code-quality, unit-tests]
+    steps:
+      - uses: checkout
+      - uses: setup-env
+        inputs:
+          go-version: "1.23.2"
+          go-mod-cache: true
+          go-cache: false
       
       - id: build-binaries
         name: 构建多平台二进制文件
@@ -454,7 +491,7 @@ jobs:
           📦 版本: $VERSION
           🕒 时间戳: $TIMESTAMP
           📝 Git 提交: $(git rev-parse --short HEAD)
-          ✅ 代码质量: 已通过格式检查、语法检测和单元测试
+          ✅ 质量检查: 代码格式 ✓ 静态分析 ✓ 单元测试 ✓"
           
           🍺 安装命令:
           1. 添加 tap (仅首次需要):
