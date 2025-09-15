@@ -45,7 +45,7 @@ func TestAuthSuccessPageBasicStructure(t *testing.T) {
 	// Basic HTML structure checks
 	requiredElements := []string{
 		"<!DOCTYPE html>",
-		"<html>",
+		"<html lang=\"en\">",
 		"</html>",
 		"<head>",
 		"</head>",

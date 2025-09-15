@@ -510,20 +510,23 @@ func pollImageTask(ctx context.Context, apiClient *client.APIClient, loginToken,
 			}
 			fmt.Println()
 
-			switch strings.ToUpper(status) {
-			case "SUCCESS", "COMPLETED", "FINISHED":
+			switch status {
+			case "Finished":
 				if taskResp.Data.ImageID != nil {
 					fmt.Printf("🎉 Image created successfully! Image ID: %s\n", *taskResp.Data.ImageID)
 				} else {
 					fmt.Println("🎉 Image created successfully!")
 				}
 				return nil
-			case "FAILED", "ERROR":
+			case "Failed":
 				fmt.Printf("📋 Task ID: %s\n", taskId)
 				fmt.Printf("🔍 Request ID: %s\n", taskResp.RequestID)
 				return fmt.Errorf("image creation failed: %s", message)
-			case "RUNNING", "PENDING", "IN_PROGRESS":
-				// Continue polling
+			case "Inline":
+				// Continue polling - waiting for processing
+				continue
+			case "Preparing":
+				// Continue polling - processing in progress
 				continue
 			default:
 				fmt.Printf("🔄 Unknown status '%s', continuing to monitor...\n", status)

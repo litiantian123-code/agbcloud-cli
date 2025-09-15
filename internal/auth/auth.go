@@ -117,53 +117,177 @@ func GenerateRandomState() (string, error) {
 // GetSuccessHTML returns the HTML page shown after successful authentication
 func GetSuccessHTML() string {
 	return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Authentication Successful</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Successful - AgbCloud CLI</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f5f5f5;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
         }
+        
         .container {
             text-align: center;
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 3rem 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 450px;
+            width: 90%;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+        }
+        
         .success-icon {
-            font-size: 3rem;
-            color: #28a745;
-            margin-bottom: 1rem;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            animation: pulse 2s infinite;
         }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
         h1 {
-            color: #333;
+            color: #2c3e50;
+            font-size: 1.8rem;
+            font-weight: 600;
             margin-bottom: 1rem;
+            letter-spacing: -0.5px;
         }
-        p {
-            color: #666;
-            margin-bottom: 0;
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            font-weight: 400;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #4CAF50;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        
+        .info-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .info-text {
+            color: #5a6c7d;
+            font-size: 0.85rem;
+        }
+        
+        .countdown {
+            color: #95a5a6;
+            font-size: 0.85rem;
+            margin-top: 1.5rem;
+            font-style: italic;
+        }
+        
+        .brand {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #bdc3c7;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .success-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="success-icon">✅</div>
+        <div class="success-icon">✓</div>
         <h1>Authentication Successful!</h1>
-        <p>You can now close this window and return to the CLI.</p>
+        <p class="subtitle">You have been successfully authenticated with AgbCloud CLI</p>
+        
+        <div class="info-box">
+            <div class="info-title">Next Steps:</div>
+            <div class="info-text">You can now close this window and return to your terminal to continue using the CLI.</div>
+        </div>
+        
+        <div class="countdown" id="countdown">This window will close automatically in <span id="timer">10</span> seconds</div>
+        <div class="brand">AgbCloud CLI</div>
     </div>
 
     <script>
-        // Function to close the page after 10 seconds
-        setTimeout(function () {
-            window.close()
-        }, 10 * 1000)
+        // Countdown timer
+        let timeLeft = 10;
+        const timerElement = document.getElementById('timer');
+        
+        const countdown = setInterval(function() {
+            timeLeft--;
+            timerElement.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                window.close();
+            }
+        }, 1000);
+        
+        // Also close after 10 seconds as fallback
+        setTimeout(function() {
+            window.close();
+        }, 10 * 1000);
     </script>
 </body>
 </html>`
