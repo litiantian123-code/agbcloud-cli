@@ -282,8 +282,8 @@ jobs:
               filename=$(basename "$package")
               echo "Uploading $filename..."
               
-              if ossutil cp "$package" "oss://$OSS_BUCKET/$filename" --force; then
-                if ossutil set-acl "oss://$OSS_BUCKET/$filename" public-read; then
+              if ossutil cp "$package" "oss://$OSS_BUCKET/agbcloud/releases/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/agbcloud/releases/$filename" public-read; then
                   echo "✓ Uploaded and set public: $filename"
                 else
                   echo "⚠ Uploaded but failed to set ACL: $filename"
@@ -531,8 +531,8 @@ jobs:
           echo "   powershell -Command \"irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex\" -Version $VERSION"
           echo ""
           echo "📦 手动下载:"
-          echo "   • Windows x64:   https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-windows-amd64.exe"
-          echo "   • Windows ARM64: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-windows-arm64.exe"
+          echo "   • Windows x64:   https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-windows-amd64.exe"
+          echo "   • Windows ARM64: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-windows-arm64.exe"
           echo ""
           echo "📋 使用方法:"
           echo "   agbcloud version        # 查看版本"
@@ -560,18 +560,18 @@ jobs:
           echo ""
           echo "🐧 Linux - 手动安装:"
           echo "   # AMD64 (Intel/AMD 64位)"
-          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-amd64.tar.gz | tar -xz"
+          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-amd64.tar.gz | tar -xz"
           echo "   sudo mv agbcloud /usr/local/bin/"
           echo "   "
           echo "   # ARM64 (ARM 64位)"
-          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-arm64.tar.gz | tar -xz"
+          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-arm64.tar.gz | tar -xz"
           echo "   sudo mv agbcloud /usr/local/bin/"
           echo ""
           echo "📦 手动下载链接:"
-          echo "   • macOS Intel:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-darwin-amd64.tar.gz"
-          echo "   • macOS Apple Silicon: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-darwin-arm64.tar.gz"
-          echo "   • Linux x64:          https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-amd64.tar.gz"
-          echo "   • Linux ARM64:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-$VERSION-linux-arm64.tar.gz"
+          echo "   • macOS Intel:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-amd64.tar.gz"
+          echo "   • macOS Apple Silicon: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-arm64.tar.gz"
+          echo "   • Linux x64:          https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-amd64.tar.gz"
+          echo "   • Linux ARM64:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-arm64.tar.gz"
           echo ""
           echo "📋 使用方法:"
           echo "   agbcloud version        # 查看版本"
