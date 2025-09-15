@@ -5,7 +5,7 @@ set -e
 # OSS Configuration
 OSS_ENDPOINT="oss-cn-hangzhou.aliyuncs.com"
 OSS_BUCKET="agbcloud-internal"
-OSS_PREFIX="agbcloud/releases"
+OSS_PREFIX=""
 
 # Package directory
 PACKAGE_DIR=${PACKAGE_DIR:-"packages"}

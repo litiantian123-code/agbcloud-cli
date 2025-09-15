@@ -5,18 +5,18 @@ class AgbcloudAT<%= sanitized_timestamp %> < Formula
 
   if OS.mac?
     if Hardware::CPU.arm?
-      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-<%= version %>-darwin-arm64.tar.gz"
+      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-<%= version %>-darwin-arm64.tar.gz"
       sha256 "<%= darwin_arm64_sha256 %>"
     else
-      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-<%= version %>-darwin-amd64.tar.gz"
+      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-<%= version %>-darwin-amd64.tar.gz"
       sha256 "<%= darwin_amd64_sha256 %>"
     end
   elsif OS.linux?
     if Hardware::CPU.arm?
-      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-<%= version %>-linux-arm64.tar.gz"
+      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-<%= version %>-linux-arm64.tar.gz"
       sha256 "<%= linux_arm64_sha256 %>"
     else
-      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-<%= version %>-linux-amd64.tar.gz"
+      url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud-<%= version %>-linux-amd64.tar.gz"
       sha256 "<%= linux_amd64_sha256 %>"
     end
   end
