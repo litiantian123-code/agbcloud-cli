@@ -147,42 +147,50 @@ jobs:
           
           mkdir -p server-files
           
-          # Create version API file
-          cat > server-files/latest.json << 'EOF'
-{
-  "version": "$VERSION",
-  "git_commit": "$GIT_COMMIT",
-  "build_date": "$BUILD_DATE",
+          # Create version API file using printf to avoid YAML parsing issues
+          printf '{
+  "version": "%s",
+  "git_commit": "%s", 
+  "build_date": "%s",
   "downloads": {
     "windows": {
       "amd64": {
-        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.exe",
-        "tar_url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.tar.gz"
+        "url": "https://%s.%s/%s/releases/%s-%s-windows-amd64.exe",
+        "tar_url": "https://%s.%s/%s/releases/%s-%s-windows-amd64.tar.gz"
       },
       "arm64": {
-        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe",
-        "tar_url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.tar.gz"
+        "url": "https://%s.%s/%s/releases/%s-%s-windows-arm64.exe", 
+        "tar_url": "https://%s.%s/%s/releases/%s-%s-windows-arm64.tar.gz"
       }
     },
     "darwin": {
       "amd64": {
-        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz"
+        "url": "https://%s.%s/%s/releases/%s-%s-darwin-amd64.tar.gz"
       },
       "arm64": {
-        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz"
+        "url": "https://%s.%s/%s/releases/%s-%s-darwin-arm64.tar.gz"
       }
     },
     "linux": {
       "amd64": {
-        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz"
+        "url": "https://%s.%s/%s/releases/%s-%s-linux-amd64.tar.gz"
       },
       "arm64": {
-        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz"
+        "url": "https://%s.%s/%s/releases/%s-%s-linux-arm64.tar.gz"
       }
     }
   }
-}
-EOF
+}' \
+            "$VERSION" "$GIT_COMMIT" "$BUILD_DATE" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            "${{vars.OSS_BUCKET}}" "${{vars.OSS_ENDPOINT}}" "${{vars.BINARY_NAME}}" "${{vars.BINARY_NAME}}" "$VERSION" \
+            > server-files/latest.json
           
           echo "✅ Version info file created successfully"
 
