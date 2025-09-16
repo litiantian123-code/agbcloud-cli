@@ -75,14 +75,40 @@ jobs:
           go-mod-cache: true
           go-cache: false
       
+      - id: setup-build-vars
+        name: Setup Build Variables
+        run: |
+          echo "Setting up build variables..."
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
+          export TIMESTAMP=$(date +%Y%m%d-%H%M)
+          export VERSION="${VERSION_PREFIX:-dev}-$TIMESTAMP"
+          export GIT_COMMIT=$(git rev-parse --short HEAD)
+          export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          echo "Build variables:"
+          echo "VERSION_PREFIX=$VERSION_PREFIX"
+          echo "TIMESTAMP=$TIMESTAMP"
+          echo "VERSION=$VERSION"
+          echo "GIT_COMMIT=$GIT_COMMIT"
+          echo "BUILD_DATE=$BUILD_DATE"
+          
+          # Save to shared environment file for subsequent steps
+          mkdir -p /tmp/build-vars
+          echo "VERSION_PREFIX=$VERSION_PREFIX" > /tmp/build-vars/env
+          echo "TIMESTAMP=$TIMESTAMP" >> /tmp/build-vars/env
+          echo "VERSION=$VERSION" >> /tmp/build-vars/env
+          echo "GIT_COMMIT=$GIT_COMMIT" >> /tmp/build-vars/env
+          echo "BUILD_DATE=$BUILD_DATE" >> /tmp/build-vars/env
+          
+          echo "✅ Build variables saved to /tmp/build-vars/env"
+      
       - id: build-binaries
         name: Build Multi-platform Binaries
         run: |
           echo "Building binaries for all platforms..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
-          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
-          export GIT_COMMIT=$(git rev-parse --short HEAD)
-          export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Load shared build variables
+          source /tmp/build-vars/env
           echo "Build version: $VERSION"
           echo "Git commit: $GIT_COMMIT"
           make build-all
@@ -92,8 +118,9 @@ jobs:
         name: Create Packages
         run: |
           echo "Creating packages..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
-          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
+          
+          # Load shared build variables
+          source /tmp/build-vars/env
           mkdir -p packages
           
           for binary in bin/*; do
@@ -141,8 +168,9 @@ jobs:
         name: Create Server Files
         run: |
           echo "Creating server files..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
-          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
+          
+          # Load shared build variables
+          source /tmp/build-vars/env
           
           # Make the script executable and run it
           chmod +x scripts/generate-server-files.sh
@@ -174,8 +202,9 @@ jobs:
         name: Upload to OSS
         run: |
           echo "Uploading packages to OSS..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
-          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
+          
+          # Load shared build variables
+          source /tmp/build-vars/env
                     
           # Set OSS configuration variables
           export OSS_BUCKET="${{vars.OSS_BUCKET}}"
@@ -318,9 +347,8 @@ jobs:
       - id: send-notification
         name: Send Notification
         run: |
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
-          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
-          export TIMESTAMP=$(date +%Y%m%d-%H%M)
+          # Load shared build variables
+          source /tmp/build-vars/env
           
           echo "🎉 ${{vars.BINARY_NAME}} CLI Multi-platform Test Package Build Complete!"
           echo ""
