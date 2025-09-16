@@ -67,6 +67,9 @@ jobs:
     runs-on: 4-16Gi
     timeout: 45m
     needs: [unit-tests]
+    outputs:
+      version: ${{steps.setup-build-vars.outputs.version}}
+      timestamp: ${{steps.setup-build-vars.outputs.timestamp}}
     steps:
       - uses: checkout
       - uses: setup-env
@@ -80,7 +83,7 @@ jobs:
         run: |
           echo "Setting up build variables..."
           export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
-          export TIMESTAMP=$(date +%Y%m%d-%H%M)
+          export TIMESTAMP=$(TZ='Asia/Shanghai' date "+%Y%m%d-%H%M")
           export VERSION="${VERSION_PREFIX:-dev}-$TIMESTAMP"
           export GIT_COMMIT=$(git rev-parse --short HEAD)
           export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -92,23 +95,24 @@ jobs:
           echo "GIT_COMMIT=$GIT_COMMIT"
           echo "BUILD_DATE=$BUILD_DATE"
           
-          # Save to shared environment file for subsequent steps
-          mkdir -p /tmp/build-vars
-          echo "VERSION_PREFIX=$VERSION_PREFIX" > /tmp/build-vars/env
-          echo "TIMESTAMP=$TIMESTAMP" >> /tmp/build-vars/env
-          echo "VERSION=$VERSION" >> /tmp/build-vars/env
-          echo "GIT_COMMIT=$GIT_COMMIT" >> /tmp/build-vars/env
-          echo "BUILD_DATE=$BUILD_DATE" >> /tmp/build-vars/env
+          # Save to environment variables for sharing across steps in same job
+          echo "VERSION=$VERSION" >> $AONE_CI_ENV
+          echo "TIMESTAMP=$TIMESTAMP" >> $AONE_CI_ENV
+          echo "GIT_COMMIT=$GIT_COMMIT" >> $AONE_CI_ENV
+          echo "BUILD_DATE=$BUILD_DATE" >> $AONE_CI_ENV
           
-          echo "✅ Build variables saved to /tmp/build-vars/env"
+          # Output for job-level sharing
+          echo "$VERSION" > ${{outputs.version.path}}
+          echo "$TIMESTAMP" > ${{outputs.timestamp.path}}
+          
+          echo "✅ Build variables saved to workspace and outputs"
       
       - id: build-binaries
         name: Build Multi-platform Binaries
         run: |
           echo "Building binaries for all platforms..."
           
-          # Load shared build variables
-          source /tmp/build-vars/env
+          # Environment variables are automatically available from previous steps
           echo "Build version: $VERSION"
           echo "Git commit: $GIT_COMMIT"
           make build-all
@@ -119,8 +123,7 @@ jobs:
         run: |
           echo "Creating packages..."
           
-          # Load shared build variables
-          source /tmp/build-vars/env
+          # Environment variables are automatically available from previous steps
           mkdir -p packages
           
           for binary in bin/*; do
@@ -169,8 +172,7 @@ jobs:
         run: |
           echo "Creating server files..."
           
-          # Load shared build variables
-          source /tmp/build-vars/env
+          # Environment variables are automatically available from previous steps
           
           # Make the script executable and run it
           chmod +x scripts/generate-server-files.sh
@@ -203,8 +205,7 @@ jobs:
         run: |
           echo "Uploading packages to OSS..."
           
-          # Load shared build variables
-          source /tmp/build-vars/env
+          # Environment variables are automatically available from previous steps
                     
           # Set OSS configuration variables
           export OSS_BUCKET="${{vars.OSS_BUCKET}}"
@@ -347,8 +348,9 @@ jobs:
       - id: send-notification
         name: Send Notification
         run: |
-          # Load shared build variables
-          source /tmp/build-vars/env
+          # Load build variables from job outputs
+          export VERSION="${{jobs.build-and-deploy.outputs.version}}"
+          export TIMESTAMP="${{jobs.build-and-deploy.outputs.timestamp}}"
           
           echo "🎉 ${{vars.BINARY_NAME}} CLI Multi-platform Test Package Build Complete!"
           echo ""
