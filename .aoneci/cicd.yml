@@ -79,8 +79,8 @@ jobs:
         name: Build Multi-platform Binaries
         run: |
           echo "Building binaries for all platforms..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
-          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
+          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
           export GIT_COMMIT=$(git rev-parse --short HEAD)
           export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           echo "Build version: $VERSION"
@@ -92,8 +92,8 @@ jobs:
         name: Create Packages
         run: |
           echo "Creating packages..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
-          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
+          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
           mkdir -p packages
           
           for binary in bin/*; do
@@ -141,8 +141,8 @@ jobs:
         name: Create Server Files
         run: |
           echo "Creating server files..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
-          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
+          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
           
           # Make the script executable and run it
           chmod +x scripts/generate-server-files.sh
@@ -174,8 +174,8 @@ jobs:
         name: Upload to OSS
         run: |
           echo "Uploading packages to OSS..."
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
-          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
+          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
                     
           # Set OSS configuration variables
           export OSS_BUCKET="${{vars.OSS_BUCKET}}"
@@ -318,8 +318,8 @@ jobs:
       - id: send-notification
         name: Send Notification
         run: |
-          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
-          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX}}"
+          export VERSION="${VERSION_PREFIX:-dev}-$(date +%Y%m%d-%H%M)"
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
           
           echo "🎉 ${{vars.BINARY_NAME}} CLI Multi-platform Test Package Build Complete!"
