@@ -176,8 +176,8 @@ jobs:
           echo "Uploading packages to OSS..."
           export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
           export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
-          
-# Set OSS configuration variables
+                    
+          # Set OSS configuration variables
           export OSS_BUCKET="${{vars.OSS_BUCKET}}"
           export OSS_ENDPOINT="${{vars.OSS_ENDPOINT}}"
           
