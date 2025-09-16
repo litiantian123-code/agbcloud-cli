@@ -148,7 +148,7 @@ jobs:
           mkdir -p server-files
           
           # Create version API file
-          cat > server-files/latest.json << EOF
+          cat > server-files/latest.json << 'EOF'
 {
   "version": "$VERSION",
   "git_commit": "$GIT_COMMIT",
