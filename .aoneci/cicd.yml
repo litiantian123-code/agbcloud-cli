@@ -95,7 +95,13 @@ jobs:
           echo "GIT_COMMIT=$GIT_COMMIT"
           echo "BUILD_DATE=$BUILD_DATE"
           
-          # Save to environment variables for sharing across steps in same job
+          # Save to workspace files for sharing across steps in same job
+          echo "VERSION=$VERSION" > $AONE_CI_WORKSPACE/BUILD_VERSION
+          echo "TIMESTAMP=$TIMESTAMP" > $AONE_CI_WORKSPACE/BUILD_TIMESTAMP
+          echo "GIT_COMMIT=$GIT_COMMIT" > $AONE_CI_WORKSPACE/BUILD_GIT_COMMIT
+          echo "BUILD_DATE=$BUILD_DATE" > $AONE_CI_WORKSPACE/BUILD_DATE
+          
+          # Also try environment variables
           echo "VERSION=$VERSION" >> $AONE_CI_ENV
           echo "TIMESTAMP=$TIMESTAMP" >> $AONE_CI_ENV
           echo "GIT_COMMIT=$GIT_COMMIT" >> $AONE_CI_ENV
@@ -112,7 +118,13 @@ jobs:
         run: |
           echo "Building binaries for all platforms..."
           
-          # Environment variables are automatically available from previous steps
+          # Load variables from environment or workspace files
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
+          if [ -z "$GIT_COMMIT" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_GIT_COMMIT" ]; then
+            export GIT_COMMIT=$(cat $AONE_CI_WORKSPACE/BUILD_GIT_COMMIT)
+          fi
           echo "Build version: $VERSION"
           echo "Git commit: $GIT_COMMIT"
           make build-all
@@ -123,7 +135,10 @@ jobs:
         run: |
           echo "Creating packages..."
           
-          # Environment variables are automatically available from previous steps
+          # Load variables from environment or workspace files
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
           mkdir -p packages
           
           for binary in bin/*; do
@@ -172,7 +187,10 @@ jobs:
         run: |
           echo "Creating server files..."
           
-          # Environment variables are automatically available from previous steps
+          # Load variables from environment or workspace files
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
           
           # Make the script executable and run it
           chmod +x scripts/generate-server-files.sh
@@ -205,7 +223,10 @@ jobs:
         run: |
           echo "Uploading packages to OSS..."
           
-          # Environment variables are automatically available from previous steps
+          # Load variables from environment or workspace files
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
                     
           # Set OSS configuration variables
           export OSS_BUCKET="${{vars.OSS_BUCKET}}"
@@ -348,9 +369,16 @@ jobs:
       - id: send-notification
         name: Send Notification
         run: |
-          # Load build variables from job outputs
-          export VERSION="${{jobs.build-and-deploy.outputs.version}}"
-          export TIMESTAMP="${{jobs.build-and-deploy.outputs.timestamp}}"
+          # Try to load from environment variables first, then from workspace files as fallback
+          if [ -z "$VERSION" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_VERSION" ]; then
+            export VERSION=$(cat $AONE_CI_WORKSPACE/BUILD_VERSION)
+          fi
+          if [ -z "$TIMESTAMP" ] && [ -f "$AONE_CI_WORKSPACE/BUILD_TIMESTAMP" ]; then
+            export TIMESTAMP=$(cat $AONE_CI_WORKSPACE/BUILD_TIMESTAMP)
+          fi
+          
+          echo "Debug: VERSION=$VERSION"
+          echo "Debug: TIMESTAMP=$TIMESTAMP"
           
           echo "🎉 ${{vars.BINARY_NAME}} CLI Multi-platform Test Package Build Complete!"
           echo ""
