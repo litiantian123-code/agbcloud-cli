@@ -154,10 +154,10 @@ jobs:
               
               # For Windows, also create direct .exe files
               if [[ "$platform_arch" == windows-* ]]; then
-                # Windows binaries already have .exe extension, copy directly
-                cp "$binary" "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch"
-                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.sha256"
-                echo "✓ Created Windows executable: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch"
+                # Windows binaries already have .exe extension, copy directly with .exe extension
+                cp "$binary" "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.exe"
+                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.exe" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.exe.sha256"
+                echo "✓ Created Windows executable: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch.exe"
               fi
               
               rm -rf "$temp_dir"
@@ -179,6 +179,15 @@ jobs:
               else
                 echo "  ⚠ Warning: May not be a valid Windows executable"
               fi
+            fi
+          done
+          
+          # Also verify tar.gz packages for Windows
+          echo ""
+          echo "🔍 Verifying Windows tar.gz packages:"
+          for pkg in packages/*windows*.tar.gz; do
+            if [[ -f "$pkg" ]]; then
+              echo "✓ Found: $(basename "$pkg")"
             fi
           done
 
@@ -332,10 +341,10 @@ jobs:
           for package in packages/*.tar.gz packages/*.exe packages/*.sha256; do
             if [[ -f "$package" ]]; then
               filename=$(basename "$package")
-              echo "Uploading $filename..."
+              echo "Uploading $filename to version directory $VERSION..."
               
-              if ossutil cp "$package" "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$filename" --force; then
-                if ossutil set-acl "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$filename" public-read; then
+              if ossutil cp "$package" "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" public-read; then
                   echo "✓ Uploaded and set public: $filename"
                 else
                   echo "⚠ Uploaded but failed to set ACL: $filename"
@@ -351,10 +360,11 @@ jobs:
           for serverfile in server-files/*; do
             if [[ -f "$serverfile" ]]; then
               filename=$(basename "$serverfile")
-              echo "Uploading server file: $filename..."
+              echo "Uploading server file: $filename to version directory $VERSION..."
               
-              if ossutil cp "$serverfile" "oss://$OSS_BUCKET/$filename" --force; then
-                if ossutil set-acl "oss://$OSS_BUCKET/$filename" public-read; then
+              # Upload to version-specific directory
+              if ossutil cp "$serverfile" "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" --force; then
+                if ossutil set-acl "oss://$OSS_BUCKET/${{vars.BINARY_NAME}}/releases/$VERSION/$filename" public-read; then
                   echo "✓ Uploaded and set public: $filename"
                 else
                   echo "⚠ Uploaded but failed to set ACL: $filename"
@@ -362,6 +372,20 @@ jobs:
               else
                 echo "✗ Failed to upload server file: $filename"
                 exit 1
+              fi
+              
+              # Also upload latest.json to root for backward compatibility
+              if [[ "$filename" == "latest.json" ]]; then
+                echo "Also uploading latest.json to root for backward compatibility..."
+                if ossutil cp "$serverfile" "oss://$OSS_BUCKET/latest.json" --force; then
+                  if ossutil set-acl "oss://$OSS_BUCKET/latest.json" public-read; then
+                    echo "✓ Uploaded latest.json to root"
+                  else
+                    echo "⚠ Uploaded latest.json to root but failed to set ACL"
+                  fi
+                else
+                  echo "⚠ Failed to upload latest.json to root"
+                fi
               fi
             fi
           done
@@ -393,12 +417,12 @@ jobs:
           echo "═══════════════════════════════════════════════════════════════"
           echo ""
           echo "📦 Direct Download:"
-          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.exe"
-          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe"
+          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.exe"
+          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe"
           echo ""
           echo "📦 Archive Download:"
-          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.tar.gz"
-          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.tar.gz"
+          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.tar.gz"
+          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.tar.gz"
           echo ""
           echo "📋 Usage Instructions:"
           echo "   1. Download the executable for your architecture"
@@ -415,26 +439,26 @@ jobs:
           echo "═══════════════════════════════════════════════════════════════"
           echo ""
           echo "📦 Download Links:"
-          echo "   • macOS Intel:        https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz"
-          echo "   • macOS Apple Silicon: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz"
-          echo "   • Linux x64:          https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz"
-          echo "   • Linux ARM64:        https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz"
+          echo "   • macOS Intel:        https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz"
+          echo "   • macOS Apple Silicon: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz"
+          echo "   • Linux x64:          https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz"
+          echo "   • Linux ARM64:        https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz"
           echo ""
           echo "🚀 Quick Install (macOS/Linux):"
           echo "   # macOS Intel"
-          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz | tar -xz"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz | tar -xz"
           echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
           echo "   "
           echo "   # macOS Apple Silicon"
-          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz | tar -xz"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz | tar -xz"
           echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
           echo "   "
           echo "   # Linux AMD64"
-          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz | tar -xz"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz | tar -xz"
           echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
           echo "   "
           echo "   # Linux ARM64"
-          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz | tar -xz"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz | tar -xz"
           echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
           echo ""
           echo "📋 Usage Instructions:"
