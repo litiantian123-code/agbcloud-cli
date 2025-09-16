@@ -8,8 +8,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
-	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,19 +21,10 @@ type CallbackServerConfig struct {
 	Port string
 }
 
-// GetCallbackPort returns the callback port from environment variable, config, or default
-func GetCallbackPort(configPort string) string {
-	// Check environment variable first
-	if envPort := os.Getenv("AGB_CLI_CALLBACK_PORT"); envPort != "" {
-		return envPort
-	}
-
-	// Check config port
-	if configPort != "" {
-		return configPort
-	}
-
-	// Default port
+// GetCallbackPort returns the default callback port
+// Port selection is now handled automatically by the server's alternativePorts mechanism
+func GetCallbackPort() string {
+	// Always use default port - alternative ports are provided by server
 	return "3000"
 }
 
@@ -291,4 +284,77 @@ func GetSuccessHTML() string {
     </script>
 </body>
 </html>`
+}
+
+// IsPortOccupied checks if a given port is already in use
+func IsPortOccupied(port string) bool {
+	if !IsValidPort(port) {
+		return true // Consider invalid ports as occupied
+	}
+
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return true // Port is occupied or invalid
+	}
+
+	listener.Close()
+	return false // Port is available
+}
+
+// IsValidPort checks if a port string is a valid port number
+func IsValidPort(port string) bool {
+	if port == "" {
+		return false
+	}
+
+	portNum, err := strconv.Atoi(port)
+	if err != nil {
+		return false
+	}
+
+	return portNum > 0 && portNum <= 65535
+}
+
+// ParseAlternativePorts parses a comma-separated string of ports into a slice
+func ParseAlternativePorts(alternativePorts string) []string {
+	if alternativePorts == "" {
+		return []string{}
+	}
+
+	ports := strings.Split(alternativePorts, ",")
+	var validPorts []string
+
+	for _, port := range ports {
+		port = strings.TrimSpace(port)
+		if port != "" {
+			validPorts = append(validPorts, port)
+		}
+	}
+
+	return validPorts
+}
+
+// SelectAvailablePort selects an available port from default and alternative ports
+func SelectAvailablePort(defaultPort, alternativePorts string) (string, error) {
+	// First try the default port
+	if !IsPortOccupied(defaultPort) {
+		return defaultPort, nil
+	}
+
+	// Parse alternative ports
+	altPorts := ParseAlternativePorts(alternativePorts)
+
+	// Try each alternative port
+	for _, port := range altPorts {
+		if IsValidPort(port) && !IsPortOccupied(port) {
+			return port, nil
+		}
+	}
+
+	// No available port found - provide detailed error message
+	if len(altPorts) == 0 {
+		return "", fmt.Errorf("no available port found: default port %s is occupied and no alternative ports provided", defaultPort)
+	}
+
+	return "", fmt.Errorf("no available port found: default port %s and all alternative ports [%s] are occupied. Please check if any of these ports can be freed up", defaultPort, alternativePorts)
 }

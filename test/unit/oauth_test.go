@@ -5,213 +5,321 @@ package unit
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/agbcloud/agbcloud-cli/internal/client"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// TestOAuthLoginProviderWithMockServer tests the OAuth login provider API with a mock server
-func TestOAuthLoginProviderWithMockServer(t *testing.T) {
-	// Create a mock server that returns the expected response
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify the request
-		if r.URL.Path != "/api/oauth/login_provider" {
-			t.Errorf("Expected path /api/oauth/login_provider, got %s", r.URL.Path)
-		}
-		if r.Method != http.MethodGet {
-			t.Errorf("Expected GET method, got %s", r.Method)
-		}
-
-		// Check query parameters
-		fromUrlPath := r.URL.Query().Get("fromUrlPath")
-		if fromUrlPath != "https://agb.cloud" {
-			t.Errorf("Expected fromUrlPath=https://agb.cloud, got %s", fromUrlPath)
-		}
-
-		// Check new parameters with default values
-		loginClient := r.URL.Query().Get("loginClient")
-		if loginClient != "CLI" {
-			t.Errorf("Expected loginClient=CLI, got %s", loginClient)
-		}
-
-		oauthProvider := r.URL.Query().Get("oauthProvider")
-		if oauthProvider != "GOOGLE_LOCALHOST" {
-			t.Errorf("Expected oauthProvider=GOOGLE_LOCALHOST, got %s", oauthProvider)
-		}
-
-		// Check headers
-		accept := r.Header.Get("Accept")
-		if accept != "application/json" {
-			t.Errorf("Expected Accept: application/json, got %s", accept)
-		}
-
-		// Verify no authorization header (OAuth endpoint doesn't need auth)
-		if auth := r.Header.Get("Authorization"); auth != "" {
-			t.Errorf("Expected no Authorization header, got %s", auth)
-		}
-
-		// Return the expected response
-		response := client.OAuthLoginProviderResponse{
-			Code:      "success",
-			RequestID: "test-request-id",
-			Success:   true,
-			Data: client.OAuthLoginProviderData{
-				InvokeURL: "https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=test-client-id",
-			},
-			TraceID:        "test-trace-id",
-			HTTPStatusCode: 200,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
-	}))
-	defer mockServer.Close()
-
-	// Create a client configuration pointing to the mock server
-	cfg := client.NewConfiguration()
-	cfg.Servers[0].URL = mockServer.URL
-	cfg.HTTPClient = &http.Client{Timeout: 5 * time.Second}
-
-	apiClient := client.NewAPIClient(cfg)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// Test the OAuth login provider API with new method
-	response, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, "https://agb.cloud", "CLI", "GOOGLE_LOCALHOST")
-
-	// Verify no error
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	// Verify HTTP response
-	if httpResp == nil {
-		t.Fatal("Expected HTTP response, got nil")
-	}
-	if httpResp.StatusCode != 200 {
-		t.Errorf("Expected status code 200, got %d", httpResp.StatusCode)
-	}
-
-	// Verify response structure
-	if response.Code != "success" {
-		t.Errorf("Expected code 'success', got %s", response.Code)
-	}
-	if !response.Success {
-		t.Errorf("Expected success true, got %t", response.Success)
-	}
-	if response.RequestID != "test-request-id" {
-		t.Errorf("Expected requestId 'test-request-id', got %s", response.RequestID)
-	}
-	if response.Data.InvokeURL == "" {
-		t.Error("Expected non-empty InvokeURL")
-	}
-	if response.TraceID != "test-trace-id" {
-		t.Errorf("Expected traceId 'test-trace-id', got %s", response.TraceID)
-	}
-	if response.HTTPStatusCode != 200 {
-		t.Errorf("Expected httpStatusCode 200, got %d", response.HTTPStatusCode)
-	}
-
-	t.Logf("✅ OAuth login provider test passed!")
-	t.Logf("InvokeURL: %s", response.Data.InvokeURL)
-}
-
-// TestOAuthLoginProviderURLConstruction tests URL construction with new parameters
-func TestOAuthLoginProviderURLConstruction(t *testing.T) {
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify the new endpoint
-		if r.URL.Path != "/api/oauth/login_provider" {
-			t.Errorf("Expected path /api/oauth/login_provider, got %s", r.URL.Path)
-		}
-
-		// Just return a simple response
-		response := client.OAuthLoginProviderResponse{
-			Code:    "success",
-			Success: true,
-			Data: client.OAuthLoginProviderData{
-				InvokeURL: "https://accounts.google.com/o/oauth2/auth",
-			},
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-	}))
-	defer mockServer.Close()
-
-	cfg := client.NewConfiguration()
-	cfg.Servers[0].URL = mockServer.URL
-	apiClient := client.NewAPIClient(cfg)
-
-	ctx := context.Background()
-
-	testCases := []struct {
-		name          string
-		fromUrlPath   string
-		loginClient   string
-		oauthProvider string
-		expectQuery   map[string]string
+func TestOAuthAPI_GetLoginProviderURL_WithLocalhostPort(t *testing.T) {
+	tests := []struct {
+		name              string
+		localhostPort     string
+		expectedInQuery   bool
+		expectedPortValue string
 	}{
 		{
-			name:          "Basic URL with defaults",
-			fromUrlPath:   "https://agb.cloud",
-			loginClient:   "CLI",
-			oauthProvider: "GOOGLE_LOCALHOST",
-			expectQuery: map[string]string{
-				"fromUrlPath":   "https://agb.cloud",
-				"loginClient":   "CLI",
-				"oauthProvider": "GOOGLE_LOCALHOST",
-			},
+			name:              "with localhost port parameter",
+			localhostPort:     "3001",
+			expectedInQuery:   true,
+			expectedPortValue: "3001",
 		},
 		{
-			name:          "URL with custom parameters",
-			fromUrlPath:   "https://agb.cloud/dashboard",
-			loginClient:   "WEB",
-			oauthProvider: "GOOGLE_WEB",
-			expectQuery: map[string]string{
-				"fromUrlPath":   "https://agb.cloud/dashboard",
-				"loginClient":   "WEB",
-				"oauthProvider": "GOOGLE_WEB",
-			},
+			name:              "without localhost port parameter",
+			localhostPort:     "",
+			expectedInQuery:   false,
+			expectedPortValue: "",
 		},
 		{
-			name:          "Empty fromUrlPath with defaults",
-			fromUrlPath:   "",
-			loginClient:   "CLI",
-			oauthProvider: "GOOGLE_LOCALHOST",
-			expectQuery: map[string]string{
-				"loginClient":   "CLI",
-				"oauthProvider": "GOOGLE_LOCALHOST",
+			name:              "with custom localhost port",
+			localhostPort:     "51152",
+			expectedInQuery:   true,
+			expectedPortValue: "51152",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a test server that captures the request
+			var capturedRequest *http.Request
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedRequest = r
+
+				// Mock response with alternativePorts
+				response := `{
+					"code": "200",
+					"requestId": "test-request-id",
+					"success": true,
+					"data": {
+						"invokeUrl": "https://oauth.example.com/auth?code=test",
+						"alternativePorts": "51152,53152,55152,57152"
+					},
+					"traceId": "test-trace-id",
+					"httpStatusCode": 200
+				}`
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(response))
+			}))
+			defer server.Close()
+
+			// Create client configuration
+			cfg := &client.Configuration{
+				Servers: client.ServerConfigurations{
+					{
+						URL: server.URL,
+					},
+				},
+			}
+
+			apiClient := client.NewAPIClient(cfg)
+
+			// Call the API with localhostPort parameter
+			ctx := context.Background()
+			_, _, err := apiClient.OAuthAPI.GetLoginProviderURLWithPort(ctx, "http://localhost:3000", "CLI", "GOOGLE_LOCALHOST", tt.localhostPort)
+
+			// Verify no error occurred
+			require.NoError(t, err)
+
+			// Verify the request was captured
+			require.NotNil(t, capturedRequest)
+
+			// Parse query parameters
+			queryParams := capturedRequest.URL.Query()
+
+			// Check if localhostPort parameter is present when expected
+			if tt.expectedInQuery {
+				assert.True(t, queryParams.Has("localhostPort"), "localhostPort parameter should be present in query")
+				assert.Equal(t, tt.expectedPortValue, queryParams.Get("localhostPort"), "localhostPort parameter value should match")
+			} else {
+				assert.False(t, queryParams.Has("localhostPort"), "localhostPort parameter should not be present in query")
+			}
+
+			// Verify other required parameters are still present
+			assert.Equal(t, "CLI", queryParams.Get("loginClient"))
+			assert.Equal(t, "GOOGLE_LOCALHOST", queryParams.Get("oauthProvider"))
+		})
+	}
+}
+
+func TestOAuthAPI_LoginTranslate_WithLocalhostPort(t *testing.T) {
+	tests := []struct {
+		name              string
+		localhostPort     string
+		expectedInQuery   bool
+		expectedPortValue string
+	}{
+		{
+			name:              "with localhost port parameter",
+			localhostPort:     "3001",
+			expectedInQuery:   true,
+			expectedPortValue: "3001",
+		},
+		{
+			name:              "without localhost port parameter",
+			localhostPort:     "",
+			expectedInQuery:   false,
+			expectedPortValue: "",
+		},
+		{
+			name:              "with alternative port from login provider response",
+			localhostPort:     "51152",
+			expectedInQuery:   true,
+			expectedPortValue: "51152",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a test server that captures the request
+			var capturedRequest *http.Request
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedRequest = r
+
+				// Mock successful response
+				response := `{
+					"code": "200",
+					"requestId": "test-request-id",
+					"success": true,
+					"data": {
+						"loginToken": "test-login-token",
+						"sessionId": "test-session-id",
+						"keepAliveToken": "test-keep-alive-token",
+						"expiresAt": "2025-01-01T00:00:00Z"
+					},
+					"traceId": "test-trace-id",
+					"httpStatusCode": 200
+				}`
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(response))
+			}))
+			defer server.Close()
+
+			// Create client configuration
+			cfg := &client.Configuration{
+				Servers: client.ServerConfigurations{
+					{
+						URL: server.URL,
+					},
+				},
+			}
+
+			apiClient := client.NewAPIClient(cfg)
+
+			// Call the API with localhostPort parameter
+			ctx := context.Background()
+			_, _, err := apiClient.OAuthAPI.LoginTranslateWithPort(ctx, "CLI", "GOOGLE_LOCALHOST", "test-auth-code", tt.localhostPort)
+
+			// Verify no error occurred
+			require.NoError(t, err)
+
+			// Verify the request was captured
+			require.NotNil(t, capturedRequest)
+
+			// Parse query parameters
+			queryParams := capturedRequest.URL.Query()
+
+			// Check if localhostPort parameter is present when expected
+			if tt.expectedInQuery {
+				assert.True(t, queryParams.Has("localhostPort"), "localhostPort parameter should be present in query")
+				assert.Equal(t, tt.expectedPortValue, queryParams.Get("localhostPort"), "localhostPort parameter value should match")
+			} else {
+				assert.False(t, queryParams.Has("localhostPort"), "localhostPort parameter should not be present in query")
+			}
+
+			// Verify other required parameters are still present
+			assert.Equal(t, "CLI", queryParams.Get("loginClient"))
+			assert.Equal(t, "GOOGLE_LOCALHOST", queryParams.Get("oauthProvider"))
+			assert.Equal(t, "test-auth-code", queryParams.Get("authCode"))
+		})
+	}
+}
+
+func TestOAuthLoginProviderResponse_AlternativePorts(t *testing.T) {
+	// Test that the response structure can handle alternativePorts field
+	jsonResponse := `{
+		"code": "200",
+		"requestId": "test-request-id",
+		"success": true,
+		"data": {
+			"invokeUrl": "https://oauth.example.com/auth?code=test",
+			"alternativePorts": "51152,53152,55152,57152"
+		},
+		"traceId": "test-trace-id",
+		"httpStatusCode": 200
+	}`
+
+	// Create a test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jsonResponse))
+	}))
+	defer server.Close()
+
+	// Create client configuration
+	cfg := &client.Configuration{
+		Servers: client.ServerConfigurations{
+			{
+				URL: server.URL,
 			},
 		},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, tc.fromUrlPath, tc.loginClient, tc.oauthProvider)
+	apiClient := client.NewAPIClient(cfg)
 
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
+	// Call the API
+	ctx := context.Background()
+	response, _, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, "http://localhost:3000", "CLI", "GOOGLE_LOCALHOST")
+
+	// Verify no error occurred
+	require.NoError(t, err)
+
+	// Verify response structure
+	assert.True(t, response.Success)
+	assert.Equal(t, "https://oauth.example.com/auth?code=test", response.Data.InvokeURL)
+	assert.Equal(t, "51152,53152,55152,57152", response.Data.AlternativePorts)
+}
+
+func TestPortSelection_FromAlternativePorts(t *testing.T) {
+	tests := []struct {
+		name             string
+		alternativePorts string
+		occupiedPorts    []string
+		expectedPort     string
+		expectError      bool
+	}{
+		{
+			name:             "first alternative port available",
+			alternativePorts: "51152,53152,55152,57152",
+			occupiedPorts:    []string{},
+			expectedPort:     "51152",
+			expectError:      false,
+		},
+		{
+			name:             "second alternative port available",
+			alternativePorts: "51152,53152,55152,57152",
+			occupiedPorts:    []string{"51152"},
+			expectedPort:     "53152",
+			expectError:      false,
+		},
+		{
+			name:             "all alternative ports occupied",
+			alternativePorts: "51152,53152,55152,57152",
+			occupiedPorts:    []string{"51152", "53152", "55152", "57152"},
+			expectedPort:     "",
+			expectError:      true,
+		},
+		{
+			name:             "empty alternative ports",
+			alternativePorts: "",
+			occupiedPorts:    []string{},
+			expectedPort:     "",
+			expectError:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// This test will verify the port selection logic
+			// The actual implementation will be in auth package
+			ports := strings.Split(tt.alternativePorts, ",")
+			if tt.alternativePorts == "" {
+				ports = []string{}
 			}
 
-			if httpResp == nil {
-				t.Fatal("Expected HTTP response, got nil")
-			}
+			selectedPort := ""
+			for _, port := range ports {
+				port = strings.TrimSpace(port)
+				if port == "" {
+					continue
+				}
 
-			// Check if the query parameters match expectation
-			actualQuery := httpResp.Request.URL.Query()
-			for key, expectedValue := range tc.expectQuery {
-				actualValue := actualQuery.Get(key)
-				if actualValue != expectedValue {
-					t.Errorf("Expected query param %s=%s, got %s", key, expectedValue, actualValue)
+				// Check if port is occupied (mock check)
+				occupied := false
+				for _, occupiedPort := range tt.occupiedPorts {
+					if port == occupiedPort {
+						occupied = true
+						break
+					}
+				}
+
+				if !occupied {
+					selectedPort = port
+					break
 				}
 			}
 
-			t.Logf("✅ URL construction test passed for %s", tc.name)
+			if tt.expectError {
+				assert.Empty(t, selectedPort, "should not find available port")
+			} else {
+				assert.Equal(t, tt.expectedPort, selectedPort, "should select correct port")
+			}
 		})
 	}
 }

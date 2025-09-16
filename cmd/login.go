@@ -38,9 +38,9 @@ func runLogin(cmd *cobra.Command) error {
 
 	apiClient := client.NewFromConfig(cfg)
 
-	// Get callback port configuration
-	callbackPort := auth.GetCallbackPort(cfg.CallbackPort)
-	fmt.Printf("📡 Using callback port: %s\n", callbackPort)
+	// Get default callback port (port selection is handled automatically by server)
+	defaultPort := auth.GetCallbackPort()
+	fmt.Printf("📡 Default callback port: %s\n", defaultPort)
 
 	// Create context with timeout for OAuth request
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -48,8 +48,8 @@ func runLogin(cmd *cobra.Command) error {
 
 	fmt.Println("🌐 Requesting OAuth login URL...")
 
-	// Get the OAuth URL from the API - use GOOGLE_LOCALHOST for CLI client
-	response, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, fmt.Sprintf("http://localhost:%s", callbackPort), "CLI", "GOOGLE_LOCALHOST")
+	// First call - Get the OAuth URL without localhostPort parameter
+	response, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, fmt.Sprintf("http://localhost:%s", defaultPort), "CLI", "GOOGLE_LOCALHOST")
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
 			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
@@ -69,17 +69,76 @@ func runLogin(cmd *cobra.Command) error {
 		return fmt.Errorf("OAuth request failed: %s", response.Code)
 	}
 
-	if response.Data.InvokeURL == "" {
+	// Check if default port is available
+	var finalPort string
+	var finalResponse client.OAuthLoginProviderResponse
+
+	if !auth.IsPortOccupied(defaultPort) {
+		// Default port is available, use it
+		finalPort = defaultPort
+		finalResponse = response
+		fmt.Printf("✅ Default port %s is available\n", defaultPort)
+	} else {
+		// Default port is occupied, try alternative ports
+		fmt.Printf("⚠️  Default port %s is occupied, trying alternative ports...\n", defaultPort)
+
+		if response.Data.AlternativePorts == "" {
+			return fmt.Errorf("default port %s is occupied and no alternative ports provided", defaultPort)
+		}
+
+		// Select an available port from alternatives
+		selectedPort, err := auth.SelectAvailablePort(defaultPort, response.Data.AlternativePorts)
+		if err != nil {
+			fmt.Printf("❌ Port selection failed:\n")
+			fmt.Printf("   Default port %s is occupied\n", defaultPort)
+			if response.Data.AlternativePorts != "" {
+				fmt.Printf("   Alternative ports provided: %s\n", response.Data.AlternativePorts)
+				fmt.Printf("   All alternative ports are also occupied\n")
+				fmt.Printf("💡 Please free up one of these ports and try again\n")
+			} else {
+				fmt.Printf("   No alternative ports provided by server\n")
+			}
+			return fmt.Errorf("failed to find available port: %v", err)
+		}
+
+		fmt.Printf("🔄 Using alternative port: %s\n", selectedPort)
+
+		// Make second API call with the selected port
+		secondResponse, secondHttpResp, err := apiClient.OAuthAPI.GetLoginProviderURLWithPort(ctx, fmt.Sprintf("http://localhost:%s", selectedPort), "CLI", "GOOGLE_LOCALHOST", selectedPort)
+		if err != nil {
+			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+				fmt.Printf("❌ API Error on second call: %s\n", apiErr.Error())
+				if secondHttpResp != nil {
+					fmt.Printf("📊 Status Code: %d\n", secondHttpResp.StatusCode)
+				}
+				if len(apiErr.Body()) > 0 {
+					fmt.Printf("📄 Response Body: %s\n", string(apiErr.Body()))
+				}
+				return fmt.Errorf("failed to get OAuth URL with alternative port: %s", apiErr.Error())
+			}
+			return fmt.Errorf("network error on second call: %v", err)
+		}
+
+		if !secondResponse.Success {
+			return fmt.Errorf("OAuth request with alternative port failed: %s", secondResponse.Code)
+		}
+
+		finalPort = selectedPort
+		finalResponse = secondResponse
+	}
+
+	if finalResponse.Data.InvokeURL == "" {
 		return fmt.Errorf("received empty OAuth URL from server")
 	}
 
 	fmt.Println("✅ Successfully retrieved OAuth URL!")
-	fmt.Printf("📋 Request ID: %s\n", response.RequestID)
-	fmt.Printf("🔍 Trace ID: %s\n", response.TraceID)
+	fmt.Printf("📋 Request ID: %s\n", finalResponse.RequestID)
+	fmt.Printf("🔍 Trace ID: %s\n", finalResponse.TraceID)
+	fmt.Printf("📡 Final callback port: %s\n", finalPort)
 	fmt.Println()
 
 	// Start local callback server
-	fmt.Printf("🚀 Starting local callback server on port %s...\n", callbackPort)
+	fmt.Printf("🚀 Starting local callback server on port %s...\n", finalPort)
 
 	// Create context for callback server with longer timeout
 	callbackCtx, callbackCancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -90,7 +149,7 @@ func runLogin(cmd *cobra.Command) error {
 	errChan := make(chan error, 1)
 
 	go func() {
-		code, err := auth.StartCallbackServer(callbackCtx, callbackPort)
+		code, err := auth.StartCallbackServer(callbackCtx, finalPort)
 		if err != nil {
 			errChan <- err
 			return
@@ -103,13 +162,13 @@ func runLogin(cmd *cobra.Command) error {
 
 	// Display the URL and open browser
 	fmt.Println("🔗 OAuth URL:")
-	fmt.Printf("  %s\n\n", response.Data.InvokeURL)
+	fmt.Printf("  %s\n\n", finalResponse.Data.InvokeURL)
 
 	fmt.Println("🌐 Opening the browser for authentication...")
 	fmt.Println()
 	fmt.Println("If the browser doesn't open automatically, please copy and paste the URL above.")
 
-	err = browser.OpenURL(response.Data.InvokeURL)
+	err = browser.OpenURL(finalResponse.Data.InvokeURL)
 	if err != nil {
 		fmt.Printf("⚠️  Failed to open browser automatically: %v\n", err)
 		fmt.Println("💡 Please copy the URL above and paste it into your browser to complete authentication.")
@@ -118,7 +177,7 @@ func runLogin(cmd *cobra.Command) error {
 	}
 
 	fmt.Println("📝 Please complete the authentication process in your browser.")
-	fmt.Printf("🔄 Waiting for callback on http://localhost:%s/callback...\n", callbackPort)
+	fmt.Printf("🔄 Waiting for callback on http://localhost:%s/callback...\n", finalPort)
 
 	// Wait for callback
 	select {
@@ -133,7 +192,7 @@ func runLogin(cmd *cobra.Command) error {
 		translateCtx, translateCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer translateCancel()
 
-		translateResponse, translateHttpResp, err := apiClient.OAuthAPI.LoginTranslate(translateCtx, "CLI", "GOOGLE_LOCALHOST", code)
+		translateResponse, translateHttpResp, err := apiClient.OAuthAPI.LoginTranslateWithPort(translateCtx, "CLI", "GOOGLE_LOCALHOST", code, finalPort)
 		if err != nil {
 			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
 				fmt.Printf("❌ LoginTranslate API Error: %s\n", apiErr.Error())

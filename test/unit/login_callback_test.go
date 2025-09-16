@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -19,57 +18,19 @@ import (
 func TestCallbackServerPortConfiguration(t *testing.T) {
 	tests := []struct {
 		name         string
-		envVar       string
-		configPort   string
 		expectedPort string
 	}{
 		{
-			name:         "DefaultPort",
-			envVar:       "",
-			configPort:   "",
+			name:         "AlwaysDefaultPort",
 			expectedPort: "3000",
-		},
-		{
-			name:         "EnvironmentVariablePort",
-			envVar:       "8080",
-			configPort:   "",
-			expectedPort: "8080",
-		},
-		{
-			name:         "ConfigPort",
-			envVar:       "",
-			configPort:   "9000",
-			expectedPort: "9000",
-		},
-		{
-			name:         "EnvironmentVariableOverridesConfig",
-			envVar:       "7000",
-			configPort:   "9000",
-			expectedPort: "7000",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Save original env var
-			originalEnv := os.Getenv("AGB_CLI_CALLBACK_PORT")
-			defer func() {
-				if originalEnv != "" {
-					os.Setenv("AGB_CLI_CALLBACK_PORT", originalEnv)
-				} else {
-					os.Unsetenv("AGB_CLI_CALLBACK_PORT")
-				}
-			}()
-
-			// Set test environment variable
-			if tt.envVar != "" {
-				os.Setenv("AGB_CLI_CALLBACK_PORT", tt.envVar)
-			} else {
-				os.Unsetenv("AGB_CLI_CALLBACK_PORT")
-			}
-
 			// Test port resolution logic using auth package
-			port := auth.GetCallbackPort(tt.configPort)
+			port := auth.GetCallbackPort()
+			// Since we removed user port configuration, it should always return "3000"
 			if port != tt.expectedPort {
 				t.Errorf("Expected port %s, got %s", tt.expectedPort, port)
 			}

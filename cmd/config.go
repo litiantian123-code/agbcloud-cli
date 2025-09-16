@@ -31,10 +31,6 @@ var configSetCmd = &cobra.Command{
 			fmt.Printf("Note: Endpoint configuration is read from AGB_CLI_ENDPOINT environment variable\n")
 			fmt.Printf("To set endpoint, use: export AGB_CLI_ENDPOINT=%s\n", value)
 			fmt.Printf("Note: You can specify just the domain (e.g., 'agb.cloud'), https:// will be added automatically\n")
-		case "callback_port":
-			fmt.Printf("Note: Callback port configuration is read from AGB_CLI_CALLBACK_PORT environment variable\n")
-			fmt.Printf("To set callback port, use: export AGB_CLI_CALLBACK_PORT=%s\n", value)
-			fmt.Printf("Note: Default port is 3000 if not specified\n")
 		default:
 			return fmt.Errorf("unknown configuration key: %s", key)
 		}
@@ -54,12 +50,6 @@ var configGetCmd = &cobra.Command{
 		switch key {
 		case "endpoint":
 			fmt.Println(cfg.Endpoint)
-		case "callback_port":
-			if cfg.CallbackPort != "" {
-				fmt.Println(cfg.CallbackPort)
-			} else {
-				fmt.Println("3000")
-			}
 		default:
 			return fmt.Errorf("unknown configuration key: %s", key)
 		}
@@ -76,19 +66,14 @@ var configListCmd = &cobra.Command{
 
 		fmt.Println("Configuration:")
 		fmt.Printf("  endpoint = %s\n", cfg.Endpoint)
-		if cfg.CallbackPort != "" {
-			fmt.Printf("  callback_port = %s\n", cfg.CallbackPort)
-		} else {
-			fmt.Println("  callback_port = 3000")
-		}
+		fmt.Println("  callback_port = 3000 (automatic port selection enabled)")
 
 		fmt.Println("\nEnvironment Variables:")
 		fmt.Println("  Endpoint:")
 		fmt.Println("    AGB_CLI_ENDPOINT (domain only, https:// added automatically)")
 		fmt.Println("    Default: agb.cloud")
 		fmt.Println("  Callback Port:")
-		fmt.Println("    AGB_CLI_CALLBACK_PORT")
-		fmt.Println("    Default: 3000")
+		fmt.Println("    Fixed at 3000 with automatic alternative port selection")
 
 		return nil
 	},

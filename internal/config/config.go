@@ -15,9 +15,8 @@ import (
 
 // Config represents the CLI configuration
 type Config struct {
-	Endpoint     string `json:"endpoint,omitempty"`
-	CallbackPort string `json:"callback_port,omitempty"`
-	Token        *Token `json:"token,omitempty"` // OAuth token authentication
+	Endpoint string `json:"endpoint,omitempty"`
+	Token    *Token `json:"token,omitempty"` // OAuth token authentication
 }
 
 // Token represents AgbCloud authentication tokens
@@ -75,11 +74,7 @@ func GetConfig() (*Config, error) {
 		c.Endpoint = "https://agb.cloud"
 	}
 
-	// Apply callback port environment variable override
-	envCallbackPort := os.Getenv("AGB_CLI_CALLBACK_PORT")
-	if envCallbackPort != "" {
-		c.CallbackPort = envCallbackPort
-	}
+	// Note: Callback port configuration removed - port selection is now handled automatically by server
 
 	return &c, nil
 }
@@ -169,12 +164,10 @@ func DefaultConfig() *Config {
 		endpoint = "https://" + endpoint
 	}
 
-	// Get callback port from environment variable
-	callbackPort := os.Getenv("AGB_CLI_CALLBACK_PORT")
+	// Note: Callback port configuration removed - port selection is now handled automatically by server
 
 	return &Config{
-		Endpoint:     endpoint,
-		CallbackPort: callbackPort,
+		Endpoint: endpoint,
 	}
 }
 
