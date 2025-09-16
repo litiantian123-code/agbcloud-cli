@@ -145,26 +145,26 @@ jobs:
             if [[ -f "$binary" ]]; then
               filename=$(basename "$binary")
               platform_arch=${filename#${{vars.BINARY_NAME}}-}
+              # Remove .exe extension from platform_arch for consistent naming
+              platform_arch_clean=$(echo "$platform_arch" | sed 's/\.exe$//')
               
-              # Create .tar.gz packages
+              # Create .tar.gz packages (always without .exe in the name)
               temp_dir=$(mktemp -d)
               cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}"
-              tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
-              sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz.sha256"
+              tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
+              sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
               
               # For Windows, also create direct .exe files
-              if [[ "$platform_arch" == windows-* ]]; then
-                # Windows binaries already have .exe extension, rename to include version but keep single .exe
-                target_name="${{vars.BINARY_NAME}}-$VERSION-$platform_arch"
-                # Remove .exe from platform_arch if it exists, then add .exe once
-                target_name=$(echo "$target_name" | sed 's/\.exe$//')
-                cp "$binary" "packages/$target_name.exe"
-                sha256sum "packages/$target_name.exe" > "packages/$target_name.exe.sha256"
-                echo "✓ Created Windows executable: $target_name.exe"
+              if [[ "$platform_arch_clean" == windows-* ]]; then
+                # Create Windows executable with clean naming (single .exe extension)
+                target_name="${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.exe"
+                cp "$binary" "packages/$target_name"
+                sha256sum "packages/$target_name" > "packages/$target_name.sha256"
+                echo "✓ Created Windows executable: $target_name"
               fi
               
               rm -rf "$temp_dir"
-              echo "✓ Created package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz"
+              echo "✓ Created package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
             fi
           done
           
