@@ -1,25 +1,21 @@
-# AgbCloud CLI Homebrew Tap 测试包分发流水线
+# AgbCloud CLI Test Package Distribution Pipeline
 name: AgbCloud CLI Test Package Distribution
 
-# 自动触发条件
+# Auto trigger conditions
 triggers:
   push:
     branches:
       - master
       - main
 
-# 全局变量
+# Global variables
 variables:
-  BINARY_NAME: agbcloud
-  OSS_BUCKET: agbcloud-internal
-  OSS_ENDPOINT: oss-cn-hangzhou.aliyuncs.com
-  BREW_TAP_REPO: git@gitlab.alibaba-inc.com:InnoArchClub/homebrew-agbcloud.git
 
-# 流水线作业定义
+# Pipeline job definitions
 jobs:
-  # 单元测试
+  # Unit tests
   unit-tests:
-    name: 单元测试
+    name: Unit Tests
     runs-on: 2-8Gi
     timeout: 20m
     steps:
@@ -31,14 +27,14 @@ jobs:
           go-cache: false
       
       - id: install-test-dependencies
-        name: 安装测试依赖
+        name: Install Test Dependencies
         run: |
           echo "Installing test dependencies..."
           go mod download
           go mod tidy
       
       - id: run-unit-tests
-        name: 运行单元测试
+        name: Run Unit Tests
         run: |
           echo "Running unit tests..."
           
@@ -50,13 +46,13 @@ jobs:
           echo "✅ Unit tests passed"
       
       - id: generate-coverage
-        name: 生成覆盖率报告
+        name: Generate Coverage Report
         run: |
           echo "Generating coverage report..."
           if ! make test-coverage; then
             echo "⚠️ Coverage report generation failed, but continuing..."
           else
-            echo "✅ Coverage report generated"
+            echo "✅ Coverage report generated successfully"
           fi
           
           # Display test summary
@@ -64,9 +60,9 @@ jobs:
           echo "📊 Test Summary:"
           go test -v ./test/unit/... 2>/dev/null | grep -E "(PASS|FAIL|RUN)" | tail -10 || true
 
-  # 构建和部署
+  # Build and deploy
   build-and-deploy:
-    name: 构建和部署
+    name: Build and Deploy
     runs-on: 4-16Gi
     timeout: 45m
     needs: [unit-tests]
@@ -79,45 +75,47 @@ jobs:
           go-cache: false
       
       - id: build-binaries
-        name: 构建多平台二进制文件
+        name: Build Multi-platform Binaries
         run: |
-          echo "Building for all platforms..."
-          export VERSION="dev-$(date +%Y%m%d-%H%M)"
+          echo "Building binaries for all platforms..."
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
+          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
           export GIT_COMMIT=$(git rev-parse --short HEAD)
           export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "Building version: $VERSION"
+          echo "Build version: $VERSION"
           echo "Git commit: $GIT_COMMIT"
           make build-all
           ls -la bin/
 
       - id: create-packages
-        name: 创建安装包
+        name: Create Packages
         run: |
           echo "Creating packages..."
-          export VERSION="dev-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
+          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
           mkdir -p packages
           
           for binary in bin/*; do
             if [[ -f "$binary" ]]; then
               filename=$(basename "$binary")
-              platform_arch=${filename#agbcloud-}
+              platform_arch=${filename#${{vars.BINARY_NAME}}-}
               
-              # Create both .tar.gz (for compatibility) and direct .exe (for Windows PowerShell installer)
+              # Create .tar.gz packages
               temp_dir=$(mktemp -d)
-              cp "$binary" "$temp_dir/agbcloud"
-              tar -czf "packages/agbcloud-$VERSION-$platform_arch.tar.gz" -C "$temp_dir" agbcloud
-              sha256sum "packages/agbcloud-$VERSION-$platform_arch.tar.gz" > "packages/agbcloud-$VERSION-$platform_arch.tar.gz.sha256"
+              cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}"
+              tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
+              sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz.sha256"
               
-              # For Windows, also create direct .exe files for PowerShell installer
+              # For Windows, also create direct .exe files
               if [[ "$platform_arch" == windows-* ]]; then
-                # Windows binaries already have .exe extension, so just copy directly
-                cp "$binary" "packages/agbcloud-$VERSION-$platform_arch"
-                sha256sum "packages/agbcloud-$VERSION-$platform_arch" > "packages/agbcloud-$VERSION-$platform_arch.sha256"
-                echo "✓ Created Windows executable: agbcloud-$VERSION-$platform_arch"
+                # Windows binaries already have .exe extension, copy directly
+                cp "$binary" "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch"
+                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch.sha256"
+                echo "✓ Created Windows executable: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch"
               fi
               
               rm -rf "$temp_dir"
-              echo "✓ Created package: agbcloud-$VERSION-$platform_arch.tar.gz"
+              echo "✓ Created package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch.tar.gz"
             fi
           done
           
@@ -138,62 +136,77 @@ jobs:
             fi
           done
 
-      - id: create-server-files
-        name: 创建服务端文件
+      - id: create-version-info
+        name: Create Version Info File
         run: |
-          echo "Creating server files..."
-          export VERSION="dev-$(date +%Y%m%d-%H%M)"
+          echo "Creating version info file..."
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
+          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
+          export GIT_COMMIT=$(git rev-parse --short HEAD)
+          export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           
-          # Make the script executable and run it
-          chmod +x scripts/generate-server-files.sh
-          ./scripts/generate-server-files.sh
+          mkdir -p server-files
           
-          # Verify critical server files were created
-          echo ""
-          echo "🔍 Verifying server files:"
-          if [[ -f "server-files/install.ps1" ]]; then
-            echo "✓ PowerShell installer script created"
-            echo "  Size: $(wc -c < server-files/install.ps1) bytes"
-          else
-            echo "❌ PowerShell installer script missing!"
-            exit 1
-          fi
+          # Create version API file
+          cat > server-files/latest.json << EOF
+{
+  "version": "$VERSION",
+  "git_commit": "$GIT_COMMIT",
+  "build_date": "$BUILD_DATE",
+  "downloads": {
+    "windows": {
+      "amd64": {
+        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.exe",
+        "tar_url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.tar.gz"
+      },
+      "arm64": {
+        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe",
+        "tar_url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.tar.gz"
+      }
+    },
+    "darwin": {
+      "amd64": {
+        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz"
+      },
+      "arm64": {
+        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz"
+      }
+    },
+    "linux": {
+      "amd64": {
+        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz"
+      },
+      "arm64": {
+        "url": "https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz"
+      }
+    }
+  }
+}
+EOF
           
-          if [[ -f "server-files/latest.json" ]]; then
-            echo "✓ Version API file created"
-            echo "  Content preview:"
-            head -5 server-files/latest.json | sed 's/^/    /'
-          else
-            echo "❌ Version API file missing!"
-            exit 1
-          fi
-          
-          echo "✅ Server files created successfully"
+          echo "✅ Version info file created successfully"
 
       - id: upload-to-oss
-        name: 上传到 OSS
+        name: Upload to OSS
         run: |
           echo "Uploading packages to OSS..."
-          export VERSION="dev-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
+          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
           
-          # 设置 OSS 配置变量
-          export OSS_BUCKET="agbcloud-internal"
-          export OSS_ENDPOINT="oss-cn-hangzhou.aliyuncs.com"
-          
-          # 设置 OSS 凭证
+          # Set OSS credentials
           export OSS_ACCESS_KEY_ID="${{secrets.OSS_ACCESS_KEY_ID}}"
           export OSS_ACCESS_KEY_SECRET="${{secrets.OSS_ACCESS_KEY_SECRET}}"
           
-          # 调试信息 - 检查凭证长度和前缀（不泄露完整凭证）
+          # Debug info - check credential length and prefix (without leaking full credentials)
           echo "=== OSS Credentials Debug Info ==="
           echo "OSS_ACCESS_KEY_ID length: ${#OSS_ACCESS_KEY_ID}"
           echo "OSS_ACCESS_KEY_SECRET length: ${#OSS_ACCESS_KEY_SECRET}"
           echo "OSS_ACCESS_KEY_ID prefix: ${OSS_ACCESS_KEY_ID:0:8}..."
           echo "OSS_ACCESS_KEY_SECRET prefix: ${OSS_ACCESS_KEY_SECRET:0:8}..."
-          echo "OSS_ENDPOINT: $OSS_ENDPOINT"
-          echo "OSS_BUCKET: $OSS_BUCKET"
+          echo "OSS_ENDPOINT: ${{vars.OSS_ENDPOINT}}"
+          echo "OSS_BUCKET: ${{vars.OSS_BUCKET}}"
           
-          # 检查凭证是否设置
+          # Check if credentials are set
           if [[ -z "$OSS_ACCESS_KEY_ID" ]] || [[ -z "$OSS_ACCESS_KEY_SECRET" ]]; then
             echo "Error: OSS credentials not set in secrets"
             echo "OSS_ACCESS_KEY_ID is empty: $([ -z "$OSS_ACCESS_KEY_ID" ] && echo 'YES' || echo 'NO')"
@@ -201,28 +214,28 @@ jobs:
             exit 1
           fi
           
-          # 网络连接测试
+          # Network connectivity test
           echo "=== Network Connectivity Test ==="
           echo "Testing connectivity to OSS endpoint..."
-          if ping -c 3 oss-cn-hangzhou.aliyuncs.com; then
+          if ping -c 3 ${{vars.OSS_ENDPOINT}}; then
             echo "✓ Ping to OSS endpoint successful"
           else
             echo "⚠ Ping to OSS endpoint failed"
           fi
           
-          if curl -I --connect-timeout 10 https://oss-cn-hangzhou.aliyuncs.com; then
+          if curl -I --connect-timeout 10 https://${{vars.OSS_ENDPOINT}}; then
             echo "✓ HTTP connection to OSS endpoint successful"
           else
             echo "⚠ HTTP connection to OSS endpoint failed"
           fi
           
-          # 安装 ossutil
+          # Install ossutil
           if ! command -v ossutil >/dev/null 2>&1; then
             echo "Installing ossutil..."
             curl -L "https://gosspublic.alicdn.com/ossutil/1.7.19/ossutil-v1.7.19-linux-amd64.zip" -o ossutil.zip
             unzip -q ossutil.zip
             
-            # 查找正确的ossutil二进制文件
+            # Find correct ossutil binary
             OSSUTIL_BINARY=$(find . -name "ossutil*" -type f | head -1)
             if [[ -z "$OSSUTIL_BINARY" ]]; then
               echo "Error: Failed to find ossutil binary after extraction"
@@ -239,34 +252,34 @@ jobs:
             echo "✓ ossutil already installed"
           fi
           
-          # 配置并上传
+          # Configure and upload
           echo "=== OSS Configuration ==="
           echo "Configuring ossutil with verbose output..."
           
-          # 使用详细模式配置ossutil
-          if ossutil config --endpoint="$OSS_ENDPOINT" --access-key-id="$OSS_ACCESS_KEY_ID" --access-key-secret="$OSS_ACCESS_KEY_SECRET"; then
+          # Configure ossutil with verbose mode
+          if ossutil config --endpoint="${{vars.OSS_ENDPOINT}}" --access-key-id="$OSS_ACCESS_KEY_ID" --access-key-secret="$OSS_ACCESS_KEY_SECRET"; then
             echo "✓ ossutil configuration successful"
           else
             echo "✗ ossutil configuration failed"
             exit 1
           fi
           
-          # 验证配置 - 使用详细模式
+          # Verify configuration - with verbose mode
           echo "=== OSS Connection Test ==="
-          echo "Testing connection to bucket: $OSS_BUCKET"
+          echo "Testing connection to bucket: ${{vars.OSS_BUCKET}}"
           
-          if ossutil ls oss://$OSS_BUCKET/; then
-            echo "✓ Successfully connected to OSS bucket: $OSS_BUCKET"
+          if ossutil ls oss://${{vars.OSS_BUCKET}}/; then
+            echo "✓ Successfully connected to OSS bucket: ${{vars.OSS_BUCKET}}"
           else
-            echo "✗ Failed to connect to OSS bucket: $OSS_BUCKET"
+            echo "✗ Failed to connect to OSS bucket: ${{vars.OSS_BUCKET}}"
             echo "Attempting to diagnose the issue..."
             
-            # 尝试更详细的诊断
+            # Try more detailed diagnostics
             echo "Testing basic OSS connectivity..."
             ossutil ls oss:// || true
             
             echo "Testing bucket existence with stat command..."
-            ossutil stat oss://$OSS_BUCKET/ || true
+            ossutil stat oss://${{vars.OSS_BUCKET}}/ || true
             
             echo "Checking ossutil configuration..."
             ossutil config || true
@@ -282,8 +295,8 @@ jobs:
               filename=$(basename "$package")
               echo "Uploading $filename..."
               
-              if ossutil cp "$package" "oss://$OSS_BUCKET/agbcloud/releases/$filename" --force; then
-                if ossutil set-acl "oss://$OSS_BUCKET/agbcloud/releases/$filename" public-read; then
+              if ossutil cp "$package" "oss://${{vars.OSS_BUCKET}}/${{vars.BINARY_NAME}}/releases/$filename" --force; then
+                if ossutil set-acl "oss://${{vars.OSS_BUCKET}}/${{vars.BINARY_NAME}}/releases/$filename" public-read; then
                   echo "✓ Uploaded and set public: $filename"
                 else
                   echo "⚠ Uploaded but failed to set ACL: $filename"
@@ -295,14 +308,14 @@ jobs:
             fi
           done
           
-          # Upload server files (installer script, version info, etc.)
+          # Upload server files (version info, etc.)
           for serverfile in server-files/*; do
             if [[ -f "$serverfile" ]]; then
               filename=$(basename "$serverfile")
               echo "Uploading server file: $filename..."
               
-              if ossutil cp "$serverfile" "oss://$OSS_BUCKET/$filename" --force; then
-                if ossutil set-acl "oss://$OSS_BUCKET/$filename" public-read; then
+              if ossutil cp "$serverfile" "oss://${{vars.OSS_BUCKET}}/$filename" --force; then
+                if ossutil set-acl "oss://${{vars.OSS_BUCKET}}/$filename" public-read; then
                   echo "✓ Uploaded and set public: $filename"
                 else
                   echo "⚠ Uploaded but failed to set ACL: $filename"
@@ -314,290 +327,79 @@ jobs:
             fi
           done
 
-      - id: update-homebrew-tap
-        name: 更新 Homebrew Tap
-        run: |
-          echo "Updating Homebrew Tap..."
-          export VERSION="dev-$(date +%Y%m%d-%H%M)"
-          export GIT_COMMIT=$(git rev-parse --short HEAD)
-          export TIMESTAMP=$(date +%Y%m%d-%H%M)
-          export SANITIZED_TIMESTAMP=$(echo "$TIMESTAMP" | tr -d '-')
-          
-          echo "Setting up SSH key..."
-          # 设置SSH密钥
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          
-          # 检查SSH私钥是否设置
-          if [[ -z "${{secrets.AONE_CI_DEPLOY_KEY}}" ]]; then
-            echo "Error: AONE_CI_DEPLOY_KEY not set in secrets"
-            exit 1
-          fi
-          
-          # 将私钥写入文件
-          echo "${{secrets.AONE_CI_DEPLOY_KEY}}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          
-          # 检查私钥格式并转换如果需要
-          if head -1 ~/.ssh/id_rsa | grep -q "BEGIN OPENSSH PRIVATE KEY"; then
-            # 转换为PEM格式（不设置密码）
-            ssh-keygen -p -m PEM -f ~/.ssh/id_rsa -P "" -N "" > /dev/null 2>&1 || true
-          fi
-          
-          # 创建SSH配置文件
-          cat > ~/.ssh/config << EOF
-          Host gitlab.alibaba-inc.com
-              HostName gitlab.alibaba-inc.com
-              User git
-              IdentityFile ~/.ssh/id_rsa
-              StrictHostKeyChecking no
-              UserKnownHostsFile /dev/null
-          EOF
-          chmod 600 ~/.ssh/config
-          
-          # 启动ssh-agent并添加密钥
-          eval "$(ssh-agent -s)" > /dev/null
-          ssh-add ~/.ssh/id_rsa > /dev/null 2>&1
-          
-
-          
-          # 设置 Homebrew Tap 仓库地址
-          export BREW_TAP_REPO="git@gitlab.alibaba-inc.com:InnoArchClub/homebrew-agbcloud.git"
-          
-          # 克隆 tap 仓库
-          echo "Cloning Homebrew Tap repository..."
-          
-          if git clone "$BREW_TAP_REPO" homebrew-agbcloud > /dev/null 2>&1; then
-            echo "✓ Successfully cloned tap repository"
-          else
-            echo "✗ Failed to clone tap repository"
-            exit 1
-          fi
-          
-          cd homebrew-agbcloud
-          
-          # 配置 git
-          git config user.name "Aone CICD Bot"
-          git config user.email "cicd@alibaba-inc.com"
-          
-          # 获取 SHA256 值
-          get_sha256() {
-              local platform_arch=$1
-              local sha256_file="../packages/agbcloud-$VERSION-$platform_arch.tar.gz.sha256"
-              if [[ -f "$sha256_file" ]]; then
-                  cut -d' ' -f1 "$sha256_file"
-              else
-                  echo "MISSING_SHA256"
-              fi
-          }
-          
-          DARWIN_AMD64_SHA256=$(get_sha256 "darwin-amd64")
-          DARWIN_ARM64_SHA256=$(get_sha256 "darwin-arm64")
-          LINUX_AMD64_SHA256=$(get_sha256 "linux-amd64")
-          LINUX_ARM64_SHA256=$(get_sha256 "linux-arm64")
-          
-          # 生成 Formula
-          echo "Creating Formula file..."
-          mkdir -p Formula
-          
-          # 使用简化的命名方式，避免@符号问题
-          FORMULA_FILE="Formula/agbcloud-dev-$TIMESTAMP.rb"
-          FORMULA_CLASS_NAME="AgbcloudDev${SANITIZED_TIMESTAMP}"
-          
-          cat > "$FORMULA_FILE" << EOF
-          class ${FORMULA_CLASS_NAME} < Formula
-            desc "AgbCloud CLI - Test Build $TIMESTAMP"
-            homepage "https://alibaba-inc.com/agbcloud"
-            version "$VERSION"
-          
-            if OS.mac?
-              if Hardware::CPU.arm?
-                url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-arm64.tar.gz"
-                sha256 "$DARWIN_ARM64_SHA256"
-              else
-                url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-amd64.tar.gz"
-                sha256 "$DARWIN_AMD64_SHA256"
-              end
-            elsif OS.linux?
-              if Hardware::CPU.arm?
-                url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-arm64.tar.gz"
-                sha256 "$LINUX_ARM64_SHA256"
-              else
-                url "https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-amd64.tar.gz"
-                sha256 "$LINUX_AMD64_SHA256"
-              end
-            end
-          
-            def install
-              bin.install "agbcloud"
-            end
-          
-            test do
-              system "#{bin}/agbcloud", "version"
-            end
-          
-            def caveats
-              <<~EOS
-                This is a test build of AgbCloud CLI.
-                Build timestamp: $TIMESTAMP
-                Git commit: $GIT_COMMIT
-                
-                🚀 Quick Start:
-                  agbcloud version        # Check version
-                  agbcloud --help         # Show help
-                  agbcloud login          # Login to AgbCloud
-                
-                📝 Note: The executable is named 'agbcloud', not 'agbcloud-dev-${TIMESTAMP}'
-                
-                🔄 To switch between versions:
-                  brew unlink agbcloud-dev-${TIMESTAMP}
-                  brew link agbcloud-dev-other-version
-              EOS
-            end
-          end
-          EOF
-          
-          # 提交更改
-          echo "Committing and pushing changes..."
-          git add "$FORMULA_FILE"
-          git commit -m "Add test build agbcloud-dev-$TIMESTAMP
-
-          Version: $VERSION
-          Git commit: $GIT_COMMIT
-          Build timestamp: $TIMESTAMP" > /dev/null
-          
-          # 推送更改
-          CURRENT_BRANCH=$(git branch --show-current)
-          if git push origin "$CURRENT_BRANCH" > /dev/null 2>&1; then
-            echo "✓ Successfully pushed to $CURRENT_BRANCH"
-          else
-            echo "✗ Failed to push changes"
-            exit 1
-          fi
-          
-          echo "✅ Homebrew Tap updated successfully!"
-          echo ""
-          echo "📋 Installation Instructions:"
-          echo "1. Add tap (only needed once):"
-          echo "   brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
-          echo ""
-          echo "2. Update tap information:"
-          echo "   brew update"
-          echo ""
-          echo "3. Install this version:"
-          echo "   brew install agbcloud-dev-$TIMESTAMP"
-          echo ""
-          echo "4. Force link to latest version (recommended):"
-          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
-          echo ""
-          echo "5. Use the CLI (executable name is 'agbcloud'):"
-          echo "   agbcloud version"
-          echo "   agbcloud --help"
-          echo ""
-          echo "🔄 Version Switching:"
-          echo "   # Switch to this test version (force overwrite):"
-          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
-          echo ""
-          echo "   # Or manual unlink then link:"
-          echo "   brew unlink agbcloud agbcloud-dev-* 2>/dev/null || true"
-          echo "   brew link agbcloud-dev-$TIMESTAMP"
-          echo ""
-          echo "   # Switch back to official version:"
-          echo "   brew unlink agbcloud-dev-* 2>/dev/null || true"
-          echo "   brew link --overwrite agbcloud"
-
       - id: send-notification
-        name: 发送通知
+        name: Send Notification
         run: |
-          export VERSION="dev-$(date +%Y%m%d-%H%M)"
+          export VERSION_PREFIX="${{vars.VERSION_PREFIX:-dev}}"
+          export VERSION="$VERSION_PREFIX-$(date +%Y%m%d-%H%M)"
           export TIMESTAMP=$(date +%Y%m%d-%H%M)
           
-          echo "🎉 AgbCloud CLI 多平台测试包构建完成！"
+          echo "🎉 ${{vars.BINARY_NAME}} CLI Multi-platform Test Package Build Complete!"
           echo ""
-          echo "📦 版本: $VERSION"
-          echo "🕒 时间戳: $TIMESTAMP"
-          echo "📝 Git 提交: $(git rev-parse --short HEAD)"
-          echo "✅ 测试状态: 单元测试通过 ✓"
-          echo "🌍 支持平台: macOS, Linux, Windows"
-          echo ""
-          echo "═══════════════════════════════════════════════════════════════"
-          echo "💻 Windows 用户"
-          echo "═══════════════════════════════════════════════════════════════"
-          echo ""
-          echo "🚀 一键安装 (推荐):"
-          echo "   powershell -Command \"irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex\""
-          echo ""
-          echo "🎯 安装指定版本 $VERSION (测试用):"
-          echo "   powershell -Command \"irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex\" -Version $VERSION"
-          echo ""
-          echo "📦 手动下载:"
-          echo "   • Windows x64:   https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-windows-amd64.exe"
-          echo "   • Windows ARM64: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-windows-arm64.exe"
-          echo ""
-          echo "📋 使用方法:"
-          echo "   agbcloud version        # 查看版本"
-          echo "   agbcloud --help         # 显示帮助"
-          echo "   agbcloud login          # 登录 AgbCloud"
-          echo ""
-          echo "💡 提示:"
-          echo "   • 安装后重启终端或运行 refreshenv 刷新环境变量"
-          echo "   • 可执行文件将安装到 %APPDATA%\\bin\\agbcloud\\"
-          echo "   • 支持环境变量自定义: AGBCLOUD_PATH, AGBCLOUD_VERSION"
+          echo "📦 Version: $VERSION"
+          echo "🕒 Timestamp: $TIMESTAMP"
+          echo "📝 Git Commit: $(git rev-parse --short HEAD)"
+          echo "✅ Test Status: Unit tests passed ✓"
+          echo "🌍 Supported Platforms: macOS, Linux, Windows"
           echo ""
           echo "═══════════════════════════════════════════════════════════════"
-          echo "🍎🐧 macOS / Linux 用户"
+          echo "💻 Windows Users"
           echo "═══════════════════════════════════════════════════════════════"
           echo ""
-          echo "🍺 macOS - Homebrew 安装 (推荐):"
-          echo "   # 添加 tap (仅首次需要)"
-          echo "   brew tap InnoArchClub/agbcloud https://gitlab.alibaba-inc.com/InnoArchClub/homebrew-agbcloud.git"
-          echo "   "
-          echo "   # 刷新本地版本列表"
-          echo "   brew upgrade"
-          echo "   "
-          echo "   # 安装此版本"
-          echo "   brew install agbcloud-dev-$TIMESTAMP"
-          echo "   "
-          echo "   # 强制链接到最新版本"
-          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
+          echo "📦 Direct Download:"
+          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.exe"
+          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe"
           echo ""
-          echo "🐧 Linux - 手动安装:"
-          echo "   # AMD64 (Intel/AMD 64位)"
-          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-amd64.tar.gz | tar -xz"
-          echo "   sudo mv agbcloud /usr/local/bin/"
-          echo "   "
-          echo "   # ARM64 (ARM 64位)"
-          echo "   curl -L https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-arm64.tar.gz | tar -xz"
-          echo "   sudo mv agbcloud /usr/local/bin/"
+          echo "📦 Archive Download:"
+          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.tar.gz"
+          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.tar.gz"
           echo ""
-          echo "📦 手动下载链接:"
-          echo "   • macOS Intel:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-amd64.tar.gz"
-          echo "   • macOS Apple Silicon: https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-darwin-arm64.tar.gz"
-          echo "   • Linux x64:          https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-amd64.tar.gz"
-          echo "   • Linux ARM64:        https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/agbcloud/releases/agbcloud-$VERSION-linux-arm64.tar.gz"
+          echo "📋 Usage Instructions:"
+          echo "   1. Download the executable for your architecture"
+          echo "   2. Rename the file to ${{vars.BINARY_NAME}}.exe"
+          echo "   3. Move the file to a directory in your PATH environment variable"
+          echo "   4. Run in command line: ${{vars.BINARY_NAME}} version"
           echo ""
-          echo "📋 使用方法:"
-          echo "   agbcloud version        # 查看版本"
-          echo "   agbcloud --help         # 显示帮助"
-          echo "   agbcloud login          # 登录 AgbCloud"
-          echo ""
-          echo "🔄 macOS 版本管理:"
-          echo "   # 切换到此测试版本"
-          echo "   brew link --overwrite agbcloud-dev-$TIMESTAMP"
-          echo "   "
-          echo "   # 切换回正式版本"
-          echo "   brew unlink agbcloud-dev-* 2>/dev/null || true"
-          echo "   brew link --overwrite agbcloud"
-          echo "   "
-          echo "   # 查看已安装版本"
-          echo "   brew list | grep agbcloud"
-          echo "   "
-          echo "   # 卸载测试版本"
-          echo "   brew uninstall agbcloud-dev-$TIMESTAMP"
+          echo "💡 Tips:"
+          echo "   • Recommended to place executable in %USERPROFILE%\\bin\\ directory"
+          echo "   • Add that directory to your PATH environment variable"
           echo ""
           echo "═══════════════════════════════════════════════════════════════"
-          echo "📚 更多信息"
+          echo "🍎🐧 macOS / Linux Users"
           echo "═══════════════════════════════════════════════════════════════"
-          echo "• 文档: https://docs.agbcloud.com"
-          echo "• 源码: https://github.com/your-org/agbcloud-cli"
-          echo "• 问题反馈: https://github.com/your-org/agbcloud-cli/issues"
+          echo ""
+          echo "📦 Download Links:"
+          echo "   • macOS Intel:        https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz"
+          echo "   • macOS Apple Silicon: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz"
+          echo "   • Linux x64:          https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz"
+          echo "   • Linux ARM64:        https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz"
+          echo ""
+          echo "🚀 Quick Install (macOS/Linux):"
+          echo "   # macOS Intel"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-amd64.tar.gz | tar -xz"
+          echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
+          echo "   "
+          echo "   # macOS Apple Silicon"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-darwin-arm64.tar.gz | tar -xz"
+          echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
+          echo "   "
+          echo "   # Linux AMD64"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-amd64.tar.gz | tar -xz"
+          echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
+          echo "   "
+          echo "   # Linux ARM64"
+          echo "   curl -L https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/${{vars.BINARY_NAME}}-$VERSION-linux-arm64.tar.gz | tar -xz"
+          echo "   sudo mv ${{vars.BINARY_NAME}} /usr/local/bin/"
+          echo ""
+          echo "📋 Usage Instructions:"
+          echo "   ${{vars.BINARY_NAME}} version        # Check version"
+          echo "   ${{vars.BINARY_NAME}} --help         # Show help"
+          echo "   ${{vars.BINARY_NAME}} login          # Login to cloud platform"
+          echo ""
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "📚 More Information"
+          echo "═══════════════════════════════════════════════════════════════"
+          echo "• Version API: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/latest.json"
+          echo "• Documentation: https://docs.agbcloud.com"
+          echo "• Source Code: https://github.com/your-org/${{vars.BINARY_NAME}}-cli"
+          echo "• Issue Reports: https://github.com/your-org/${{vars.BINARY_NAME}}-cli/issues"

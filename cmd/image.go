@@ -47,13 +47,20 @@ var imageCreateCmd = &cobra.Command{
 var imageActivateCmd = &cobra.Command{
 	Use:   "activate <image-id>",
 	Short: "Activate an image",
-	Long:  "Activate an image with specified resources",
+	Long: `Activate an image with specified resources.
+
+Supported CPU and Memory combinations:
+  2c4g  - 2 CPU cores with 4 GB memory
+  4c8g  - 4 CPU cores with 8 GB memory  
+  8c16g - 8 CPU cores with 16 GB memory
+
+If no CPU/memory is specified, default resources will be used.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("❌ Missing required argument: <image-id>\n\n💡 Usage: agbcloud image activate <image-id> --cpu <cores> --memory <gb>\n📝 Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n📝 Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4")
+			return fmt.Errorf("❌ Missing required argument: <image-id>\n\n💡 Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n📝 Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n📝 Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n🔧 Supported combinations: 2c4g, 4c8g, 8c16g")
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("❌ Too many arguments provided. Expected 1 argument (image ID), got %d\n\n💡 Usage: agbcloud image activate <image-id> --cpu <cores> --memory <gb>\n📝 Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n📝 Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4", len(args))
+			return fmt.Errorf("❌ Too many arguments provided. Expected 1 argument (image ID), got %d\n\n💡 Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n📝 Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n📝 Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n🔧 Supported combinations: 2c4g, 4c8g, 8c16g", len(args))
 		}
 		return nil
 	},
@@ -116,6 +123,33 @@ func init() {
 	ImageCmd.AddCommand(imageListCmd)
 }
 
+// ValidateCPUMemoryCombo validates that CPU and memory combination is supported
+func ValidateCPUMemoryCombo(cpu, memory int) error {
+	// If both are 0, use default (no validation needed)
+	if cpu == 0 && memory == 0 {
+		return nil
+	}
+
+	// If only one is specified, both must be specified
+	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
+		return fmt.Errorf("❌ Both CPU and memory must be specified together\n\n🔧 Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16")
+	}
+
+	// Check supported combinations
+	validCombos := map[int]int{
+		2: 4,  // 2c4g
+		4: 8,  // 4c8g
+		8: 16, // 8c16g
+	}
+
+	expectedMemory, exists := validCombos[cpu]
+	if !exists || expectedMemory != memory {
+		return fmt.Errorf("❌ Invalid CPU/Memory combination: %dc%dg\n\n🔧 Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16", cpu, memory)
+	}
+
+	return nil
+}
+
 func runImageCreate(cmd *cobra.Command, args []string) error {
 	imageName := args[0]
 	dockerfilePath, _ := cmd.Flags().GetString("dockerfile")
@@ -155,7 +189,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 
 	// Create API client
 	apiClient := client.NewFromConfig(cfg)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
 	defer cancel()
 
 	// Step 1: Get upload credential
@@ -222,6 +256,11 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	imageId := args[0]
 	cpu, _ := cmd.Flags().GetInt("cpu")
 	memory, _ := cmd.Flags().GetInt("memory")
+
+	// Validate CPU and memory combination
+	if err := ValidateCPUMemoryCombo(cpu, memory); err != nil {
+		return err
+	}
 
 	fmt.Printf("🚀 Activating image '%s'...\n", imageId)
 	if cpu > 0 || memory > 0 {
@@ -596,7 +635,7 @@ func pollImageActivationStatus(ctx context.Context, apiClient *client.APIClient,
 	defer ticker.Stop()
 
 	// Create a new context with longer timeout for polling
-	pollCtx, pollCancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	pollCtx, pollCancel := context.WithTimeout(context.Background(), 45*time.Minute)
 	defer pollCancel()
 
 	for {

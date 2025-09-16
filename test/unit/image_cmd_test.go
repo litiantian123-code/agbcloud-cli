@@ -234,7 +234,15 @@ func TestImageActivateCommandIntegration(t *testing.T) {
 	// Test command structure
 	assert.Equal(t, "activate <image-id>", activateCmd.Use)
 	assert.Equal(t, "Activate an image", activateCmd.Short)
-	assert.Equal(t, "Activate an image with specified resources", activateCmd.Long)
+	expectedLong := `Activate an image with specified resources.
+
+Supported CPU and Memory combinations:
+  2c4g  - 2 CPU cores with 4 GB memory
+  4c8g  - 4 CPU cores with 8 GB memory  
+  8c16g - 8 CPU cores with 16 GB memory
+
+If no CPU/memory is specified, default resources will be used.`
+	assert.Equal(t, expectedLong, activateCmd.Long)
 
 	// Test flags exist and have correct properties
 	cpuFlag := activateCmd.Flag("cpu")

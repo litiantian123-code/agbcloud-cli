@@ -2,23 +2,43 @@
 
 A command-line interface for AgbCloud services.
 
-## Installation
+## Features
 
-### From Source
+AgbCloud CLI provides comprehensive image management capabilities:
+
+- **Authentication**: Secure OAuth-based login with Google account integration
+- **Image Creation**: Build custom images from Dockerfiles with base image support
+- **Image Management**: Activate, deactivate, and monitor image instances
+- **Resource Control**: Configure CPU and memory resources (2c4g, 4c8g, 8c16g)
+- **Image Listing**: Browse user and system images with pagination support
+
+## Quick Start
 
 ```bash
-git clone https://github.com/agbcloud/agbcloud-cli.git
-cd agbcloud-cli
-make build
+# 1. Log in to AgbCloud
+agbcloud login
+
+# 2. List available system images (to find base image IDs)
+agbcloud image list --type System
+
+# 3. Create a custom image
+agbcloud image create myapp --dockerfile ./Dockerfile --imageId agb-code-space-1
+
+# 4. Activate the image with specific resources
+agbcloud image activate img-7a8b9c1d0e --cpu 4 --memory 8
+
+# 5. List your images
+agbcloud image list
+
+# 6. Deactivate when done
+agbcloud image deactivate img-7a8b9c1d0e
 ```
 
-### From Release
+## Installation
 
 Download the latest release for your platform from the [releases page](https://github.com/agbcloud/agbcloud-cli/releases).
 
 ## Usage
-
-### Basic Commands
 
 ```bash
 # Show help
@@ -27,136 +47,15 @@ agbcloud --help
 # Show version
 agbcloud version
 
-# Log in to AgbCloud
-agbcloud login
+# Get detailed help for image commands
+agbcloud image --help
 
-# Configuration management
-agbcloud config list
-agbcloud config get endpoint
-agbcloud config set endpoint your-endpoint-here
-
-# Set configuration via environment variables (recommended)
-export AGB_CLI_ENDPOINT=agb.cloud  # Domain only, https:// added automatically
+# Use verbose mode for detailed output
+agbcloud -v image create myapp -f ./Dockerfile -i agb-code-space-1
 ```
 
-### SSL Certificate Verification
-
-The CLI automatically determines SSL verification behavior based on the endpoint:
-
-**SSL Verification Enabled (Secure)**:
-- Production domains (e.g., `agb.cloud`, `api.example.com`)
-- Standard HTTPS port (443)
-
-**SSL Verification Disabled (Development)**:
-- IP addresses (e.g., `12.34.56.78`, `[2001:db8::1]`)
-- Localhost (`localhost`, `127.0.0.1`)
-- Development domains (`.local`, `.dev`, `.test`, `.internal`)
-- Non-standard ports (e.g., `:8080`, `:8443`)
-
-**Manual Override**:
-```bash
-# Force skip SSL verification
-export AGB_CLI_SKIP_SSL_VERIFY=true
-
-# Force SSL verification (even for IP addresses)
-export AGB_CLI_SKIP_SSL_VERIFY=false
-```
-
-### Authentication
-
-```bash
-# Log in using OAuth in browser
-agbcloud login
-```
-
-## Environment Variables
-
-- `AGB_CLI_ENDPOINT`: AgbCloud API endpoint domain (default: agb.cloud, https:// prefix added automatically)
-- `AGB_CLI_SKIP_SSL_VERIFY`: Override SSL verification behavior ("true" to skip, "false" to enforce)
-
-## Configuration
-
-The CLI uses the following configuration:
-
-- **API Endpoint**: 
-  - `AGB_CLI_ENDPOINT` environment variable (domain only, https:// added automatically)
-  - Default: `agb.cloud`
-- **Authentication**: 
-  - OAuth token-based authentication via `agbcloud login`
-- **SSL Verification**: 
-  - Automatic based on endpoint type (IP addresses, localhost, .local/.dev/.test/.internal domains, non-standard ports skip verification)
-  - Override with `AGB_CLI_SKIP_SSL_VERIFY` environment variable
-
-## Development
-
-### Prerequisites
-
-- Go 1.23 or later
-- Make
-
-### Building
-
-```bash
-# Build for current platform
-make build
-
-# Build for all platforms
-make build-all
-
-# Clean build artifacts
-make clean
-```
-
-### Testing
-
-```bash
-make test
-```
-
-### Formatting
-
-```bash
-make fmt
-```
-
-## Cross-Platform Support
-
-This CLI supports the following platforms:
-
-- Linux (amd64, arm64)
-- macOS (amd64, arm64)
-- Windows (amd64, arm64)
-
-## Project Structure
-
-```
-agbcloud-cli/
-├── cmd/                 # Command definitions
-│   ├── version.go      # Version command
-│   └── config.go       # Configuration commands
-├── internal/           # Internal packages
-│   ├── config/         # Configuration management
-│   └── client/         # API client
-├── pkg/               # Public packages
-│   └── version/       # Version information
-├── .github/           # GitHub Actions
-│   └── workflows/
-├── main.go           # Entry point
-├── Makefile         # Build scripts
-├── go.mod          # Go module
-├── .gitignore      # Git ignore file
-├── LICENSE         # Apache-2.0 license
-└── README.md       # This file
-```
+For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md).
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request 
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details. 
