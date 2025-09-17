@@ -141,6 +141,21 @@ jobs:
           fi
           mkdir -p packages
           
+          # Install zip tool if not available (needed for Windows packages)
+          if ! command -v zip >/dev/null 2>&1; then
+            echo "Installing zip tool..."
+            if command -v apt-get >/dev/null 2>&1; then
+              apt-get update && apt-get install -y zip
+            elif command -v yum >/dev/null 2>&1; then
+              yum install -y zip
+            elif command -v apk >/dev/null 2>&1; then
+              apk add zip
+            else
+              echo "Warning: Could not install zip tool, falling back to tar.gz for Windows"
+              export FALLBACK_TO_TARBALL=true
+            fi
+          fi
+          
           for binary in bin/*; do
             if [[ -f "$binary" ]]; then
               filename=$(basename "$binary")
@@ -153,14 +168,31 @@ jobs:
               cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}"
               
               if [[ "$platform_arch_clean" == windows-* ]]; then
-                # For Windows, create .zip packages (more Windows-friendly)
-                # Ensure the binary has .exe extension in the zip
-                mv "$temp_dir/${{vars.BINARY_NAME}}" "$temp_dir/${{vars.BINARY_NAME}}.exe"
-                (cd "$temp_dir" && zip -q "../packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" "${{vars.BINARY_NAME}}.exe")
-                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip.sha256"
-                echo "✓ Created Windows package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip"
+                # For Windows, try to create .zip packages (more Windows-friendly)
+                if [[ "$FALLBACK_TO_TARBALL" == "true" ]] || ! command -v zip >/dev/null 2>&1; then
+                  # Fallback to tar.gz if zip is not available
+                  echo "Using tar.gz fallback for Windows package..."
+                  tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
+                  sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
+                  echo "✓ Created Windows package (tar.gz): ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
+                else
+                  # Create zip package
+                  mv "$temp_dir/${{vars.BINARY_NAME}}" "$temp_dir/${{vars.BINARY_NAME}}.exe"
+                  (cd "$temp_dir" && zip -q "../packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" "${{vars.BINARY_NAME}}.exe")
+                  if [[ $? -eq 0 ]]; then
+                    sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip.sha256"
+                    echo "✓ Created Windows package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip"
+                  else
+                    echo "Failed to create zip package, falling back to tar.gz..."
+                    # Restore original binary name for tar.gz
+                    mv "$temp_dir/${{vars.BINARY_NAME}}.exe" "$temp_dir/${{vars.BINARY_NAME}}"
+                    tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
+                    sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
+                    echo "✓ Created Windows package (tar.gz fallback): ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
+                  fi
+                fi
                 
-                # Also create direct .exe files for convenience
+                # Always create direct .exe files for convenience
                 target_name="${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.exe"
                 cp "$binary" "packages/$target_name"
                 sha256sum "packages/$target_name" > "packages/$target_name.sha256"
@@ -196,12 +228,16 @@ jobs:
             fi
           done
           
-          # Also verify zip packages for Windows
+          # Verify Windows packages (zip or tar.gz)
           echo ""
-          echo "🔍 Verifying Windows zip packages:"
+          echo "🔍 Verifying Windows packages:"
+          
+          # Check for zip packages first
+          zip_found=false
           for pkg in packages/*windows*.zip; do
             if [[ -f "$pkg" ]]; then
-              echo "✓ Found: $(basename "$pkg")"
+              zip_found=true
+              echo "✓ Found zip: $(basename "$pkg")"
               # Verify it's a valid zip file
               if unzip -t "$pkg" >/dev/null 2>&1; then
                 echo "  ✓ Valid zip archive"
@@ -213,6 +249,24 @@ jobs:
               echo "  📏 Size: $size bytes"
             fi
           done
+          
+          # Check for tar.gz packages if no zip found
+          if [[ "$zip_found" == "false" ]]; then
+            for pkg in packages/*windows*.tar.gz; do
+              if [[ -f "$pkg" ]]; then
+                echo "✓ Found tar.gz: $(basename "$pkg")"
+                # Verify it's a valid tar.gz file
+                if tar -tzf "$pkg" >/dev/null 2>&1; then
+                  echo "  ✓ Valid tar.gz archive"
+                else
+                  echo "  ⚠ Warning: May not be a valid tar.gz archive"
+                fi
+                # Check file size
+                size=$(stat -c%s "$pkg" 2>/dev/null || stat -f%z "$pkg" 2>/dev/null || echo "unknown")
+                echo "  📏 Size: $size bytes"
+              fi
+            done
+          fi
 
       - id: create-server-files
         name: Create Server Files
@@ -444,8 +498,14 @@ jobs:
           echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe"
           echo ""
           echo "📦 Archive Download:"
-          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.zip"
-          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.zip"
+          # Check what format was actually created for Windows packages
+          if ls packages/*windows*.zip >/dev/null 2>&1; then
+            echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.zip"
+            echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.zip"
+          else
+            echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.tar.gz"
+            echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.tar.gz"
+          fi
           echo ""
           echo "📋 Usage Instructions:"
           echo "   1. Download the executable for your architecture"

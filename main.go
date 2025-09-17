@@ -80,6 +80,8 @@ func main() {
 	// Execute root command
 	err := rootCmd.Execute()
 	if err != nil {
-		log.Fatal(err)
+		// Exit with error code without logging the error again
+		// Error messages are already handled by individual commands
+		os.Exit(1)
 	}
 }

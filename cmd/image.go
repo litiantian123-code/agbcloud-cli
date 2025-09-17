@@ -27,8 +27,8 @@ func printErrorMessage(lines ...string) error {
 	for _, line := range lines {
 		fmt.Fprintln(os.Stderr, line)
 	}
-	// Also return an error with the complete message for testing
-	return fmt.Errorf(strings.Join(lines, "\n"))
+	// Return a simple error to indicate failure without duplicating the message
+	return fmt.Errorf("command failed")
 }
 
 // getNewline returns the appropriate newline character(s) for the current platform
