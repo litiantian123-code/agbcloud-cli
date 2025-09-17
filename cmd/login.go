@@ -49,6 +49,7 @@ func runLogin(cmd *cobra.Command) error {
 	fmt.Println("[WEB] Requesting OAuth login URL...")
 
 	// First call - Get the OAuth URL without localhostPort parameter
+	// The retry mechanism is already built into the API client
 	response, httpResp, err := apiClient.OAuthAPI.GetLoginProviderURL(ctx, fmt.Sprintf("http://localhost:%s", defaultPort), "CLI", "GOOGLE_LOCALHOST")
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
@@ -59,9 +60,9 @@ func runLogin(cmd *cobra.Command) error {
 			if len(apiErr.Body()) > 0 {
 				fmt.Printf("[PAGE] Response Body: %s\n", string(apiErr.Body()))
 			}
-			return fmt.Errorf("failed to get OAuth URL: %s", apiErr.Error())
+			return fmt.Errorf("failed to get OAuth URL after retries: %s", apiErr.Error())
 		}
-		return fmt.Errorf("network error: %v", err)
+		return fmt.Errorf("network error after retries: %v", err)
 	}
 
 	// Verify we got a successful response
@@ -104,6 +105,7 @@ func runLogin(cmd *cobra.Command) error {
 		fmt.Printf("[REFRESH] Using alternative port: %s\n", selectedPort)
 
 		// Make second API call with the selected port
+		// The retry mechanism is already built into the API client
 		secondResponse, secondHttpResp, err := apiClient.OAuthAPI.GetLoginProviderURLWithPort(ctx, fmt.Sprintf("http://localhost:%s", selectedPort), "CLI", "GOOGLE_LOCALHOST", selectedPort)
 		if err != nil {
 			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
@@ -114,9 +116,9 @@ func runLogin(cmd *cobra.Command) error {
 				if len(apiErr.Body()) > 0 {
 					fmt.Printf("[PAGE] Response Body: %s\n", string(apiErr.Body()))
 				}
-				return fmt.Errorf("failed to get OAuth URL with alternative port: %s", apiErr.Error())
+				return fmt.Errorf("failed to get OAuth URL with alternative port after retries: %s", apiErr.Error())
 			}
-			return fmt.Errorf("network error on second call: %v", err)
+			return fmt.Errorf("network error on second call after retries: %v", err)
 		}
 
 		if !secondResponse.Success {
@@ -192,6 +194,7 @@ func runLogin(cmd *cobra.Command) error {
 		translateCtx, translateCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer translateCancel()
 
+		// The retry mechanism is already built into the API client
 		translateResponse, translateHttpResp, err := apiClient.OAuthAPI.LoginTranslateWithPort(translateCtx, "CLI", "GOOGLE_LOCALHOST", code, finalPort)
 		if err != nil {
 			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
@@ -202,9 +205,9 @@ func runLogin(cmd *cobra.Command) error {
 				if len(apiErr.Body()) > 0 {
 					fmt.Printf("[PAGE] Response Body: %s\n", string(apiErr.Body()))
 				}
-				return fmt.Errorf("failed to exchange code for token: %s", apiErr.Error())
+				return fmt.Errorf("failed to exchange code for token after retries: %s", apiErr.Error())
 			}
-			return fmt.Errorf("network error during token exchange: %v", err)
+			return fmt.Errorf("network error during token exchange after retries: %v", err)
 		}
 
 		// Display detailed response information

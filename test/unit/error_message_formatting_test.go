@@ -5,6 +5,7 @@ package unit
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -12,6 +13,12 @@ import (
 )
 
 func TestErrorMessageFormatting(t *testing.T) {
+	// Get expected newline for current platform
+	expectedNewline := "\n"
+	if runtime.GOOS == "windows" {
+		expectedNewline = "\r\n"
+	}
+
 	tests := []struct {
 		name     string
 		testFunc func() error
@@ -67,8 +74,13 @@ func TestErrorMessageFormatting(t *testing.T) {
 				t.Error("Error message contains literal \\n instead of actual newlines")
 			}
 
+			// Check that the error message uses the correct platform-specific newlines
+			if !strings.Contains(errMsg, expectedNewline) {
+				t.Errorf("Error message does not contain expected newline sequence for platform %s", runtime.GOOS)
+			}
+
 			// Count the number of lines in the error message
-			lines := strings.Split(errMsg, "\n")
+			lines := strings.Split(errMsg, expectedNewline)
 			if len(lines) < 3 {
 				t.Errorf("Expected multi-line error message, got %d lines", len(lines))
 			}
@@ -94,5 +106,35 @@ func TestValidateCPUMemoryCombo_ValidCombinations(t *testing.T) {
 				t.Errorf("Expected valid combination %dc%dg to pass, got error: %v", combo.cpu, combo.memory, err)
 			}
 		})
+	}
+}
+
+func TestPlatformSpecificNewlines(t *testing.T) {
+	// This test verifies that our newline handling works correctly on different platforms
+	err := cmd.ValidateCPUMemoryCombo(2, 0)
+	if err == nil {
+		t.Fatal("Expected error but got nil")
+	}
+
+	errMsg := err.Error()
+
+	// On Windows, we should see \r\n
+	// On other platforms, we should see \n
+	if runtime.GOOS == "windows" {
+		if !strings.Contains(errMsg, "\r\n") {
+			t.Error("On Windows, error message should contain \\r\\n sequences")
+		}
+		// Should not contain standalone \n that aren't part of \r\n
+		withoutCRLF := strings.ReplaceAll(errMsg, "\r\n", "")
+		if strings.Contains(withoutCRLF, "\n") {
+			t.Error("On Windows, error message should not contain standalone \\n characters")
+		}
+	} else {
+		if !strings.Contains(errMsg, "\n") {
+			t.Error("On non-Windows platforms, error message should contain \\n sequences")
+		}
+		if strings.Contains(errMsg, "\r\n") {
+			t.Error("On non-Windows platforms, error message should not contain \\r\\n sequences")
+		}
 	}
 }

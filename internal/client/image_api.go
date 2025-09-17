@@ -107,6 +107,8 @@ type ImageInfo struct {
 	GmtCreate    *string `json:"gmtCreate"`    // Can be null
 	GmtUpdate    *string `json:"gmtUpdate"`    // Can be null
 	LastUsedTime *string `json:"lastUsedTime"` // Can be null
+	CPU          *int    `json:"cpu"`          // Can be null
+	Memory       *int    `json:"memory"`       // Can be null, in GB
 }
 
 // ImageStartResponse represents the response from /api/image/start API

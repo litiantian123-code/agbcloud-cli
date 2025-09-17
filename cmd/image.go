@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -18,6 +19,17 @@ import (
 	"github.com/agbcloud/agbcloud-cli/internal/client"
 	"github.com/agbcloud/agbcloud-cli/internal/config"
 )
+
+// getNewline returns the appropriate newline character(s) for the current platform
+func getNewline() string {
+	if runtime.GOOS == "windows" {
+		return "\r\n"
+	}
+	return "\n"
+}
+
+// nl is a convenience variable for newline
+var nl = getNewline()
 
 var ImageCmd = &cobra.Command{
 	Use:     "image",
@@ -32,10 +44,10 @@ var imageCreateCmd = &cobra.Command{
 	Long:  "Create a custom image using a Dockerfile",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-name>%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", "\n", "\n", "\n", "\n")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-name>%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", nl, nl, nl, nl)
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image name), got %d%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", len(args), "\n", "\n", "\n", "\n")
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image name), got %d%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", len(args), nl, nl, nl, nl)
 		}
 		return nil
 	},
@@ -57,10 +69,10 @@ Supported CPU and Memory combinations:
 If no CPU/memory is specified, default resources will be used.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", "\n", "\n", "\n", "\n", "\n", "\n")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", nl, nl, nl, nl, nl, nl)
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", len(args), "\n", "\n", "\n", "\n", "\n", "\n")
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", len(args), nl, nl, nl, nl, nl, nl)
 		}
 		return nil
 	},
@@ -75,10 +87,10 @@ var imageDeactivateCmd = &cobra.Command{
 	Long:  "Deactivate a running image instance",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", "\n", "\n", "\n")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", nl, nl, nl)
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", len(args), "\n", "\n", "\n")
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", len(args), nl, nl, nl)
 		}
 		return nil
 	},
@@ -132,7 +144,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	// If only one is specified, both must be specified
 	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
-		return fmt.Errorf("[ERROR] Both CPU and memory must be specified together%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", "\n", "\n", "\n", "\n", "\n")
+		return fmt.Errorf("[ERROR] Both CPU and memory must be specified together%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", nl, nl, nl, nl, nl)
 	}
 
 	// Check supported combinations
@@ -144,7 +156,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	expectedMemory, exists := validCombos[cpu]
 	if !exists || expectedMemory != memory {
-		return fmt.Errorf("[ERROR] Invalid CPU/Memory combination: %dc%dg%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", cpu, memory, "\n", "\n", "\n", "\n", "\n")
+		return fmt.Errorf("[ERROR] Invalid CPU/Memory combination: %dc%dg%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", cpu, memory, nl, nl, nl, nl, nl)
 	}
 
 	return nil
@@ -157,10 +169,10 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 
 	// Validate required flags with friendly messages
 	if dockerfilePath == "" {
-		return fmt.Errorf("[ERROR] Missing required flag: --dockerfile%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", "\n", "\n", imageName, "\n", imageName, "\n", imageName)
+		return fmt.Errorf("[ERROR] Missing required flag: --dockerfile%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", nl, nl, imageName, nl, imageName, nl, imageName)
 	}
 	if sourceImageId == "" {
-		return fmt.Errorf("[ERROR] Missing required flag: --imageId%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", "\n", "\n", imageName, "\n", imageName, "\n", imageName)
+		return fmt.Errorf("[ERROR] Missing required flag: --imageId%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", nl, nl, imageName, nl, imageName, nl, imageName)
 	}
 
 	fmt.Printf("[BUILD]  Creating image '%s'...\n", imageName)
@@ -456,23 +468,24 @@ func runImageList(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Display image table
-	fmt.Printf("%-25s %-25s %-20s %-15s %-20s\n", "IMAGE ID", "IMAGE NAME", "STATUS", "TYPE", "UPDATED AT")
-	fmt.Printf("%-25s %-25s %-20s %-15s %-20s\n", "--------", "----------", "------", "----", "----------")
+	// Display image table with CPU/Memory information
+	fmt.Printf("%-25s %-25s %-20s %-15s %-12s %-20s\n", "IMAGE ID", "IMAGE NAME", "STATUS", "TYPE", "CPU/MEMORY", "UPDATED AT")
+	fmt.Printf("%-25s %-25s %-20s %-15s %-12s %-20s\n", "--------", "----------", "------", "----", "----------", "----------")
 
 	for _, image := range listResp.Data.Images {
-		fmt.Printf("%-25s %-25s %-20s %-15s %-20s\n",
+		fmt.Printf("%-25s %-25s %-20s %-15s %-12s %-20s\n",
 			image.ImageID, // Show full IMAGE ID without truncation
 			truncateString(image.ImageName, 25),
 			formatImageStatus(image.Status),
 			truncateString(image.Type, 15),
+			FormatResources(image.CPU, image.Memory),
 			formatTimestamp(image.UpdateTime))
 	}
 
 	return nil
 }
 
-// uploadDockerfile uploads the dockerfile content to the provided OSS URL
+// uploadDockerfile uploads the dockerfile content to the provided OSS URL with retry mechanism
 func uploadDockerfile(dockerfilePath, ossURL string) error {
 	// Read dockerfile content
 	content, err := os.ReadFile(dockerfilePath)
@@ -480,32 +493,89 @@ func uploadDockerfile(dockerfilePath, ossURL string) error {
 		return fmt.Errorf("failed to read dockerfile: %w", err)
 	}
 
-	// Create HTTP PUT request
-	req, err := http.NewRequest(http.MethodPut, ossURL, strings.NewReader(string(content)))
-	if err != nil {
-		return fmt.Errorf("failed to create upload request: %w", err)
+	// Create retry configuration for upload
+	retryConfig := &client.RetryConfig{
+		MaxRetries:    3,
+		InitialDelay:  1 * time.Second,
+		MaxDelay:      10 * time.Second,
+		BackoffFactor: 2.0,
 	}
 
-	// Set appropriate headers
-	req.Header.Set("Content-Type", "application/octet-stream")
-	req.ContentLength = int64(len(content))
+	var lastErr error
+	delay := retryConfig.InitialDelay
 
-	// Execute the upload
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to upload dockerfile: %w", err)
+	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
+		fmt.Printf("[UPLOAD] Dockerfile upload attempt %d/%d...\n", attempt+1, retryConfig.MaxRetries+1)
+
+		// Create HTTP PUT request for each attempt
+		req, err := http.NewRequest(http.MethodPut, ossURL, strings.NewReader(string(content)))
+		if err != nil {
+			return fmt.Errorf("failed to create upload request: %w", err)
+		}
+
+		// Set appropriate headers
+		req.Header.Set("Content-Type", "application/octet-stream")
+		req.ContentLength = int64(len(content))
+
+		// Execute the upload
+		httpClient := &http.Client{Timeout: 60 * time.Second}
+		resp, err := httpClient.Do(req)
+
+		// Success case
+		if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			resp.Body.Close()
+			if attempt > 0 {
+				fmt.Printf("[OK] Dockerfile upload succeeded on attempt %d\n", attempt+1)
+			}
+			return nil
+		}
+
+		// Handle error cases
+		if err != nil {
+			lastErr = fmt.Errorf("failed to upload dockerfile: %w", err)
+		} else {
+			// Read response body for error details
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+		}
+
+		// Don't retry if this is the last attempt
+		if attempt == retryConfig.MaxRetries {
+			break
+		}
+
+		// Check if the error is retryable
+		shouldRetry := false
+		if err != nil {
+			// Use the same retry logic as the API client
+			shouldRetry = client.IsRetryableError(err)
+		} else if resp != nil {
+			// Check if HTTP status is retryable
+			shouldRetry = client.IsRetryableHTTPStatus(resp.StatusCode)
+		}
+
+		if !shouldRetry {
+			fmt.Printf("[WARN]  Upload error is not retryable, stopping attempts\n")
+			break
+		}
+
+		// Wait before retrying
+		fmt.Printf("[RETRY] Upload failed (attempt %d/%d), retrying in %v...\n",
+			attempt+1, retryConfig.MaxRetries+1, delay)
+
+		time.Sleep(delay)
+
+		// Calculate next delay with exponential backoff
+		delay = time.Duration(float64(delay) * retryConfig.BackoffFactor)
+		if delay > retryConfig.MaxDelay {
+			delay = retryConfig.MaxDelay
+		}
 	}
-	defer resp.Body.Close()
 
-	// Check response status
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// Read response body for error details
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	return nil
+	fmt.Printf("[ERROR] All %d upload attempts failed\n", retryConfig.MaxRetries+1)
+	return fmt.Errorf("dockerfile upload failed after %d attempts, last error: %w",
+		retryConfig.MaxRetries+1, lastErr)
 }
 
 // pollImageTask polls the image task status until completion or failure
@@ -627,6 +697,36 @@ func formatImageStatus(status string) string {
 	default:
 		return status
 	}
+}
+
+// FormatCPU formats CPU value for display, handling null values gracefully
+func FormatCPU(cpu *int) string {
+	if cpu == nil {
+		return "-"
+	}
+	return fmt.Sprintf("%d", *cpu)
+}
+
+// FormatMemory formats Memory value for display, handling null values gracefully
+func FormatMemory(memory *int) string {
+	if memory == nil {
+		return "-"
+	}
+	return fmt.Sprintf("%dG", *memory)
+}
+
+// FormatResources formats CPU and Memory together for compact display
+func FormatResources(cpu *int, memory *int) string {
+	if cpu == nil && memory == nil {
+		return "-"
+	}
+	if cpu == nil {
+		return fmt.Sprintf("-/%dG", *memory)
+	}
+	if memory == nil {
+		return fmt.Sprintf("%d/-", *cpu)
+	}
+	return fmt.Sprintf("%d/%dG", *cpu, *memory)
 }
 
 // pollImageActivationStatus polls the image activation status until completion or failure

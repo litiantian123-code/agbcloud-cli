@@ -32,8 +32,8 @@ func DefaultRetryConfig() *RetryConfig {
 	}
 }
 
-// isRetryableError determines if an error should trigger a retry
-func isRetryableError(err error) bool {
+// IsRetryableError determines if an error should trigger a retry
+func IsRetryableError(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -63,6 +63,7 @@ func isRetryableError(err error) bool {
 		"no such host",
 		"network is unreachable",
 		"timeout",
+		"deadline exceeded",
 		"temporary failure",
 		"i/o timeout",
 		"broken pipe",
@@ -92,8 +93,8 @@ func isRetryableError(err error) bool {
 	return false
 }
 
-// isRetryableHTTPStatus determines if an HTTP status code should trigger a retry
-func isRetryableHTTPStatus(statusCode int) bool {
+// IsRetryableHTTPStatus determines if an HTTP status code should trigger a retry
+func IsRetryableHTTPStatus(statusCode int) bool {
 	// Retry on server errors and some client errors
 	switch statusCode {
 	case http.StatusRequestTimeout, // 408
@@ -143,7 +144,7 @@ func (r *RetryableHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		resp, err := r.client.Do(reqClone)
 
 		// Success case
-		if err == nil && !isRetryableHTTPStatus(resp.StatusCode) {
+		if err == nil && !IsRetryableHTTPStatus(resp.StatusCode) {
 			if attempt > 0 {
 				log.Infof("[RETRY] Request succeeded on attempt %d", attempt+1)
 			}
@@ -169,13 +170,13 @@ func (r *RetryableHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		// Check if the error is retryable
 		shouldRetry := false
 		if err != nil {
-			shouldRetry = isRetryableError(err)
+			shouldRetry = IsRetryableError(err)
 			if !shouldRetry {
 				log.Debugf("[RETRY] Error is not retryable, stopping attempts")
 				break
 			}
 		} else if resp != nil {
-			shouldRetry = isRetryableHTTPStatus(resp.StatusCode)
+			shouldRetry = IsRetryableHTTPStatus(resp.StatusCode)
 			if !shouldRetry {
 				log.Debugf("[RETRY] HTTP status is not retryable, stopping attempts")
 				break
