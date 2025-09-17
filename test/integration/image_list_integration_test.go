@@ -51,7 +51,7 @@ func TestImageListIntegration(t *testing.T) {
 		t.Logf("Using SessionId: %s", tokens.SessionId)
 
 		// Test ListImages API call
-		t.Logf("\n📋 Calling ListImages API...")
+		t.Logf("\n[DOC] Calling ListImages API...")
 		response, httpResp, err := apiClient.ImageAPI.ListImages(ctx, tokens.LoginToken, tokens.SessionId, "User", 1, 10)
 
 		if err != nil {
@@ -61,17 +61,17 @@ func TestImageListIntegration(t *testing.T) {
 				if httpResp != nil {
 					t.Logf("HTTP Status Code: %d", httpResp.StatusCode)
 				}
-				t.Fatalf("❌ Failed to list images: %s", apiErr.Error())
+				t.Fatalf("[ERROR] Failed to list images: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error listing images: %v", err)
+				t.Fatalf("[ERROR] Network error listing images: %v", err)
 			}
 		}
 
 		if !response.Success {
-			t.Fatalf("❌ ListImages request failed: %+v", response)
+			t.Fatalf("[ERROR] ListImages request failed: %+v", response)
 		}
 
-		t.Logf("✅ ListImages API call successful")
+		t.Logf("[OK] ListImages API call successful")
 		t.Logf("   - Total images: %d", response.Data.Total)
 		t.Logf("   - Page: %d", response.Data.Page)
 		t.Logf("   - Page size: %d", response.Data.PageSize)
@@ -98,25 +98,25 @@ func TestImageListIntegration(t *testing.T) {
 	})
 
 	t.Run("PaginationTest", func(t *testing.T) {
-		t.Logf("🔄 Testing pagination functionality")
+		t.Logf("[REFRESH] Testing pagination functionality")
 
 		// Test different page sizes
 		pageSizes := []int{1, 5, 20}
 		for _, pageSize := range pageSizes {
-			t.Logf("\n📄 Testing with page size: %d", pageSize)
+			t.Logf("\n[PAGE] Testing with page size: %d", pageSize)
 			response, _, err := apiClient.ImageAPI.ListImages(ctx, tokens.LoginToken, tokens.SessionId, "User", 1, pageSize)
 
 			if err != nil {
-				t.Logf("⚠️  Error with page size %d: %v", pageSize, err)
+				t.Logf("[WARN]  Error with page size %d: %v", pageSize, err)
 				continue
 			}
 
 			if !response.Success {
-				t.Logf("⚠️  Failed request with page size %d: %+v", pageSize, response)
+				t.Logf("[WARN]  Failed request with page size %d: %+v", pageSize, response)
 				continue
 			}
 
-			t.Logf("   ✅ Page size %d: got %d images (total: %d)", pageSize, len(response.Data.Images), response.Data.Total)
+			t.Logf("   [OK] Page size %d: got %d images (total: %d)", pageSize, len(response.Data.Images), response.Data.Total)
 
 			// Validate page size
 			if response.Data.PageSize != pageSize {
@@ -134,7 +134,7 @@ func TestImageListIntegration(t *testing.T) {
 		t.Logf("🖥️  Testing System image type")
 
 		// Test System image type
-		t.Logf("\n📋 Calling ListImages API with System type...")
+		t.Logf("\n[DOC] Calling ListImages API with System type...")
 		response, httpResp, err := apiClient.ImageAPI.ListImages(ctx, tokens.LoginToken, tokens.SessionId, "System", 1, 10)
 
 		if err != nil {
@@ -144,17 +144,17 @@ func TestImageListIntegration(t *testing.T) {
 				if httpResp != nil {
 					t.Logf("HTTP Status Code: %d", httpResp.StatusCode)
 				}
-				t.Fatalf("❌ Failed to list System images: %s", apiErr.Error())
+				t.Fatalf("[ERROR] Failed to list System images: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error listing System images: %v", err)
+				t.Fatalf("[ERROR] Network error listing System images: %v", err)
 			}
 		}
 
 		if !response.Success {
-			t.Fatalf("❌ ListImages request for System type failed: %+v", response)
+			t.Fatalf("[ERROR] ListImages request for System type failed: %+v", response)
 		}
 
-		t.Logf("✅ ListImages API call for System type successful")
+		t.Logf("[OK] ListImages API call for System type successful")
 		t.Logf("   - Total System images: %d", response.Data.Total)
 		t.Logf("   - Page: %d", response.Data.Page)
 		t.Logf("   - Page size: %d", response.Data.PageSize)
@@ -232,17 +232,17 @@ func TestImageListCLIIntegration(t *testing.T) {
 		output := stdout.String()
 
 		// Validate output contains expected elements
-		if !strings.Contains(output, "📋 Listing User images") {
+		if !strings.Contains(output, "[DOC] Listing User images") {
 			t.Errorf("Output should contain listing message")
 		}
 		if !strings.Contains(output, "IMAGE ID") {
 			t.Errorf("Output should contain table header")
 		}
-		if !strings.Contains(output, "✅ Found") {
+		if !strings.Contains(output, "[OK] Found") {
 			t.Errorf("Output should contain success message")
 		}
 
-		t.Logf("✅ CLI command executed successfully")
+		t.Logf("[OK] CLI command executed successfully")
 	})
 
 	t.Run("CLIListImagesWithFlags", func(t *testing.T) {
@@ -269,14 +269,14 @@ func TestImageListCLIIntegration(t *testing.T) {
 		output := stdout.String()
 
 		// Validate output contains expected elements
-		if !strings.Contains(output, "📋 Listing User images (Page 1, Size 5)") {
+		if !strings.Contains(output, "[DOC] Listing User images (Page 1, Size 5)") {
 			t.Errorf("Output should contain correct listing message with parameters")
 		}
 		if !strings.Contains(output, "Page Size: 5") {
 			t.Errorf("Output should show correct page size")
 		}
 
-		t.Logf("✅ CLI command with flags executed successfully")
+		t.Logf("[OK] CLI command with flags executed successfully")
 	})
 
 	t.Run("CLIListImagesShortFlags", func(t *testing.T) {
@@ -303,14 +303,14 @@ func TestImageListCLIIntegration(t *testing.T) {
 		output := stdout.String()
 
 		// Validate output contains expected elements
-		if !strings.Contains(output, "📋 Listing User images (Page 1, Size 3)") {
+		if !strings.Contains(output, "[DOC] Listing User images (Page 1, Size 3)") {
 			t.Errorf("Output should contain correct listing message with parameters")
 		}
 		if !strings.Contains(output, "Page Size: 3") {
 			t.Errorf("Output should show correct page size")
 		}
 
-		t.Logf("✅ CLI command with short flags executed successfully")
+		t.Logf("[OK] CLI command with short flags executed successfully")
 	})
 
 	t.Run("CLIListSystemImages", func(t *testing.T) {
@@ -337,17 +337,17 @@ func TestImageListCLIIntegration(t *testing.T) {
 		output := stdout.String()
 
 		// Validate output contains expected elements
-		if !strings.Contains(output, "📋 Listing System images") {
+		if !strings.Contains(output, "[DOC] Listing System images") {
 			t.Errorf("Output should contain System images listing message")
 		}
 		if !strings.Contains(output, "IMAGE ID") {
 			t.Errorf("Output should contain table header")
 		}
-		if !strings.Contains(output, "✅ Found") {
+		if !strings.Contains(output, "[OK] Found") {
 			t.Errorf("Output should contain success message")
 		}
 
-		t.Logf("✅ CLI command for System images executed successfully")
+		t.Logf("[OK] CLI command for System images executed successfully")
 	})
 }
 
@@ -372,7 +372,7 @@ func TestImageListErrorHandling(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error when calling ListImages without auth, but got none")
 		} else {
-			t.Logf("✅ Correctly received error without auth: %v", err)
+			t.Logf("[OK] Correctly received error without auth: %v", err)
 		}
 	})
 
@@ -384,7 +384,7 @@ func TestImageListErrorHandling(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error for invalid page (0), but got none")
 		} else {
-			t.Logf("✅ Correctly received error for invalid page: %v", err)
+			t.Logf("[OK] Correctly received error for invalid page: %v", err)
 		}
 
 		// Test invalid page size
@@ -392,7 +392,7 @@ func TestImageListErrorHandling(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error for invalid page size (0), but got none")
 		} else {
-			t.Logf("✅ Correctly received error for invalid page size: %v", err)
+			t.Logf("[OK] Correctly received error for invalid page size: %v", err)
 		}
 
 		// Test empty image type
@@ -400,7 +400,7 @@ func TestImageListErrorHandling(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected error for empty image type, but got none")
 		} else {
-			t.Logf("✅ Correctly received error for empty image type: %v", err)
+			t.Logf("[OK] Correctly received error for empty image type: %v", err)
 		}
 	})
 }

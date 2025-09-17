@@ -40,9 +40,9 @@ export PACKAGE_DIR="../packages"
 
 # Generate the Formula
 if ./scripts/generate-formula.sh "$VERSION" "$GIT_COMMIT" "$TIMESTAMP"; then
-    echo "✓ Formula generated successfully"
+    echo "[OK] Formula generated successfully"
 else
-    echo "✗ Failed to generate Formula"
+    echo "[ERROR] Failed to generate Formula"
     exit 1
 fi
 
@@ -77,17 +77,17 @@ Build timestamp: $TIMESTAMP
 Generated Formula: $FORMULA_FILE"
 
 if git commit -m "$COMMIT_MSG"; then
-    echo "✓ Formula committed successfully"
+    echo "[OK] Formula committed successfully"
 else
-    echo "⚠ No changes to commit (Formula may already exist)"
+    echo "[WARN] No changes to commit (Formula may already exist)"
 fi
 
 # Push to remote repository
 echo "Pushing to remote repository..."
 if git push origin main; then
-    echo "✓ Formula pushed to remote repository"
+    echo "[OK] Formula pushed to remote repository"
 else
-    echo "✗ Failed to push to remote repository"
+    echo "[ERROR] Failed to push to remote repository"
     exit 1
 fi
 

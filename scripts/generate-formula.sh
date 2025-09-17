@@ -67,15 +67,15 @@ sed -e "s/<%= sanitized_timestamp %>/$SANITIZED_TIMESTAMP/g" \
     -e "s/<%= linux_arm64_sha256 %>/$LINUX_ARM64_SHA256/g" \
     scripts/formula-template.rb.tpl > "$FORMULA_FILE"
 
-echo "✓ Formula generated: $FORMULA_FILE"
+echo "[OK] Formula generated: $FORMULA_FILE"
 
 # Validate the generated Formula
 if command -v ruby >/dev/null 2>&1; then
     echo "Validating Formula syntax..."
     if ruby -c "$FORMULA_FILE" >/dev/null 2>&1; then
-        echo "✓ Formula syntax is valid"
+        echo "[OK] Formula syntax is valid"
     else
-        echo "⚠ Formula syntax validation failed"
+        echo "[WARN] Formula syntax validation failed"
         ruby -c "$FORMULA_FILE"
     fi
 fi

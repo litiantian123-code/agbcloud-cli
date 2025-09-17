@@ -115,15 +115,15 @@ The generated commands also include examples for:
 
 Example build notification output:
 ```
-📋 Windows Installation Commands:
+[DOC] Windows Installation Commands:
 
-🔄 Install Latest Version (recommended for production):
+[REFRESH] Install Latest Version (recommended for production):
    powershell -Command "irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex"
 
-🎯 Install Specific Version v1.2.3 (for testing):
+[TARGET] Install Specific Version v1.2.3 (for testing):
    powershell -Command "irm https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com/install.ps1 | iex" -Version v1.2.3
 
-💡 Testing Team Usage:
+[TIP] Testing Team Usage:
    Use the specific version command above to test version v1.2.3
    Use the latest version command for general testing
 ```

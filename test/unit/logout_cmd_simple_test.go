@@ -26,14 +26,14 @@ func runLogoutSimple(cfg *config.Config) error {
 
 	if hasValidTokens {
 		// Simulate API call (in real implementation, this would call the API)
-		fmt.Println("🌐 Invalidating server session...")
-		fmt.Println("✅ Server session invalidated successfully")
+		fmt.Println("[WEB] Invalidating server session...")
+		fmt.Println("[OK] Server session invalidated successfully")
 	} else {
-		fmt.Println("ℹ️  No active session found")
+		fmt.Println("[INFO]  No active session found")
 	}
 
 	// Always perform local cleanup
-	fmt.Println("🧹 Clearing local authentication data...")
+	fmt.Println("[CLEAN] Clearing local authentication data...")
 
 	// Clear tokens from config
 	err := cfg.ClearTokens()
@@ -41,7 +41,7 @@ func runLogoutSimple(cfg *config.Config) error {
 		return fmt.Errorf("failed to clear local authentication data: %w", err)
 	}
 
-	fmt.Println("✅ Successfully logged out from AgbCloud")
+	fmt.Println("[OK] Successfully logged out from AgbCloud")
 	return nil
 }
 
@@ -55,19 +55,19 @@ func TestLogoutCommandSimple(t *testing.T) {
 			name:      "logout with tokens",
 			hasTokens: true,
 			wantOut: []string{
-				"🌐 Invalidating server session...",
-				"✅ Server session invalidated successfully",
-				"🧹 Clearing local authentication data...",
-				"✅ Successfully logged out from AgbCloud",
+				"[WEB] Invalidating server session...",
+				"[OK] Server session invalidated successfully",
+				"[CLEAN] Clearing local authentication data...",
+				"[OK] Successfully logged out from AgbCloud",
 			},
 		},
 		{
 			name:      "logout without tokens",
 			hasTokens: false,
 			wantOut: []string{
-				"ℹ️  No active session found",
-				"🧹 Clearing local authentication data...",
-				"✅ Successfully logged out from AgbCloud",
+				"[INFO]  No active session found",
+				"[CLEAN] Clearing local authentication data...",
+				"[OK] Successfully logged out from AgbCloud",
 			},
 		},
 	}
@@ -196,12 +196,12 @@ func TestLogoutCommandNoConfig(t *testing.T) {
 	}
 
 	// Should indicate no active session
-	if !strings.Contains(output, "ℹ️  No active session found") {
+	if !strings.Contains(output, "[INFO]  No active session found") {
 		t.Errorf("Expected output to contain 'No active session found', got:\n%s", output)
 	}
 
 	// Should still show success message
-	if !strings.Contains(output, "✅ Successfully logged out from AgbCloud") {
+	if !strings.Contains(output, "[OK] Successfully logged out from AgbCloud") {
 		t.Errorf("Expected output to contain success message, got:\n%s", output)
 	}
 }

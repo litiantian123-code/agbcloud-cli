@@ -249,7 +249,7 @@ func GetSuccessHTML() string {
 </head>
 <body>
     <div class="container">
-        <div class="success-icon">✓</div>
+        <div class="success-icon">[OK]</div>
         <h1>Authentication Successful!</h1>
         <p class="subtitle">You have been successfully authenticated with AgbCloud CLI</p>
         

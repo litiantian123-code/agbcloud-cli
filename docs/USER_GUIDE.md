@@ -38,18 +38,18 @@ agbcloud login
 
 2. **System response**:
    ```
-   🔐 Starting AgbCloud authentication...
-   📡 Using callback port: 8080
-   🌐 Requesting OAuth login URL...
-   ✅ Successfully retrieved OAuth URL!
-   📋 Request ID: req-xxxxx
-   🔍 Trace ID: trace-xxxxx
+   [SEC] Starting AgbCloud authentication...
+   [SIGNAL] Using callback port: 8080
+   [WEB] Requesting OAuth login URL...
+   [OK] Successfully retrieved OAuth URL!
+   [DOC] Request ID: req-xxxxx
+   [SEARCH] Trace ID: trace-xxxxx
    
-   🚀 Starting local callback server on port 8080...
-   🔗 OAuth URL:
+   [>>] Starting local callback server on port 8080...
+   [LINK] OAuth URL:
      https://agb.cloud/oauth/authorize?...
    
-   🌐 Opening the browser for authentication...
+   [WEB] Opening the browser for authentication...
    ```
 
 3. **Browser authentication**:
@@ -59,10 +59,10 @@ agbcloud login
 
 4. **Authentication successful**:
    ```
-   ✅ Authentication successful!
-   🔑 Received authorization code: abcd1234...
-   🔄 Exchanging authorization code for access token...
-   ✅ Login successful!
+   [OK] Authentication successful!
+   [KEY] Received authorization code: abcd1234...
+   [REFRESH] Exchanging authorization code for access token...
+   [OK] Login successful!
    ```
 
 ### Notes
@@ -101,28 +101,28 @@ agbcloud image create myCustomImage -f ./Dockerfile -i agb-code-space-1
 1. **Start creation**:
    ```
    🏗️  Creating image 'myCustomImage'...
-   📡 Getting upload credentials...
-   ✅ Upload credentials obtained (Task ID: task-xxxxx)
+   [SIGNAL] Getting upload credentials...
+   [OK] Upload credentials obtained (Task ID: task-xxxxx)
    ```
 
 2. **Upload Dockerfile**:
    ```
-   📤 Uploading Dockerfile...
-   ✅ Dockerfile uploaded successfully
+   [UPLOAD] Uploading Dockerfile...
+   [OK] Dockerfile uploaded successfully
    ```
 
 3. **Create image**:
    ```
    🔨 Creating image...
-   ✅ Image creation initiated
+   [OK] Image creation initiated
    ```
 
 4. **Monitor progress**:
    ```
    ⏳ Monitoring image creation progress...
-   📊 Status: Creating
-   📊 Status: Available
-   ✅ Image creation completed successfully!
+   [DATA] Status: Creating
+   [DATA] Status: Available
+   [OK] Image creation completed successfully!
    ```
 
 ### Image Status Description
@@ -177,31 +177,31 @@ agbcloud image activate img-7a8b9c1d0e -c 4 -m 8
 
 1. **Start activation**:
    ```
-   🚀 Activating image 'img-7a8b9c1d0e'...
-   💾 CPU: 4 cores, Memory: 8 GB
-   🔍 Checking current image status...
+   [>>] Activating image 'img-7a8b9c1d0e'...
+   [SAVE] CPU: 4 cores, Memory: 8 GB
+   [SEARCH] Checking current image status...
    ```
 
 2. **Status check**:
    ```
-   📊 Current Status: Available
-   ✅ Image is available, proceeding with activation...
-   🔄 Starting image activation...
+   [DATA] Current Status: Available
+   [OK] Image is available, proceeding with activation...
+   [REFRESH] Starting image activation...
    ```
 
 3. **Activation successful**:
    ```
-   ✅ Image activation initiated successfully!
-   📊 Operation Status: true
-   🔍 Request ID: req-xxxxx
+   [OK] Image activation initiated successfully!
+   [DATA] Operation Status: true
+   [SEARCH] Request ID: req-xxxxx
    ```
 
 4. **Monitor activation status**:
    ```
    ⏳ Monitoring image activation status...
-   📊 Status: Activating
-   📊 Status: Activated
-   ✅ Image activation completed successfully!
+   [DATA] Status: Activating
+   [DATA] Status: Activated
+   [OK] Image activation completed successfully!
    ```
 
 ### Image Activation Status Description
@@ -226,9 +226,9 @@ agbcloud image activate img-7a8b9c1d0e -c 4 -m 8
 agbcloud image activate img-7a8b9c1d0e --cpu 3 --memory 6
 
 # Error output
-❌ Invalid CPU/Memory combination: 3c6g
+[ERROR] Invalid CPU/Memory combination: 3c6g
 
-🔧 Supported combinations:
+[TOOL] Supported combinations:
   • 2c4g: --cpu 2 --memory 4
   • 4c8g: --cpu 4 --memory 8
   • 8c16g: --cpu 8 --memory 16
@@ -259,14 +259,14 @@ agbcloud image deactivate img-7a8b9c1d0e
 1. **Start deactivation**:
    ```
    🛑 Deactivating image 'img-7a8b9c1d0e'...
-   🔄 Deactivating image instance...
+   [REFRESH] Deactivating image instance...
    ```
 
 2. **Deactivation successful**:
    ```
-   ✅ Image deactivation initiated successfully!
-   📊 Operation Status: true
-   🔍 Request ID: req-xxxxx
+   [OK] Image deactivation initiated successfully!
+   [DATA] Operation Status: true
+   [SEARCH] Request ID: req-xxxxx
    ```
 
 ### Notes
@@ -312,10 +312,10 @@ agbcloud image list -t User -p 1 -s 20
 ### Output Example
 
 ```
-📋 Listing User images (Page 1, Size 10)...
-🔍 Fetching image list...
-✅ Found 3 images (Total: 3)
-📄 Page 1 of 1 (Page Size: 10)
+[DOC] Listing User images (Page 1, Size 10)...
+[SEARCH] Fetching image list...
+[OK] Found 3 images (Total: 3)
+[PAGE] Page 1 of 1 (Page Size: 10)
 
 IMAGE ID                  IMAGE NAME               STATUS               TYPE            UPDATED AT          
 --------                  ----------               ------               ----            ----------          

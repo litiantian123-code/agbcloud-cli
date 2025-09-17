@@ -141,8 +141,8 @@ func TestLogoutUsesEnvironmentEndpoint(t *testing.T) {
 		t.Errorf("Expected code='200', got %s", response.Code)
 	}
 
-	t.Logf("✅ Logout successfully used environment endpoint: %s", mockServer.URL)
-	t.Logf("✅ Config file endpoint was correctly overridden by environment variable")
+	t.Logf("[OK] Logout successfully used environment endpoint: %s", mockServer.URL)
+	t.Logf("[OK] Config file endpoint was correctly overridden by environment variable")
 }
 
 func TestLogoutUsesConfigFileEndpoint(t *testing.T) {
@@ -246,7 +246,7 @@ func TestLogoutUsesConfigFileEndpoint(t *testing.T) {
 		t.Errorf("Expected success=true, got %v", response.Success)
 	}
 
-	t.Logf("✅ Logout successfully used config file endpoint: %s", mockServer.URL)
+	t.Logf("[OK] Logout successfully used config file endpoint: %s", mockServer.URL)
 }
 
 func TestLogoutUsesDefaultEndpoint(t *testing.T) {
@@ -326,6 +326,6 @@ func TestLogoutUsesDefaultEndpoint(t *testing.T) {
 		t.Errorf("Expected server URL to contain 'agb.cloud', got %q", serverURL)
 	}
 
-	t.Logf("✅ Config correctly uses default endpoint: %s", cfg.Endpoint)
-	t.Logf("✅ Client correctly configured with server URL: %s", serverURL)
+	t.Logf("[OK] Config correctly uses default endpoint: %s", cfg.Endpoint)
+	t.Logf("[OK] Client correctly configured with server URL: %s", serverURL)
 }

@@ -30,7 +30,7 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 			t.Errorf("Expected default endpoint https://agb.cloud, got %s", cfg.Endpoint)
 		}
 
-		t.Logf("✅ Default values test passed")
+		t.Logf("[OK] Default values test passed")
 	})
 
 	t.Run("CLIEnvironmentVariables", func(t *testing.T) {
@@ -43,7 +43,7 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 			t.Errorf("Expected CLI endpoint https://cli.agb.cloud, got %s", cfg.Endpoint)
 		}
 
-		t.Logf("✅ CLI environment variables test passed")
+		t.Logf("[OK] CLI environment variables test passed")
 	})
 
 	t.Run("EndpointAutoHTTPS", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 			if cfg.Endpoint != tc.expected {
 				t.Errorf("Input %s: expected %s, got %s", tc.input, tc.expected, cfg.Endpoint)
 			} else {
-				t.Logf("✅ %s -> %s", tc.input, cfg.Endpoint)
+				t.Logf("[OK] %s -> %s", tc.input, cfg.Endpoint)
 			}
 		}
 	})
@@ -83,7 +83,7 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 			t.Errorf("Expected default endpoint https://agb.cloud, got %s", cfg.Endpoint)
 		}
 
-		t.Logf("✅ Empty environment variables test passed")
+		t.Logf("[OK] Empty environment variables test passed")
 	})
 }
 

@@ -89,18 +89,18 @@ if [ "$RUN_UNIT" = true ]; then
     print_status "Running unit tests..."
     
     if go test $VERBOSE_FLAG ./test/unit/...; then
-        print_status "✅ Unit tests passed"
+        print_status "[OK] Unit tests passed"
     else
-        print_error "❌ Unit tests failed"
+        print_error "[ERROR] Unit tests failed"
         exit 1
     fi
     
     # Also run tests for internal packages (excluding integration tests)
     print_status "Running internal package tests..."
     if go test $VERBOSE_FLAG ./internal/...; then
-        print_status "✅ Internal package tests passed"
+        print_status "[OK] Internal package tests passed"
     else
-        print_error "❌ Internal package tests failed"
+        print_error "[ERROR] Internal package tests failed"
         exit 1
     fi
 fi
@@ -111,15 +111,15 @@ if [ "$RUN_INTEGRATION" = true ]; then
     
     # Check if integration tests should be skipped
     if [ "$SKIP_INTEGRATION_TESTS" = "true" ]; then
-        print_warning "⚠️  Integration tests skipped (SKIP_INTEGRATION_TESTS=true)"
+        print_warning "[WARN] Integration tests skipped (SKIP_INTEGRATION_TESTS=true)"
     else
         print_status "Running integration tests against real API..."
         print_warning "Note: Integration tests WILL FAIL if network connectivity to https://agb.cloud is unavailable"
         
         if go test $VERBOSE_FLAG -timeout=45m -tags=integration ./test/integration/...; then
-            print_status "✅ Integration tests passed"
+            print_status "[OK] Integration tests passed"
         else
-            print_error "❌ Integration tests failed"
+            print_error "[ERROR] Integration tests failed"
             print_warning "Common causes:"
             print_warning "  - Network connectivity issues to https://agb.cloud"
             print_warning "  - API endpoint changes or service unavailability"

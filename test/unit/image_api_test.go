@@ -96,7 +96,7 @@ func TestImageAPIGetUploadCredential(t *testing.T) {
 		t.Errorf("Expected OssURL 'https://test-oss-url.com/upload', got '%s'", response.Data.OssURL)
 	}
 
-	t.Logf("✅ GetUploadCredential test passed!")
+	t.Logf("[OK] GetUploadCredential test passed!")
 	t.Logf("   - TaskID: %s", response.Data.TaskID)
 	t.Logf("   - OssURL: %s", response.Data.OssURL)
 }
@@ -198,7 +198,7 @@ func TestImageAPICreateImage(t *testing.T) {
 		t.Errorf("Expected Data 'DBT18253495250135421-17573241195022', got '%s'", response.Data)
 	}
 
-	t.Logf("✅ CreateImage test passed!")
+	t.Logf("[OK] CreateImage test passed!")
 	t.Logf("   - Data: %s", response.Data)
 }
 
@@ -265,7 +265,7 @@ func TestImageAPIParameterValidation(t *testing.T) {
 		}
 	})
 
-	t.Logf("✅ Parameter validation tests passed!")
+	t.Logf("[OK] Parameter validation tests passed!")
 }
 
 // TestImageAPIGetImageTask tests the GetImageTask method with mock server
@@ -354,7 +354,7 @@ func TestImageAPIGetImageTask(t *testing.T) {
 		t.Errorf("Expected ImageID to be nil, got '%s'", *response.Data.ImageID)
 	}
 
-	t.Logf("✅ GetImageTask test passed!")
+	t.Logf("[OK] GetImageTask test passed!")
 	t.Logf("   - Status: %s", response.Data.Status)
 	t.Logf("   - TaskMsg: %s", response.Data.TaskMsg)
 	t.Logf("   - ImageID: %v", response.Data.ImageID)
@@ -488,7 +488,7 @@ func TestImageAPIListImages(t *testing.T) {
 		t.Errorf("Expected first image status 'IMAGE_AVAILABLE', got '%s'", firstImage.Status)
 	}
 
-	t.Logf("✅ ListImages test passed!")
+	t.Logf("[OK] ListImages test passed!")
 	t.Logf("   - Total images: %d", response.Data.Total)
 	t.Logf("   - Page: %d, PageSize: %d", response.Data.Page, response.Data.PageSize)
 	t.Logf("   - First image: %s (%s)", firstImage.ImageName, firstImage.Status)
@@ -557,7 +557,7 @@ func TestImageAPIListImagesParameterValidation(t *testing.T) {
 		}
 	})
 
-	t.Logf("✅ ListImages parameter validation tests passed!")
+	t.Logf("[OK] ListImages parameter validation tests passed!")
 }
 
 // TestImageAPIService_StartImage tests the StartImage method with mock server

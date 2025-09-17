@@ -30,7 +30,7 @@ func init() {
 }
 
 func runLogout(cmd *cobra.Command) error {
-	fmt.Println("🔓 Logging out from AgbCloud...")
+	fmt.Println("[UNLOCK] Logging out from AgbCloud...")
 
 	// Load configuration
 	cfg, err := config.GetConfig()
@@ -45,7 +45,7 @@ func runLogout(cmd *cobra.Command) error {
 
 	if hasValidTokens {
 		// Attempt to invalidate server session
-		fmt.Println("🌐 Invalidating server session...")
+		fmt.Println("[WEB] Invalidating server session...")
 
 		apiClient := client.NewFromConfig(cfg)
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -58,23 +58,23 @@ func runLogout(cmd *cobra.Command) error {
 
 		if err != nil {
 			// Log warning but continue with local cleanup
-			fmt.Printf("⚠️  Warning: Could not invalidate server session: %v\n", err)
+			fmt.Printf("[WARN]  Warning: Could not invalidate server session: %v\n", err)
 			if httpResp != nil {
-				fmt.Printf("📊 HTTP Status: %d\n", httpResp.StatusCode)
+				fmt.Printf("[DATA] HTTP Status: %d\n", httpResp.StatusCode)
 			}
 		} else if !response.Success {
 			// API call succeeded but logout failed
-			fmt.Printf("⚠️  Warning: Server session invalidation failed (Code: %s)\n", response.Code)
+			fmt.Printf("[WARN]  Warning: Server session invalidation failed (Code: %s)\n", response.Code)
 		} else {
 			// Success
-			fmt.Println("✅ Server session invalidated successfully")
+			fmt.Println("[OK] Server session invalidated successfully")
 		}
 	} else {
-		fmt.Println("ℹ️  No active session found")
+		fmt.Println("[INFO]  No active session found")
 	}
 
 	// Always perform local cleanup
-	fmt.Println("🧹 Clearing local authentication data...")
+	fmt.Println("[CLEAN] Clearing local authentication data...")
 
 	// Clear tokens from config
 	err = cfg.ClearTokens()
@@ -84,9 +84,9 @@ func runLogout(cmd *cobra.Command) error {
 
 	// Success message
 	if hasValidTokens {
-		fmt.Println("✅ Successfully logged out from AgbCloud")
+		fmt.Println("[OK] Successfully logged out from AgbCloud")
 	} else {
-		fmt.Println("✅ Successfully logged out from AgbCloud (local session cleared)")
+		fmt.Println("[OK] Successfully logged out from AgbCloud (local session cleared)")
 	}
 
 	return nil

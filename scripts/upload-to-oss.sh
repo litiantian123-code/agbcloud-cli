@@ -57,7 +57,7 @@ if ! command -v ossutil >/dev/null 2>&1; then
     sudo mv ossutil* /usr/local/bin/ossutil
     rm -f ossutil.zip
     
-    echo "✓ ossutil installed successfully"
+    echo "[OK] ossutil installed successfully"
 fi
 
 # Configure ossutil
@@ -77,13 +77,13 @@ for package in "$PACKAGE_DIR"/*.tar.gz; do
         
         # Upload the package
         if ossutil cp "$package" "$oss_path" --force; then
-            echo "✓ Uploaded: $filename"
+            echo "[OK] Uploaded: $filename"
             
             # Set public read permission
             if ossutil set-acl "$oss_path" public-read; then
-                echo "✓ Set public-read ACL for: $filename"
+                echo "[OK] Set public-read ACL for: $filename"
             else
-                echo "⚠ Failed to set ACL for: $filename"
+                echo "[WARN] Failed to set ACL for: $filename"
             fi
             
             # Generate public URL
@@ -92,7 +92,7 @@ for package in "$PACKAGE_DIR"/*.tar.gz; do
             
             upload_count=$((upload_count + 1))
         else
-            echo "✗ Failed to upload: $filename"
+            echo "[ERROR] Failed to upload: $filename"
             exit 1
         fi
     fi
@@ -108,12 +108,12 @@ for sha256_file in "$PACKAGE_DIR"/*.sha256; do
         echo "Uploading $filename..."
         
         if ossutil cp "$sha256_file" "$oss_path" --force; then
-            echo "✓ Uploaded: $filename"
+            echo "[OK] Uploaded: $filename"
             
             # Set public read permission
             ossutil set-acl "$oss_path" public-read
         else
-            echo "⚠ Failed to upload: $filename"
+            echo "[WARN] Failed to upload: $filename"
         fi
     fi
 done

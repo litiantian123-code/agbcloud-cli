@@ -35,7 +35,7 @@ func TestImageDeactivateIntegration(t *testing.T) {
 		t.Skipf("No valid tokens found: %v. Please run 'agbcloud login' first.", err)
 	}
 
-	t.Logf("✅ Using authenticated session: %s", tokens.SessionId[:8]+"...")
+	t.Logf("[OK] Using authenticated session: %s", tokens.SessionId[:8]+"...")
 
 	// Create API client
 	apiClient := client.NewFromConfig(cfg)
@@ -94,19 +94,19 @@ func TestImageDeactivateIntegration(t *testing.T) {
 					}
 
 					if !tt.expectError {
-						t.Errorf("❌ Unexpected API error: %s", apiErr.Error())
+						t.Errorf("[ERROR] Unexpected API error: %s", apiErr.Error())
 					} else {
-						t.Logf("✅ Expected API error occurred: %s", apiErr.Error())
+						t.Logf("[OK] Expected API error occurred: %s", apiErr.Error())
 					}
 				} else {
-					t.Logf("❌ Network error: %v", err)
+					t.Logf("[ERROR] Network error: %v", err)
 					if !tt.expectError {
-						t.Errorf("❌ Unexpected network error: %v", err)
+						t.Errorf("[ERROR] Unexpected network error: %v", err)
 					}
 				}
 			} else {
 				// Success case
-				t.Logf("✅ API call successful")
+				t.Logf("[OK] API call successful")
 				t.Logf("Response Success: %v", resp.Success)
 				t.Logf("Response Code: %s", resp.Code)
 				t.Logf("Request ID: %s", resp.RequestID)
@@ -116,7 +116,7 @@ func TestImageDeactivateIntegration(t *testing.T) {
 				}
 
 				if tt.expectError {
-					t.Errorf("❌ Expected error but API call succeeded")
+					t.Errorf("[ERROR] Expected error but API call succeeded")
 				}
 			}
 		})
@@ -185,13 +185,13 @@ func TestImageDeactivateParameterValidation(t *testing.T) {
 
 			if tt.expectError {
 				if err == nil {
-					t.Errorf("❌ Expected error but got none")
+					t.Errorf("[ERROR] Expected error but got none")
 				} else {
-					t.Logf("✅ Expected error occurred: %v", err)
+					t.Logf("[OK] Expected error occurred: %v", err)
 				}
 			} else {
 				if err != nil {
-					t.Errorf("❌ Unexpected error: %v", err)
+					t.Errorf("[ERROR] Unexpected error: %v", err)
 				}
 			}
 		})
@@ -226,25 +226,25 @@ func TestImageDeactivateRealWorkflow(t *testing.T) {
 
 	t.Run("list_and_deactivate_running_image", func(t *testing.T) {
 		// First, try to list available images
-		t.Log("🔍 Fetching available images...")
+		t.Log("[SEARCH] Fetching available images...")
 		listResp, _, err := apiClient.ImageAPI.ListImages(ctx, tokens.LoginToken, tokens.SessionId, "User", 1, 5)
 
 		if err != nil {
-			t.Logf("⚠️  Could not list images: %v", err)
+			t.Logf("[WARN]  Could not list images: %v", err)
 			t.Skip("Skipping real workflow test - cannot list images")
 		}
 
 		if !listResp.Success || len(listResp.Data.Images) == 0 {
-			t.Log("ℹ️  No user images available for testing")
+			t.Log("[INFO]  No user images available for testing")
 			t.Skip("Skipping real workflow test - no images available")
 		}
 
 		// Use the first available image for testing
 		testImage := listResp.Data.Images[0]
-		t.Logf("📋 Using image: %s (%s)", testImage.ImageName, testImage.ImageID)
+		t.Logf("[DOC] Using image: %s (%s)", testImage.ImageName, testImage.ImageID)
 
 		// Try to deactivate the image (this may fail if the image is not running)
-		t.Log("🛑 Attempting to deactivate image...")
+		t.Log("[STOP] Attempting to deactivate image...")
 		stopResp, httpResp, err := apiClient.ImageAPI.StopImage(
 			ctx,
 			tokens.LoginToken,
@@ -261,21 +261,21 @@ func TestImageDeactivateRealWorkflow(t *testing.T) {
 			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
 				t.Logf("API Error: %s", apiErr.Error())
 				// This might be expected if the image is not running
-				t.Logf("ℹ️  Image deactivation failed (this may be expected): %s", apiErr.Error())
+				t.Logf("[INFO]  Image deactivation failed (this may be expected): %s", apiErr.Error())
 			} else {
-				t.Errorf("❌ Network error: %v", err)
+				t.Errorf("[ERROR] Network error: %v", err)
 			}
 		} else {
-			t.Logf("✅ Deactivate image API call successful")
+			t.Logf("[OK] Deactivate image API call successful")
 			t.Logf("Response Success: %v", stopResp.Success)
 			t.Logf("Response Code: %s", stopResp.Code)
 			t.Logf("Request ID: %s", stopResp.RequestID)
 
 			if stopResp.Success {
-				t.Logf("🎉 Image deactivated successfully!")
+				t.Logf("[SUCCESS] Image deactivated successfully!")
 				t.Logf("Operation Status: %v", stopResp.Data)
 			} else {
-				t.Logf("ℹ️  Image deactivation was not successful: %s", stopResp.Code)
+				t.Logf("[INFO]  Image deactivation was not successful: %s", stopResp.Code)
 			}
 		}
 	})

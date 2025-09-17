@@ -57,18 +57,18 @@ func TestRefreshTokenIntegration(t *testing.T) {
 				}
 				// For test tokens, we expect this to fail with specific error
 				if httpResp != nil && (httpResp.StatusCode == 401 || httpResp.StatusCode == 400) {
-					t.Logf("✅ Expected error response for test tokens: %s", apiErr.Error())
+					t.Logf("[OK] Expected error response for test tokens: %s", apiErr.Error())
 					return
 				}
-				t.Fatalf("❌ Unexpected API error occurred: %s", apiErr.Error())
+				t.Fatalf("[ERROR] Unexpected API error occurred: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error prevented API communication: %v", err)
+				t.Fatalf("[ERROR] Network error prevented API communication: %v", err)
 			}
 		}
 
 		// Validate successful response structure
 		if response.Success {
-			t.Logf("✅ Success! Refresh token response received")
+			t.Logf("[OK] Success! Refresh token response received")
 			t.Logf("Success: %v", response.Success)
 			t.Logf("Code: %s", response.Code)
 			t.Logf("RequestID: %s", response.RequestID)
@@ -77,13 +77,13 @@ func TestRefreshTokenIntegration(t *testing.T) {
 
 			// Validate response data contains expected fields
 			if response.Data.LoginToken == "" {
-				t.Errorf("❌ Response missing new login token")
+				t.Errorf("[ERROR] Response missing new login token")
 			}
 			if response.Data.SessionId == "" {
-				t.Errorf("❌ Response missing new session ID")
+				t.Errorf("[ERROR] Response missing new session ID")
 			}
 			if response.Data.KeepAliveToken == "" {
-				t.Errorf("❌ Response missing new keep alive token")
+				t.Errorf("[ERROR] Response missing new keep alive token")
 			}
 		}
 	})
@@ -102,9 +102,9 @@ func TestRefreshTokenIntegration(t *testing.T) {
 
 		// Should return error for empty keepAliveToken
 		if err == nil {
-			t.Errorf("❌ Expected error for empty keepAliveToken, but got success: %+v", response)
+			t.Errorf("[ERROR] Expected error for empty keepAliveToken, but got success: %+v", response)
 		} else {
-			t.Logf("✅ Expected error for empty keepAliveToken: %v", err)
+			t.Logf("[OK] Expected error for empty keepAliveToken: %v", err)
 		}
 	})
 
@@ -122,9 +122,9 @@ func TestRefreshTokenIntegration(t *testing.T) {
 
 		// Should return error for empty sessionId
 		if err == nil {
-			t.Errorf("❌ Expected error for empty sessionId, but got success: %+v", response)
+			t.Errorf("[ERROR] Expected error for empty sessionId, but got success: %+v", response)
 		} else {
-			t.Logf("✅ Expected error for empty sessionId: %v", err)
+			t.Logf("[OK] Expected error for empty sessionId: %v", err)
 		}
 	})
 
@@ -143,14 +143,14 @@ func TestRefreshTokenIntegration(t *testing.T) {
 		if err != nil {
 			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
 				// Expected to fail with invalid tokens
-				t.Logf("✅ Expected API error for invalid tokens: %s", apiErr.Error())
+				t.Logf("[OK] Expected API error for invalid tokens: %s", apiErr.Error())
 			} else {
-				t.Errorf("❌ Network error: %v", err)
+				t.Errorf("[ERROR] Network error: %v", err)
 			}
 		} else if !response.Success {
-			t.Logf("✅ Expected failure response for invalid tokens: %+v", response)
+			t.Logf("[OK] Expected failure response for invalid tokens: %+v", response)
 		} else {
-			t.Errorf("❌ Expected error for invalid tokens, but got success: %+v", response)
+			t.Errorf("[ERROR] Expected error for invalid tokens, but got success: %+v", response)
 		}
 	})
 
@@ -170,18 +170,18 @@ func TestRefreshTokenIntegration(t *testing.T) {
 		if err != nil {
 			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
 				// Expected to fail with expired tokens
-				t.Logf("✅ Expected API error for expired tokens: %s", apiErr.Error())
+				t.Logf("[OK] Expected API error for expired tokens: %s", apiErr.Error())
 				// Check for specific error codes that indicate token expiration
 				if httpResp != nil && (httpResp.StatusCode == 401 || httpResp.StatusCode == 403) {
-					t.Logf("✅ Received expected HTTP status for expired tokens: %d", httpResp.StatusCode)
+					t.Logf("[OK] Received expected HTTP status for expired tokens: %d", httpResp.StatusCode)
 				}
 			} else {
-				t.Errorf("❌ Network error: %v", err)
+				t.Errorf("[ERROR] Network error: %v", err)
 			}
 		} else if !response.Success {
-			t.Logf("✅ Expected failure response for expired tokens: %+v", response)
+			t.Logf("[OK] Expected failure response for expired tokens: %+v", response)
 		} else {
-			t.Errorf("❌ Expected error for expired tokens, but got success: %+v", response)
+			t.Errorf("[ERROR] Expected error for expired tokens, but got success: %+v", response)
 		}
 	})
 }

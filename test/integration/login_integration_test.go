@@ -52,23 +52,23 @@ func TestLoginIntegration(t *testing.T) {
 				if httpResp != nil {
 					t.Logf("HTTP Status Code: %d", httpResp.StatusCode)
 				}
-				t.Fatalf("❌ API error occurred: %s", apiErr.Error())
+				t.Fatalf("[ERROR] API error occurred: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error prevented API communication: %v", err)
+				t.Fatalf("[ERROR] Network error prevented API communication: %v", err)
 			}
 		}
 
 		// Validate successful response
 		if !response.Success {
-			t.Fatalf("❌ API returned success=false: %+v", response)
+			t.Fatalf("[ERROR] API returned success=false: %+v", response)
 		}
 
 		if response.Data.InvokeURL == "" {
-			t.Fatalf("❌ Invalid response data - empty InvokeURL: %+v", response)
+			t.Fatalf("[ERROR] Invalid response data - empty InvokeURL: %+v", response)
 		}
 
 		// Log success details
-		t.Logf("✅ Success! Login Provider OAuth URL: %s", response.Data.InvokeURL)
+		t.Logf("[OK] Success! Login Provider OAuth URL: %s", response.Data.InvokeURL)
 		t.Logf("Success: %v", response.Success)
 		t.Logf("Code: %s", response.Code)
 		t.Logf("RequestID: %s", response.RequestID)
@@ -77,11 +77,11 @@ func TestLoginIntegration(t *testing.T) {
 
 		// Validate OAuth URL format
 		if !strings.Contains(response.Data.InvokeURL, "accounts.google.com") {
-			t.Errorf("❌ OAuth URL doesn't contain Google domain: %s", response.Data.InvokeURL)
+			t.Errorf("[ERROR] OAuth URL doesn't contain Google domain: %s", response.Data.InvokeURL)
 		}
 
 		if !strings.Contains(response.Data.InvokeURL, "client_id=") {
-			t.Errorf("❌ OAuth URL missing client_id parameter: %s", response.Data.InvokeURL)
+			t.Errorf("[ERROR] OAuth URL missing client_id parameter: %s", response.Data.InvokeURL)
 		}
 	})
 
@@ -100,7 +100,7 @@ func TestLoginIntegration(t *testing.T) {
 		}
 
 		if err != nil {
-			t.Fatalf("❌ Network error prevented API communication (without fromUrlPath): %v", err)
+			t.Fatalf("[ERROR] Network error prevented API communication (without fromUrlPath): %v", err)
 		}
 
 		if response.Success && response.Data.InvokeURL != "" {
@@ -123,7 +123,7 @@ func TestLoginIntegration(t *testing.T) {
 		}
 
 		if err != nil {
-			t.Fatalf("❌ Network error prevented API communication (custom parameters): %v", err)
+			t.Fatalf("[ERROR] Network error prevented API communication (custom parameters): %v", err)
 		}
 
 		if response.Success && response.Data.InvokeURL != "" {

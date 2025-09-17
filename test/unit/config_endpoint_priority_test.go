@@ -121,7 +121,7 @@ func TestEndpointPriority(t *testing.T) {
 				t.Errorf("Expected endpoint %q, got %q", tt.expectedResult, cfg.Endpoint)
 			}
 
-			t.Logf("✅ %s: endpoint correctly set to %q", tt.name, cfg.Endpoint)
+			t.Logf("[OK] %s: endpoint correctly set to %q", tt.name, cfg.Endpoint)
 		})
 	}
 }

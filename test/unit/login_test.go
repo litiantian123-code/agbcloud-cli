@@ -112,15 +112,15 @@ func TestLoginCommand(t *testing.T) {
 		}
 
 		// Print success information
-		cmd.Printf("✅ Successfully retrieved OAuth URL!\n")
-		cmd.Printf("📋 Request ID: %s\n", response.RequestID)
-		cmd.Printf("🔍 Trace ID: %s\n", response.TraceID)
-		cmd.Printf("🔗 OAuth URL: %s\n", response.Data.InvokeURL)
+		cmd.Printf("[OK] Successfully retrieved OAuth URL!\n")
+		cmd.Printf("[DOC] Request ID: %s\n", response.RequestID)
+		cmd.Printf("[SEARCH] Trace ID: %s\n", response.TraceID)
+		cmd.Printf("[LINK] OAuth URL: %s\n", response.Data.InvokeURL)
 
 		if noOpen {
-			cmd.Printf("💡 Browser opening disabled by --no-open flag\n")
+			cmd.Printf("[TIP] Browser opening disabled by --no-open flag\n")
 		} else {
-			cmd.Printf("🌐 Would open browser (disabled in test)\n")
+			cmd.Printf("[WEB] Would open browser (disabled in test)\n")
 		}
 
 		return nil
@@ -147,15 +147,15 @@ func TestLoginCommand(t *testing.T) {
 		output := buf.String()
 
 		// Verify output contains expected elements
-		if !strings.Contains(output, "✅ Successfully retrieved OAuth URL!") {
+		if !strings.Contains(output, "[OK] Successfully retrieved OAuth URL!") {
 			t.Error("Expected success message not found in output")
 		}
 
-		if !strings.Contains(output, "📋 Request ID: test-request-id-123") {
+		if !strings.Contains(output, "[DOC] Request ID: test-request-id-123") {
 			t.Error("Expected request ID not found in output")
 		}
 
-		if !strings.Contains(output, "🔍 Trace ID: test-trace-id-456") {
+		if !strings.Contains(output, "[SEARCH] Trace ID: test-trace-id-456") {
 			t.Error("Expected trace ID not found in output")
 		}
 
@@ -163,11 +163,11 @@ func TestLoginCommand(t *testing.T) {
 			t.Error("Expected OAuth URL not found in output")
 		}
 
-		if !strings.Contains(output, "💡 Browser opening disabled by --no-open flag") {
+		if !strings.Contains(output, "[TIP] Browser opening disabled by --no-open flag") {
 			t.Error("Expected no-open message not found in output")
 		}
 
-		t.Logf("✅ Login command test passed!")
+		t.Logf("[OK] Login command test passed!")
 		t.Logf("Output: %s", output)
 	})
 
@@ -186,11 +186,11 @@ func TestLoginCommand(t *testing.T) {
 
 		output := buf.String()
 
-		if !strings.Contains(output, "✅ Successfully retrieved OAuth URL!") {
+		if !strings.Contains(output, "[OK] Successfully retrieved OAuth URL!") {
 			t.Error("Expected success message not found in output")
 		}
 
-		t.Logf("✅ Basic functionality test passed!")
+		t.Logf("[OK] Basic functionality test passed!")
 	})
 }
 
@@ -244,6 +244,6 @@ func TestLoginCommandErrorHandling(t *testing.T) {
 			t.Errorf("Expected 500 error, got: %v", err)
 		}
 
-		t.Logf("✅ Error handling test passed!")
+		t.Logf("[OK] Error handling test passed!")
 	})
 }

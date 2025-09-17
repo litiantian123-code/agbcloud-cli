@@ -58,18 +58,18 @@ func TestLoginTranslateIntegration(t *testing.T) {
 				}
 				// For test auth code, we expect this to fail with specific error
 				if httpResp != nil && httpResp.StatusCode == 200 {
-					t.Logf("✅ Expected error response for test auth code: %s", apiErr.Error())
+					t.Logf("[OK] Expected error response for test auth code: %s", apiErr.Error())
 					return
 				}
-				t.Fatalf("❌ Unexpected API error occurred: %s", apiErr.Error())
+				t.Fatalf("[ERROR] Unexpected API error occurred: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error prevented API communication: %v", err)
+				t.Fatalf("[ERROR] Network error prevented API communication: %v", err)
 			}
 		}
 
 		// Validate successful response structure
 		if response.Success {
-			t.Logf("✅ Success! Login translate response received")
+			t.Logf("[OK] Success! Login translate response received")
 			t.Logf("Success: %v", response.Success)
 			t.Logf("Code: %s", response.Code)
 			t.Logf("RequestID: %s", response.RequestID)
@@ -78,13 +78,13 @@ func TestLoginTranslateIntegration(t *testing.T) {
 
 			// Validate response data contains expected fields
 			if response.Data.LoginToken == "" {
-				t.Errorf("❌ Response missing login token")
+				t.Errorf("[ERROR] Response missing login token")
 			}
 			if response.Data.SessionId == "" {
-				t.Errorf("❌ Response missing session ID")
+				t.Errorf("[ERROR] Response missing session ID")
 			}
 			if response.Data.KeepAliveToken == "" {
-				t.Errorf("❌ Response missing keep alive token")
+				t.Errorf("[ERROR] Response missing keep alive token")
 			}
 		}
 	})
@@ -104,9 +104,9 @@ func TestLoginTranslateIntegration(t *testing.T) {
 
 		// Should return error for empty auth code
 		if err == nil {
-			t.Errorf("❌ Expected error for empty auth code, but got success: %+v", response)
+			t.Errorf("[ERROR] Expected error for empty auth code, but got success: %+v", response)
 		} else {
-			t.Logf("✅ Expected error for empty auth code: %v", err)
+			t.Logf("[OK] Expected error for empty auth code: %v", err)
 		}
 	})
 
@@ -125,9 +125,9 @@ func TestLoginTranslateIntegration(t *testing.T) {
 
 		// Should return error for invalid parameters
 		if err == nil {
-			t.Errorf("❌ Expected error for invalid parameters, but got success: %+v", response)
+			t.Errorf("[ERROR] Expected error for invalid parameters, but got success: %+v", response)
 		} else {
-			t.Logf("✅ Expected error for invalid parameters: %v", err)
+			t.Logf("[OK] Expected error for invalid parameters: %v", err)
 		}
 	})
 
@@ -159,10 +159,10 @@ func TestLoginTranslateIntegration(t *testing.T) {
 						// Expected to fail with test codes
 						t.Logf("Expected API error for %s: %s", tc.oauthProvider, apiErr.Error())
 					} else {
-						t.Errorf("❌ Network error for %s: %v", tc.oauthProvider, err)
+						t.Errorf("[ERROR] Network error for %s: %v", tc.oauthProvider, err)
 					}
 				} else {
-					t.Logf("✅ Success for %s: %+v", tc.oauthProvider, response)
+					t.Logf("[OK] Success for %s: %+v", tc.oauthProvider, response)
 				}
 			})
 		}
@@ -184,14 +184,14 @@ func TestLoginTranslateIntegration(t *testing.T) {
 
 		if err != nil {
 			if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-				t.Logf("✅ Expected error for unsupported client: %s", apiErr.Error())
+				t.Logf("[OK] Expected error for unsupported client: %s", apiErr.Error())
 			} else {
-				t.Errorf("❌ Network error: %v", err)
+				t.Errorf("[ERROR] Network error: %v", err)
 			}
 		} else if !response.Success {
-			t.Logf("✅ Expected failure response for unsupported client: %+v", response)
+			t.Logf("[OK] Expected failure response for unsupported client: %+v", response)
 		} else {
-			t.Errorf("❌ Expected error for unsupported client, but got success: %+v", response)
+			t.Errorf("[ERROR] Expected error for unsupported client, but got success: %+v", response)
 		}
 	})
 }

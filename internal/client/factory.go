@@ -12,6 +12,16 @@ import (
 	"github.com/agbcloud/agbcloud-cli/internal/config"
 )
 
+// retryTransport implements http.RoundTripper to integrate retry logic
+type retryTransport struct {
+	retryClient *RetryableHTTPClient
+}
+
+// RoundTrip implements the http.RoundTripper interface
+func (rt *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return rt.retryClient.Do(req)
+}
+
 // shouldSkipSSLVerification determines whether SSL verification should be skipped
 // based on the environment variable only
 func shouldSkipSSLVerification() bool {
@@ -33,21 +43,30 @@ func NewFromConfig(cfg *config.Config) *APIClient {
 		configuration.Servers[0].URL = cfg.Endpoint
 	}
 
-	// Create HTTP client with optional SSL verification skip
-	httpClient := &http.Client{
+	// Create base HTTP client with optional SSL verification skip
+	baseClient := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
 	// Check if SSL verification should be skipped
 	if shouldSkipSSLVerification() {
-		httpClient.Transport = &http.Transport{
+		baseClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
 		}
 	}
 
-	configuration.HTTPClient = httpClient
+	// Wrap with retry functionality
+	retryClient := NewRetryableHTTPClient(baseClient, DefaultRetryConfig())
+
+	// Create a wrapper that implements http.Client interface
+	configuration.HTTPClient = &http.Client{
+		Timeout: baseClient.Timeout,
+		Transport: &retryTransport{
+			retryClient: retryClient,
+		},
+	}
 
 	return NewAPIClient(configuration)
 }

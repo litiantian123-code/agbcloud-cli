@@ -63,7 +63,7 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 		t.Logf("Using SessionId: %s", tokens.SessionId)
 
 		// Step 1: Get upload credentials
-		t.Logf("\n📋 Step 1: Getting upload credentials...")
+		t.Logf("\n[DOC] Step 1: Getting upload credentials...")
 		uploadResponse, httpResp, err := apiClient.ImageAPI.GetUploadCredential(ctx, tokens.LoginToken, tokens.SessionId)
 
 		if err != nil {
@@ -73,34 +73,34 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 				if httpResp != nil {
 					t.Logf("HTTP Status Code: %d", httpResp.StatusCode)
 				}
-				t.Fatalf("❌ Failed to get upload credentials: %s", apiErr.Error())
+				t.Fatalf("[ERROR] Failed to get upload credentials: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error getting upload credentials: %v", err)
+				t.Fatalf("[ERROR] Network error getting upload credentials: %v", err)
 			}
 		}
 
 		if !uploadResponse.Success {
-			t.Fatalf("❌ Upload credential request failed: %+v", uploadResponse)
+			t.Fatalf("[ERROR] Upload credential request failed: %+v", uploadResponse)
 		}
 
-		t.Logf("✅ Upload credentials received successfully")
+		t.Logf("[OK] Upload credentials received successfully")
 		t.Logf("   - TaskID: %s", uploadResponse.Data.TaskID)
 		t.Logf("   - OssURL: %s", uploadResponse.Data.OssURL)
 
 		taskId := uploadResponse.Data.TaskID
 		if taskId == "" {
-			t.Fatal("❌ TaskID is empty in upload credential response")
+			t.Fatal("[ERROR] TaskID is empty in upload credential response")
 		}
 
 		// Step 2: Upload Dockerfile (if OssURL is provided)
 		if uploadResponse.Data.OssURL != "" {
-			t.Logf("\n📤 Step 2: Uploading real Dockerfile to OSS...")
+			t.Logf("\n[UPLOAD] Step 2: Uploading real Dockerfile to OSS...")
 			t.Logf("   - OSS URL: %s", uploadResponse.Data.OssURL)
 
 			// Read the real Dockerfile
 			dockerfileContent, err := os.ReadFile("/tmp/Dockerfile")
 			if err != nil {
-				t.Fatalf("❌ Failed to read Dockerfile: %v", err)
+				t.Fatalf("[ERROR] Failed to read Dockerfile: %v", err)
 			}
 
 			t.Logf("   - Dockerfile size: %d bytes", len(dockerfileContent))
@@ -108,11 +108,11 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 
 			err = uploadDockerfile(t, uploadResponse.Data.OssURL, string(dockerfileContent))
 			if err != nil {
-				t.Logf("⚠️  Warning: Failed to upload Dockerfile: %v", err)
+				t.Logf("[WARN]  Warning: Failed to upload Dockerfile: %v", err)
 				t.Logf("   This is expected for presigned URLs with specific signature requirements")
 				t.Logf("   Continuing with image creation using existing taskId...")
 			} else {
-				t.Logf("✅ Real Dockerfile uploaded successfully!")
+				t.Logf("[OK] Real Dockerfile uploaded successfully!")
 			}
 		} else {
 			t.Logf("\n⏭️  Step 2: Skipping Dockerfile upload (OssURL is null)")
@@ -146,12 +146,12 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 					t.Logf("HTTP Status Code: %d", httpResp.StatusCode)
 				}
 				// Don't fail immediately - log the error and analyze the response
-				t.Logf("❌ Image creation API error: %s", apiErr.Error())
+				t.Logf("[ERROR] Image creation API error: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error creating image: %v", err)
+				t.Fatalf("[ERROR] Network error creating image: %v", err)
 			}
 		} else {
-			t.Logf("✅ Image creation request completed successfully")
+			t.Logf("[OK] Image creation request completed successfully")
 			t.Logf("   - Success: %v", createResponse.Success)
 			t.Logf("   - Code: %s", createResponse.Code)
 			t.Logf("   - RequestID: %s", createResponse.RequestID)
@@ -161,7 +161,7 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 		}
 
 		// Step 4: Check task status
-		t.Logf("\n🔍 Step 4: Checking task status...")
+		t.Logf("\n[SEARCH] Step 4: Checking task status...")
 		taskResponse, httpResp, err := apiClient.ImageAPI.GetImageTask(ctx,
 			tokens.LoginToken,
 			tokens.SessionId,
@@ -174,12 +174,12 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 				if httpResp != nil {
 					t.Logf("HTTP Status Code: %d", httpResp.StatusCode)
 				}
-				t.Logf("❌ Task status API error: %s", apiErr.Error())
+				t.Logf("[ERROR] Task status API error: %s", apiErr.Error())
 			} else {
-				t.Logf("❌ Network error getting task status: %v", err)
+				t.Logf("[ERROR] Network error getting task status: %v", err)
 			}
 		} else {
-			t.Logf("✅ Task status retrieved successfully")
+			t.Logf("[OK] Task status retrieved successfully")
 			t.Logf("   - Success: %v", taskResponse.Success)
 			t.Logf("   - Code: %s", taskResponse.Code)
 			t.Logf("   - RequestID: %s", taskResponse.RequestID)
@@ -188,7 +188,7 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 			t.Logf("   - Task Data: %+v", taskResponse.Data)
 
 			// Log detailed task information
-			t.Logf("📊 Task Details:")
+			t.Logf("[DATA] Task Details:")
 			t.Logf("   - Status: %s", taskResponse.Data.Status)
 			t.Logf("   - TaskMsg: %s", taskResponse.Data.TaskMsg)
 			if taskResponse.Data.ImageID != nil {
@@ -200,7 +200,7 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 
 		// Step 5: Poll task status until completion
 		if taskResponse.Success {
-			t.Logf("\n🔄 Step 5: Polling task status until completion...")
+			t.Logf("\n[REFRESH] Step 5: Polling task status until completion...")
 
 			maxAttempts := 240 // Maximum 240 attempts (40 minutes with adaptive intervals)
 
@@ -217,7 +217,7 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 			}
 
 			for attempt := 1; attempt <= maxAttempts; attempt++ {
-				t.Logf("   📊 Polling attempt %d/%d...", attempt, maxAttempts)
+				t.Logf("   [DATA] Polling attempt %d/%d...", attempt, maxAttempts)
 
 				// Wait before polling (except for first attempt)
 				if attempt > 1 {
@@ -238,19 +238,19 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 				pollCancel() // Clean up the polling context
 
 				if err != nil {
-					t.Logf("   ⚠️  Polling attempt %d failed: %v", attempt, err)
+					t.Logf("   [WARN]  Polling attempt %d failed: %v", attempt, err)
 					// If we have too many consecutive failures, consider stopping
 					if attempt > 5 {
-						t.Logf("   ⚠️  Multiple consecutive failures, but continuing...")
+						t.Logf("   [WARN]  Multiple consecutive failures, but continuing...")
 					}
 					continue
 				}
 
 				if !currentTaskResponse.Success {
-					t.Logf("   ⚠️  Polling attempt %d unsuccessful: %s", attempt, currentTaskResponse.Code)
+					t.Logf("   [WARN]  Polling attempt %d unsuccessful: %s", attempt, currentTaskResponse.Code)
 					// Check if this is a permanent failure
 					if currentTaskResponse.Code == "TASK_NOT_FOUND" || currentTaskResponse.Code == "INVALID_TASK" {
-						t.Logf("   ❌ Permanent failure detected, stopping polling")
+						t.Logf("   [ERROR] Permanent failure detected, stopping polling")
 						break
 					}
 					continue
@@ -259,17 +259,17 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 				status := currentTaskResponse.Data.Status
 				taskMsg := currentTaskResponse.Data.TaskMsg
 
-				t.Logf("   📋 Status: %s | Message: %s", status, taskMsg)
+				t.Logf("   [DOC] Status: %s | Message: %s", status, taskMsg)
 
 				// Check if task is completed
 				if status == "Success" || status == "Completed" || status == "Finished" {
-					t.Logf("   ✅ Task completed successfully!")
+					t.Logf("   [OK] Task completed successfully!")
 					if currentTaskResponse.Data.ImageID != nil {
-						t.Logf("   🎯 Final ImageID: %s", *currentTaskResponse.Data.ImageID)
+						t.Logf("   [TARGET] Final ImageID: %s", *currentTaskResponse.Data.ImageID)
 					}
 					break
 				} else if status == "Failed" || status == "Error" {
-					t.Logf("   ❌ Task failed with status: %s", status)
+					t.Logf("   [ERROR] Task failed with status: %s", status)
 					break
 				} else {
 					t.Logf("   ⏳ Task still in progress...")
@@ -283,13 +283,13 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 
 				// If this is the last attempt
 				if attempt == maxAttempts {
-					t.Logf("   ⏰ Reached maximum polling attempts. Final status: %s", status)
-					t.Logf("   💡 Consider increasing timeout or checking task manually")
+					t.Logf("   [TIME] Reached maximum polling attempts. Final status: %s", status)
+					t.Logf("   [TIP] Consider increasing timeout or checking task manually")
 				}
 			}
 		}
 
-		t.Logf("\n🎉 Complete workflow test finished")
+		t.Logf("\n[SUCCESS] Complete workflow test finished")
 	})
 }
 

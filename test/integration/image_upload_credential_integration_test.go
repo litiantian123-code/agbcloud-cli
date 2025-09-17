@@ -143,13 +143,13 @@ func TestImageUploadCredentialIntegration(t *testing.T) {
 					t.Logf("HTTP Status Code: %d", httpResp.StatusCode)
 				}
 				// Don't fail immediately - log the error and continue to analyze the response
-				t.Logf("❌ API error occurred: %s", apiErr.Error())
+				t.Logf("[ERROR] API error occurred: %s", apiErr.Error())
 			} else {
-				t.Fatalf("❌ Network error prevented API communication: %v", err)
+				t.Fatalf("[ERROR] Network error prevented API communication: %v", err)
 			}
 		} else {
 			// Log success details
-			t.Logf("✅ Success! Upload credential response received")
+			t.Logf("[OK] Success! Upload credential response received")
 			t.Logf("Success: %v", response.Success)
 			t.Logf("Code: %s", response.Code)
 			t.Logf("RequestID: %s", response.RequestID)
@@ -158,38 +158,38 @@ func TestImageUploadCredentialIntegration(t *testing.T) {
 			t.Logf("Response Data: %+v", response.Data)
 
 			// Log detailed data fields
-			t.Logf("📋 Detailed Response Analysis:")
+			t.Logf("[DOC] Detailed Response Analysis:")
 			t.Logf("   - OssURL: %s", response.Data.OssURL)
 			t.Logf("   - TaskID: %s", response.Data.TaskID)
 
 			// Validate response structure
 			if response.Data.TaskID == "" {
-				t.Error("❌ TaskID should not be empty in successful response")
+				t.Error("[ERROR] TaskID should not be empty in successful response")
 			} else {
-				t.Logf("✅ TaskID received: %s", response.Data.TaskID)
+				t.Logf("[OK] TaskID received: %s", response.Data.TaskID)
 			}
 
 			// Test file upload to OSS URL if we have a valid OSS URL
 			if response.Data.OssURL != "" {
-				t.Logf("🔄 Testing file upload to OSS URL...")
+				t.Logf("[REFRESH] Testing file upload to OSS URL...")
 
 				// Create a test file
 				testFilePath, cleanup := createTestFile(t)
 				defer cleanup()
 
-				t.Logf("📁 Created test file: %s", testFilePath)
+				t.Logf("[DIR] Created test file: %s", testFilePath)
 
 				// Upload the file to OSS
 				uploadErr := uploadFileToOSS(t, response.Data.OssURL, testFilePath)
 				if uploadErr != nil {
-					t.Logf("❌ File upload failed: %v", uploadErr)
+					t.Logf("[ERROR] File upload failed: %v", uploadErr)
 					// Log as error but don't fail the test since OSS URL might have restrictions
 					t.Errorf("File upload to OSS failed: %v", uploadErr)
 				} else {
-					t.Logf("✅ File upload to OSS successful!")
+					t.Logf("[OK] File upload to OSS successful!")
 				}
 			} else {
-				t.Logf("⚠️  No OSS URL provided, skipping file upload test")
+				t.Logf("[WARN]  No OSS URL provided, skipping file upload test")
 			}
 		}
 	})
@@ -203,7 +203,7 @@ func TestImageUploadCredentialIntegration(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error for empty loginToken, but got none")
 		} else {
-			t.Logf("✅ Expected error for empty loginToken: %v", err)
+			t.Logf("[OK] Expected error for empty loginToken: %v", err)
 		}
 	})
 
@@ -216,7 +216,7 @@ func TestImageUploadCredentialIntegration(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error for empty sessionId, but got none")
 		} else {
-			t.Logf("✅ Expected error for empty sessionId: %v", err)
+			t.Logf("[OK] Expected error for empty sessionId: %v", err)
 		}
 	})
 }

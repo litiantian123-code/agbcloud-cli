@@ -42,9 +42,9 @@ func TestLogoutCommandIntegration(t *testing.T) {
 			t.Error("Expected tokens to be cleared after logout simulation")
 		}
 
-		t.Log("✅ Logout simulation successful - tokens cleared")
+		t.Log("[OK] Logout simulation successful - tokens cleared")
 	} else {
-		t.Log("ℹ️  No authentication tokens found - logout would be a no-op")
+		t.Log("[INFO]  No authentication tokens found - logout would be a no-op")
 	}
 }
 
@@ -81,7 +81,7 @@ func TestLogoutCommandBehavior(t *testing.T) {
 			// 2. Execute the logout command
 			// 3. Verify the expected behavior
 			// For now, we just log the test case
-			t.Log("✅ Test case documented")
+			t.Log("[OK] Test case documented")
 		})
 	}
 }

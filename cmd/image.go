@@ -32,10 +32,10 @@ var imageCreateCmd = &cobra.Command{
 	Long:  "Create a custom image using a Dockerfile",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("❌ Missing required argument: <image-name>\n\n💡 Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>\n📝 Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1\n📝 Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-name>\n\n[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1")
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("❌ Too many arguments provided. Expected 1 argument (image name), got %d\n\n💡 Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>\n📝 Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1\n📝 Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", len(args))
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image name), got %d\n\n[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", len(args))
 		}
 		return nil
 	},
@@ -57,10 +57,10 @@ Supported CPU and Memory combinations:
 If no CPU/memory is specified, default resources will be used.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("❌ Missing required argument: <image-id>\n\n💡 Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n📝 Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n📝 Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n🔧 Supported combinations: 2c4g, 4c8g, 8c16g")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-id>\n\n[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g")
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("❌ Too many arguments provided. Expected 1 argument (image ID), got %d\n\n💡 Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n📝 Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n📝 Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n🔧 Supported combinations: 2c4g, 4c8g, 8c16g", len(args))
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d\n\n[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", len(args))
 		}
 		return nil
 	},
@@ -75,10 +75,10 @@ var imageDeactivateCmd = &cobra.Command{
 	Long:  "Deactivate a running image instance",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("❌ Missing required argument: <image-id>\n\n💡 Usage: agbcloud image deactivate <image-id>\n📝 Example: agbcloud image deactivate img-7a8b9c1d0e")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-id>\n\n[TIP] Usage: agbcloud image deactivate <image-id>\n[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e")
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("❌ Too many arguments provided. Expected 1 argument (image ID), got %d\n\n💡 Usage: agbcloud image deactivate <image-id>\n📝 Example: agbcloud image deactivate img-7a8b9c1d0e", len(args))
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d\n\n[TIP] Usage: agbcloud image deactivate <image-id>\n[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", len(args))
 		}
 		return nil
 	},
@@ -132,7 +132,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	// If only one is specified, both must be specified
 	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
-		return fmt.Errorf("❌ Both CPU and memory must be specified together\n\n🔧 Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16")
+		return fmt.Errorf("[ERROR] Both CPU and memory must be specified together\n\n[TOOL] Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16")
 	}
 
 	// Check supported combinations
@@ -144,7 +144,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	expectedMemory, exists := validCombos[cpu]
 	if !exists || expectedMemory != memory {
-		return fmt.Errorf("❌ Invalid CPU/Memory combination: %dc%dg\n\n🔧 Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16", cpu, memory)
+		return fmt.Errorf("[ERROR] Invalid CPU/Memory combination: %dc%dg\n\n[TOOL] Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16", cpu, memory)
 	}
 
 	return nil
@@ -157,13 +157,13 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 
 	// Validate required flags with friendly messages
 	if dockerfilePath == "" {
-		return fmt.Errorf("❌ Missing required flag: --dockerfile\n\n💡 Usage: agbcloud image create %s --dockerfile <path> --imageId <id>\n📝 Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1\n📝 Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName, imageName, imageName)
+		return fmt.Errorf("[ERROR] Missing required flag: --dockerfile\n\n[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName, imageName, imageName)
 	}
 	if sourceImageId == "" {
-		return fmt.Errorf("❌ Missing required flag: --imageId\n\n💡 Usage: agbcloud image create %s --dockerfile <path> --imageId <id>\n📝 Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1\n📝 Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName, imageName, imageName)
+		return fmt.Errorf("[ERROR] Missing required flag: --imageId\n\n[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName, imageName, imageName)
 	}
 
-	fmt.Printf("🏗️  Creating image '%s'...\n", imageName)
+	fmt.Printf("[BUILD]  Creating image '%s'...\n", imageName)
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -193,13 +193,13 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	// Step 1: Get upload credential
-	fmt.Println("📡 Getting upload credentials...")
+	fmt.Println("[SIGNAL] Getting upload credentials...")
 	uploadResp, httpResp, err := apiClient.ImageAPI.GetUploadCredential(ctx, cfg.Token.LoginToken, cfg.Token.SessionId)
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			fmt.Printf("[ERROR] API Error: %s\n", apiErr.Error())
 			if httpResp != nil {
-				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+				fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 			}
 			return fmt.Errorf("failed to get upload credentials: %s", apiErr.Error())
 		}
@@ -207,45 +207,45 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !uploadResp.Success {
-		fmt.Printf("🔍 Request ID: %s\n", uploadResp.RequestID)
+		fmt.Printf("[SEARCH] Request ID: %s\n", uploadResp.RequestID)
 		return fmt.Errorf("failed to get upload credentials: %s", uploadResp.Code)
 	}
 
-	fmt.Printf("✅ Upload credentials obtained (Task ID: %s)\n", uploadResp.Data.TaskID)
+	fmt.Printf("[OK] Upload credentials obtained (Task ID: %s)\n", uploadResp.Data.TaskID)
 
 	// Step 2: Upload dockerfile
-	fmt.Println("📤 Uploading Dockerfile...")
+	fmt.Println("[UPLOAD] Uploading Dockerfile...")
 	err = uploadDockerfile(dockerfilePath, uploadResp.Data.OssURL)
 	if err != nil {
-		fmt.Printf("📋 Task ID: %s\n", uploadResp.Data.TaskID)
+		fmt.Printf("[DOC] Task ID: %s\n", uploadResp.Data.TaskID)
 		return fmt.Errorf("failed to upload dockerfile: %w", err)
 	}
 
-	fmt.Println("✅ Dockerfile uploaded successfully")
+	fmt.Println("[OK] Dockerfile uploaded successfully")
 
 	// Step 3: Create image
-	fmt.Println("🔨 Creating image...")
+	fmt.Println("[WORK] Creating image...")
 	createResp, httpResp, err := apiClient.ImageAPI.CreateImage(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageName, uploadResp.Data.TaskID, sourceImageId)
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			fmt.Printf("[ERROR] API Error: %s\n", apiErr.Error())
 			if httpResp != nil {
-				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+				fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 			}
-			fmt.Printf("📋 Task ID: %s\n", uploadResp.Data.TaskID)
+			fmt.Printf("[DOC] Task ID: %s\n", uploadResp.Data.TaskID)
 			return fmt.Errorf("failed to create image: %s", apiErr.Error())
 		}
-		fmt.Printf("📋 Task ID: %s\n", uploadResp.Data.TaskID)
+		fmt.Printf("[DOC] Task ID: %s\n", uploadResp.Data.TaskID)
 		return fmt.Errorf("network error: %v", err)
 	}
 
 	if !createResp.Success {
-		fmt.Printf("📋 Task ID: %s\n", uploadResp.Data.TaskID)
-		fmt.Printf("🔍 Request ID: %s\n", createResp.RequestID)
+		fmt.Printf("[DOC] Task ID: %s\n", uploadResp.Data.TaskID)
+		fmt.Printf("[SEARCH] Request ID: %s\n", createResp.RequestID)
 		return fmt.Errorf("failed to create image: %s", createResp.Code)
 	}
 
-	fmt.Println("✅ Image creation initiated")
+	fmt.Println("[OK] Image creation initiated")
 
 	// Step 4: Poll for task status
 	fmt.Println("⏳ Monitoring image creation progress...")
@@ -262,9 +262,9 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("🚀 Activating image '%s'...\n", imageId)
+	fmt.Printf("[>>] Activating image '%s'...\n", imageId)
 	if cpu > 0 || memory > 0 {
-		fmt.Printf("💾 CPU: %d cores, Memory: %d GB\n", cpu, memory)
+		fmt.Printf("[SAVE] CPU: %d cores, Memory: %d GB\n", cpu, memory)
 	}
 
 	// Load configuration and check authentication
@@ -283,13 +283,13 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	// Check current image status first
-	fmt.Println("🔍 Checking current image status...")
+	fmt.Println("[SEARCH] Checking current image status...")
 	listResp, httpResp, err := apiClient.ImageAPI.ListImages(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, "User", 1, 1, []string{imageId})
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			fmt.Printf("[ERROR] API Error: %s\n", apiErr.Error())
 			if httpResp != nil {
-				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+				fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 			}
 			return fmt.Errorf("failed to check image status: %s", apiErr.Error())
 		}
@@ -297,7 +297,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !listResp.Success {
-		fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+		fmt.Printf("[SEARCH] Request ID: %s\n", listResp.RequestID)
 		return fmt.Errorf("failed to check image status: %s", listResp.Code)
 	}
 
@@ -310,34 +310,34 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	currentStatus := image.Status
 	formattedStatus := formatImageStatus(currentStatus)
 
-	fmt.Printf("📊 Current Status: %s\n", formattedStatus)
+	fmt.Printf("[DATA] Current Status: %s\n", formattedStatus)
 
 	// Handle different current statuses
 	switch currentStatus {
 	case "RESOURCE_PUBLISHED":
-		fmt.Printf("✅ Image is already activated! Image ID: %s\n", imageId)
-		fmt.Printf("📊 Status: %s\n", formattedStatus)
+		fmt.Printf("[OK] Image is already activated! Image ID: %s\n", imageId)
+		fmt.Printf("[DATA] Status: %s\n", formattedStatus)
 		return nil
 	case "RESOURCE_DEPLOYING":
-		fmt.Printf("🔄 Image is already activating, joining the activation process...\n")
+		fmt.Printf("[REFRESH] Image is already activating, joining the activation process...\n")
 		fmt.Println("⏳ Monitoring image activation status...")
 		return pollImageActivationStatus(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
 	case "RESOURCE_FAILED", "RESOURCE_CEASED":
-		fmt.Printf("⚠️  Image is in failed state (%s), attempting to restart activation...\n", formattedStatus)
+		fmt.Printf("[WARN]  Image is in failed state (%s), attempting to restart activation...\n", formattedStatus)
 	case "IMAGE_AVAILABLE":
-		fmt.Printf("✅ Image is available, proceeding with activation...\n")
+		fmt.Printf("[OK] Image is available, proceeding with activation...\n")
 	default:
-		fmt.Printf("📊 Image status: %s, proceeding with activation...\n", formattedStatus)
+		fmt.Printf("[DATA] Image status: %s, proceeding with activation...\n", formattedStatus)
 	}
 
 	// Call StartImage API
-	fmt.Println("🔄 Starting image activation...")
+	fmt.Println("[REFRESH] Starting image activation...")
 	startResp, httpResp, err := apiClient.ImageAPI.StartImage(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageId, cpu, memory)
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			fmt.Printf("[ERROR] API Error: %s\n", apiErr.Error())
 			if httpResp != nil {
-				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+				fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 			}
 			return fmt.Errorf("failed to start image: %s", apiErr.Error())
 		}
@@ -345,14 +345,14 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !startResp.Success {
-		fmt.Printf("🔍 Request ID: %s\n", startResp.RequestID)
+		fmt.Printf("[SEARCH] Request ID: %s\n", startResp.RequestID)
 		return fmt.Errorf("failed to start image: %s", startResp.Code)
 	}
 
 	// Display success information
-	fmt.Printf("✅ Image activation initiated successfully!\n")
-	fmt.Printf("📊 Operation Status: %v\n", startResp.Data)
-	fmt.Printf("🔍 Request ID: %s\n", startResp.RequestID)
+	fmt.Printf("[OK] Image activation initiated successfully!\n")
+	fmt.Printf("[DATA] Operation Status: %v\n", startResp.Data)
+	fmt.Printf("[SEARCH] Request ID: %s\n", startResp.RequestID)
 
 	// Start status polling
 	fmt.Println("⏳ Monitoring image activation status...")
@@ -362,7 +362,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	imageId := args[0]
 
-	fmt.Printf("🛑 Deactivating image '%s'...\n", imageId)
+	fmt.Printf("[STOP] Deactivating image '%s'...\n", imageId)
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -380,13 +380,13 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	// Call StopImage API
-	fmt.Println("🔄 Deactivating image instance...")
+	fmt.Println("[REFRESH] Deactivating image instance...")
 	stopResp, httpResp, err := apiClient.ImageAPI.StopImage(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			fmt.Printf("[ERROR] API Error: %s\n", apiErr.Error())
 			if httpResp != nil {
-				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+				fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 			}
 			return fmt.Errorf("failed to deactivate image: %s", apiErr.Error())
 		}
@@ -394,14 +394,14 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	}
 
 	if !stopResp.Success {
-		fmt.Printf("🔍 Request ID: %s\n", stopResp.RequestID)
+		fmt.Printf("[SEARCH] Request ID: %s\n", stopResp.RequestID)
 		return fmt.Errorf("failed to deactivate image: %s", stopResp.Code)
 	}
 
 	// Display success information
-	fmt.Printf("✅ Image deactivation initiated successfully!\n")
-	fmt.Printf("📊 Operation Status: %v\n", stopResp.Data)
-	fmt.Printf("🔍 Request ID: %s\n", stopResp.RequestID)
+	fmt.Printf("[OK] Image deactivation initiated successfully!\n")
+	fmt.Printf("[DATA] Operation Status: %v\n", stopResp.Data)
+	fmt.Printf("[SEARCH] Request ID: %s\n", stopResp.RequestID)
 
 	return nil
 }
@@ -411,7 +411,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	page, _ := cmd.Flags().GetInt("page")
 	pageSize, _ := cmd.Flags().GetInt("size")
 
-	fmt.Printf("📋 Listing %s images (Page %d, Size %d)...\n", imageType, page, pageSize)
+	fmt.Printf("[DOC] Listing %s images (Page %d, Size %d)...\n", imageType, page, pageSize)
 
 	// Load configuration and check authentication
 	cfg, err := config.GetConfig()
@@ -429,13 +429,13 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	// Call ListImages API
-	fmt.Println("🔍 Fetching image list...")
+	fmt.Println("[SEARCH] Fetching image list...")
 	listResp, httpResp, err := apiClient.ImageAPI.ListImages(ctx, cfg.Token.LoginToken, cfg.Token.SessionId, imageType, page, pageSize, nil)
 	if err != nil {
 		if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-			fmt.Printf("❌ API Error: %s\n", apiErr.Error())
+			fmt.Printf("[ERROR] API Error: %s\n", apiErr.Error())
 			if httpResp != nil {
-				fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+				fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 			}
 			return fmt.Errorf("failed to list images: %s", apiErr.Error())
 		}
@@ -443,16 +443,16 @@ func runImageList(cmd *cobra.Command, args []string) error {
 	}
 
 	if !listResp.Success {
-		fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+		fmt.Printf("[SEARCH] Request ID: %s\n", listResp.RequestID)
 		return fmt.Errorf("failed to list images: %s", listResp.Code)
 	}
 
 	// Display results
-	fmt.Printf("✅ Found %d images (Total: %d)\n", len(listResp.Data.Images), listResp.Data.Total)
-	fmt.Printf("📄 Page %d of %d (Page Size: %d)\n\n", listResp.Data.Page, (listResp.Data.Total+listResp.Data.PageSize-1)/listResp.Data.PageSize, listResp.Data.PageSize)
+	fmt.Printf("[OK] Found %d images (Total: %d)\n", len(listResp.Data.Images), listResp.Data.Total)
+	fmt.Printf("[PAGE] Page %d of %d (Page Size: %d)\n\n", listResp.Data.Page, (listResp.Data.Total+listResp.Data.PageSize-1)/listResp.Data.PageSize, listResp.Data.PageSize)
 
 	if len(listResp.Data.Images) == 0 {
-		fmt.Println("📭 No images found.")
+		fmt.Println("[EMPTY] No images found.")
 		return nil
 	}
 
@@ -516,34 +516,34 @@ func pollImageTask(ctx context.Context, apiClient *client.APIClient, loginToken,
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Printf("📋 Task ID: %s\n", taskId)
+			fmt.Printf("[DOC] Task ID: %s\n", taskId)
 			return fmt.Errorf("timeout waiting for image creation to complete")
 		case <-ticker.C:
 			taskResp, httpResp, err := apiClient.ImageAPI.GetImageTask(ctx, loginToken, sessionId, taskId)
 			if err != nil {
 				if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-					fmt.Printf("⚠️  Warning: Failed to check task status: %s\n", apiErr.Error())
+					fmt.Printf("[WARN]  Warning: Failed to check task status: %s\n", apiErr.Error())
 					if httpResp != nil {
-						fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+						fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 					}
-					fmt.Printf("📋 Task ID: %s\n", taskId)
+					fmt.Printf("[DOC] Task ID: %s\n", taskId)
 					continue // Continue polling on API errors
 				}
-				fmt.Printf("📋 Task ID: %s\n", taskId)
+				fmt.Printf("[DOC] Task ID: %s\n", taskId)
 				return fmt.Errorf("network error checking task status: %v", err)
 			}
 
 			if !taskResp.Success {
-				fmt.Printf("⚠️  Warning: Task status check failed: %s\n", taskResp.Code)
-				fmt.Printf("📋 Task ID: %s\n", taskId)
-				fmt.Printf("🔍 Request ID: %s\n", taskResp.RequestID)
+				fmt.Printf("[WARN]  Warning: Task status check failed: %s\n", taskResp.Code)
+				fmt.Printf("[DOC] Task ID: %s\n", taskId)
+				fmt.Printf("[SEARCH] Request ID: %s\n", taskResp.RequestID)
 				continue // Continue polling on API errors
 			}
 
 			status := taskResp.Data.Status
 			message := taskResp.Data.TaskMsg
 
-			fmt.Printf("📊 Status: %s", status)
+			fmt.Printf("[DATA] Status: %s", status)
 			if message != "" {
 				fmt.Printf(" - %s", message)
 			}
@@ -552,14 +552,14 @@ func pollImageTask(ctx context.Context, apiClient *client.APIClient, loginToken,
 			switch status {
 			case "Finished":
 				if taskResp.Data.ImageID != nil {
-					fmt.Printf("🎉 Image created successfully! Image ID: %s\n", *taskResp.Data.ImageID)
+					fmt.Printf("[SUCCESS] Image created successfully! Image ID: %s\n", *taskResp.Data.ImageID)
 				} else {
-					fmt.Println("🎉 Image created successfully!")
+					fmt.Println("[SUCCESS] Image created successfully!")
 				}
 				return nil
 			case "Failed":
-				fmt.Printf("📋 Task ID: %s\n", taskId)
-				fmt.Printf("🔍 Request ID: %s\n", taskResp.RequestID)
+				fmt.Printf("[DOC] Task ID: %s\n", taskId)
+				fmt.Printf("[SEARCH] Request ID: %s\n", taskResp.RequestID)
 				return fmt.Errorf("image creation failed: %s", message)
 			case "Inline":
 				// Continue polling - waiting for processing
@@ -568,7 +568,7 @@ func pollImageTask(ctx context.Context, apiClient *client.APIClient, loginToken,
 				// Continue polling - processing in progress
 				continue
 			default:
-				fmt.Printf("🔄 Unknown status '%s', continuing to monitor...\n", status)
+				fmt.Printf("[REFRESH] Unknown status '%s', continuing to monitor...\n", status)
 				continue
 			}
 		}
@@ -641,34 +641,34 @@ func pollImageActivationStatus(ctx context.Context, apiClient *client.APIClient,
 	for {
 		select {
 		case <-pollCtx.Done():
-			fmt.Printf("📋 Image ID: %s\n", imageId)
+			fmt.Printf("[DOC] Image ID: %s\n", imageId)
 			return fmt.Errorf("timeout waiting for image activation to complete")
 		case <-ticker.C:
 			// Query specific image status using ListImages with imageIds filter
 			listResp, httpResp, err := apiClient.ImageAPI.ListImages(pollCtx, loginToken, sessionId, "User", 1, 1, []string{imageId})
 			if err != nil {
 				if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
-					fmt.Printf("⚠️  Warning: Failed to check image status: %s\n", apiErr.Error())
+					fmt.Printf("[WARN]  Warning: Failed to check image status: %s\n", apiErr.Error())
 					if httpResp != nil {
-						fmt.Printf("📊 Status Code: %d\n", httpResp.StatusCode)
+						fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
 					}
-					fmt.Printf("📋 Image ID: %s\n", imageId)
+					fmt.Printf("[DOC] Image ID: %s\n", imageId)
 					continue // Continue polling on API errors
 				}
-				fmt.Printf("📋 Image ID: %s\n", imageId)
+				fmt.Printf("[DOC] Image ID: %s\n", imageId)
 				return fmt.Errorf("network error checking image status: %v", err)
 			}
 
 			if !listResp.Success {
-				fmt.Printf("⚠️  Warning: Image status check failed: %s\n", listResp.Code)
-				fmt.Printf("📋 Image ID: %s\n", imageId)
-				fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+				fmt.Printf("[WARN]  Warning: Image status check failed: %s\n", listResp.Code)
+				fmt.Printf("[DOC] Image ID: %s\n", imageId)
+				fmt.Printf("[SEARCH] Request ID: %s\n", listResp.RequestID)
 				continue // Continue polling on API errors
 			}
 
 			// Check if we found the image
 			if len(listResp.Data.Images) == 0 {
-				fmt.Printf("⚠️  Warning: Image not found: %s\n", imageId)
+				fmt.Printf("[WARN]  Warning: Image not found: %s\n", imageId)
 				continue // Continue polling
 			}
 
@@ -676,23 +676,23 @@ func pollImageActivationStatus(ctx context.Context, apiClient *client.APIClient,
 			status := image.Status
 			formattedStatus := formatImageStatus(status)
 
-			fmt.Printf("📊 Status: %s", formattedStatus)
+			fmt.Printf("[DATA] Status: %s", formattedStatus)
 			fmt.Println()
 
 			switch status {
 			case "RESOURCE_PUBLISHED":
-				fmt.Printf("🎉 Image activated successfully! Image ID: %s\n", imageId)
-				fmt.Printf("📊 Final Status: %s\n", formattedStatus)
+				fmt.Printf("[SUCCESS] Image activated successfully! Image ID: %s\n", imageId)
+				fmt.Printf("[DATA] Final Status: %s\n", formattedStatus)
 				return nil
 			case "RESOURCE_FAILED", "RESOURCE_CEASED":
-				fmt.Printf("📋 Image ID: %s\n", imageId)
-				fmt.Printf("🔍 Request ID: %s\n", listResp.RequestID)
+				fmt.Printf("[DOC] Image ID: %s\n", imageId)
+				fmt.Printf("[SEARCH] Request ID: %s\n", listResp.RequestID)
 				return fmt.Errorf("image activation failed with status: %s", formattedStatus)
 			case "RESOURCE_DEPLOYING":
 				// Continue polling
 				continue
 			default:
-				fmt.Printf("🔄 Unknown status '%s', continuing to monitor...\n", formattedStatus)
+				fmt.Printf("[REFRESH] Unknown status '%s', continuing to monitor...\n", formattedStatus)
 				continue
 			}
 		}

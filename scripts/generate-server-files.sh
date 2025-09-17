@@ -8,7 +8,7 @@ set -e
 VERSION=${VERSION:-"dev-$(date +%Y%m%d-%H%M)"}
 BASE_URL="https://agbcloud-internal.oss-cn-hangzhou.aliyuncs.com"
 
-echo "🚀 Generating PowerShell installer files for version: $VERSION"
+echo "[>>] Generating PowerShell installer files for version: $VERSION"
 
 # Create output directory
 # Handle both running from root directory and from scripts directory
@@ -23,7 +23,7 @@ else
 fi
 
 # 1. Generate latest.json for version API (essential for PowerShell script)
-echo "📄 Creating latest.json..."
+echo "[PAGE] Creating latest.json..."
 cat > $OUTPUT_DIR/latest.json << EOF
 {
   "version": "$VERSION",
@@ -42,7 +42,7 @@ cat > $OUTPUT_DIR/latest.json << EOF
 EOF
 
 # 2. Generate install.ps1 (the main PowerShell installer)
-echo "📄 Creating install.ps1..."
+echo "[PAGE] Creating install.ps1..."
 # Copy the PowerShell installer script (it dynamically fetches latest version)
 # Handle both running from root directory and from scripts directory
 if [[ -f "scripts/install-windows-simple.ps1" ]]; then
@@ -54,26 +54,26 @@ else
     exit 1
 fi
 
-echo "✅ PowerShell installer files generated successfully!"
+echo "[OK] PowerShell installer files generated successfully!"
 echo ""
-echo "📁 Generated files:"
+echo "[DIR] Generated files:"
 ls -la $OUTPUT_DIR/
 echo ""
-echo "🚀 Upload these files to your OSS bucket:"
+echo "[>>] Upload these files to your OSS bucket:"
 echo "   - server-files/install.ps1 → $BASE_URL/install.ps1"
 echo "   - server-files/latest.json → $BASE_URL/latest.json"
 echo "   - packages/*.exe → $BASE_URL/"
 echo "   - packages/*.exe.sha256 → $BASE_URL/"
 echo ""
-echo "📋 Windows Installation Commands:"
+echo "[DOC] Windows Installation Commands:"
 echo ""
-echo "🔄 Install Latest Version (recommended for production):"
+echo "[REFRESH] Install Latest Version (recommended for production):"
 echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\""
 echo ""
-echo "🎯 Install Specific Version $VERSION (for testing):"
+echo "[AIM] Install Specific Version $VERSION (for testing):"
 echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\" -Version $VERSION"
 echo ""
-echo "📖 Additional Options:"
+echo "[BOOK] Additional Options:"
 echo "   # Install to custom directory"
 echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\" -InstallPath \"C:\\Tools\\agbcloud\""
 echo ""
@@ -83,6 +83,6 @@ echo ""
 echo "   # Show help"
 echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\" -Help"
 echo ""
-echo "💡 Testing Team Usage:"
+echo "[TIP] Testing Team Usage:"
 echo "   Use the specific version command above to test version $VERSION"
 echo "   Use the latest version command for general testing" 
