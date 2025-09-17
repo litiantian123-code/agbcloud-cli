@@ -165,26 +165,32 @@ jobs:
               
               # Create packages based on platform
               temp_dir=$(mktemp -d)
-              cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}"
+              # Preserve .exe extension for Windows binaries in the temp directory
+              if [[ "$platform_arch_clean" == windows-* ]]; then
+                cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}.exe"
+              else
+                cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}"
+              fi
               
               if [[ "$platform_arch_clean" == windows-* ]]; then
                 # For Windows, try to create .zip packages (more Windows-friendly)
                 if [[ "$FALLBACK_TO_TARBALL" == "true" ]] || ! command -v zip >/dev/null 2>&1; then
                   # Fallback to tar.gz if zip is not available
                   echo "Using tar.gz fallback for Windows package..."
+                  # For tar.gz, use binary without .exe extension inside the archive
+                  mv "$temp_dir/${{vars.BINARY_NAME}}.exe" "$temp_dir/${{vars.BINARY_NAME}}"
                   tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
                   sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
                   echo "✓ Created Windows package (tar.gz): ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
                 else
-                  # Create zip package
-                  mv "$temp_dir/${{vars.BINARY_NAME}}" "$temp_dir/${{vars.BINARY_NAME}}.exe"
+                  # Create zip package - binary already has .exe extension
                   (cd "$temp_dir" && zip -q "../packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" "${{vars.BINARY_NAME}}.exe")
                   if [[ $? -eq 0 ]]; then
                     sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip.sha256"
                     echo "✓ Created Windows package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip"
                   else
                     echo "Failed to create zip package, falling back to tar.gz..."
-                    # Restore original binary name for tar.gz
+                    # For tar.gz fallback, use binary without .exe extension inside the archive
                     mv "$temp_dir/${{vars.BINARY_NAME}}.exe" "$temp_dir/${{vars.BINARY_NAME}}"
                     tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
                     sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
