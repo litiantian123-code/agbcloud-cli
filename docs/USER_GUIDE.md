@@ -100,7 +100,7 @@ agbcloud image create myCustomImage -f ./Dockerfile -i agb-code-space-1
 
 1. **Start creation**:
    ```
-   🏗️  Creating image 'myCustomImage'...
+   [BUILD] Creating image 'myCustomImage'...
    [SIGNAL] Getting upload credentials...
    [OK] Upload credentials obtained (Task ID: task-xxxxx)
    ```
@@ -113,13 +113,13 @@ agbcloud image create myCustomImage -f ./Dockerfile -i agb-code-space-1
 
 3. **Create image**:
    ```
-   🔨 Creating image...
+   [WORK] Creating image...
    [OK] Image creation initiated
    ```
 
 4. **Monitor progress**:
    ```
-   ⏳ Monitoring image creation progress...
+   [MONITOR] Monitoring image creation progress...
    [DATA] Status: Creating
    [DATA] Status: Available
    [OK] Image creation completed successfully!
@@ -198,7 +198,7 @@ agbcloud image activate img-7a8b9c1d0e -c 4 -m 8
 
 4. **Monitor activation status**:
    ```
-   ⏳ Monitoring image activation status...
+   [MONITOR] Monitoring image activation status...
    [DATA] Status: Activating
    [DATA] Status: Activated
    [OK] Image activation completed successfully!

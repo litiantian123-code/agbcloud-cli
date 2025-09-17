@@ -272,7 +272,7 @@ func TestImageCompleteWorkflowIntegration(t *testing.T) {
 					t.Logf("   [ERROR] Task failed with status: %s", status)
 					break
 				} else {
-					t.Logf("   ⏳ Task still in progress...")
+					t.Logf("   [MONITOR] Task still in progress...")
 				}
 
 				// Progress reporting

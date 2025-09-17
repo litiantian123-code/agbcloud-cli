@@ -20,6 +20,17 @@ import (
 	"github.com/agbcloud/agbcloud-cli/internal/config"
 )
 
+// printErrorMessage prints multi-line error messages by printing each line separately
+// This avoids Windows line ending issues
+func printErrorMessage(lines ...string) error {
+	// Print each line to stderr for immediate display
+	for _, line := range lines {
+		fmt.Fprintln(os.Stderr, line)
+	}
+	// Also return an error with the complete message for testing
+	return fmt.Errorf(strings.Join(lines, "\n"))
+}
+
 // getNewline returns the appropriate newline character(s) for the current platform
 func getNewline() string {
 	if runtime.GOOS == "windows" {
@@ -44,10 +55,22 @@ var imageCreateCmd = &cobra.Command{
 	Long:  "Create a custom image using a Dockerfile",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-name>%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", nl, nl, nl, nl)
+			return printErrorMessage(
+				"[ERROR] Missing required argument: <image-name>",
+				"",
+				"[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>",
+				"[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1",
+				"[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1",
+			)
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image name), got %d%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", len(args), nl, nl, nl, nl)
+			return printErrorMessage(
+				fmt.Sprintf("[ERROR] Too many arguments provided. Expected 1 argument (image name), got %d", len(args)),
+				"",
+				"[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>",
+				"[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1",
+				"[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1",
+			)
 		}
 		return nil
 	},
@@ -69,10 +92,20 @@ Supported CPU and Memory combinations:
 If no CPU/memory is specified, default resources will be used.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", nl, nl, nl, nl, nl, nl)
+			return printErrorMessage(
+				"[ERROR] Missing required argument: <image-id>",
+				"",
+				"[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]",
+				"[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4",
+			)
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", len(args), nl, nl, nl, nl, nl, nl)
+			return printErrorMessage(
+				fmt.Sprintf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d", len(args)),
+				"",
+				"[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]",
+				"[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4",
+			)
 		}
 		return nil
 	},
@@ -87,10 +120,20 @@ var imageDeactivateCmd = &cobra.Command{
 	Long:  "Deactivate a running image instance",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", nl, nl, nl)
+			return printErrorMessage(
+				"[ERROR] Missing required argument: <image-id>",
+				"",
+				"[TIP] Usage: agbcloud image deactivate <image-id>",
+				"[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e",
+			)
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", len(args), nl, nl, nl)
+			return printErrorMessage(
+				fmt.Sprintf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d", len(args)),
+				"",
+				"[TIP] Usage: agbcloud image deactivate <image-id>",
+				"[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e",
+			)
 		}
 		return nil
 	},
@@ -144,7 +187,14 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	// If only one is specified, both must be specified
 	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
-		return fmt.Errorf("[ERROR] Both CPU and memory must be specified together%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", nl, nl, nl, nl, nl)
+		return printErrorMessage(
+			"[ERROR] Both CPU and memory must be specified together",
+			"",
+			"[TOOL] Supported combinations:",
+			"  • 2c4g: --cpu 2 --memory 4",
+			"  • 4c8g: --cpu 4 --memory 8",
+			"  • 8c16g: --cpu 8 --memory 16",
+		)
 	}
 
 	// Check supported combinations
@@ -156,7 +206,14 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	expectedMemory, exists := validCombos[cpu]
 	if !exists || expectedMemory != memory {
-		return fmt.Errorf("[ERROR] Invalid CPU/Memory combination: %dc%dg%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", cpu, memory, nl, nl, nl, nl, nl)
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] Invalid CPU/Memory combination: %dc%dg", cpu, memory),
+			"",
+			"[TOOL] Supported combinations:",
+			"  • 2c4g: --cpu 2 --memory 4",
+			"  • 4c8g: --cpu 4 --memory 8",
+			"  • 8c16g: --cpu 8 --memory 16",
+		)
 	}
 
 	return nil
@@ -169,10 +226,22 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 
 	// Validate required flags with friendly messages
 	if dockerfilePath == "" {
-		return fmt.Errorf("[ERROR] Missing required flag: --dockerfile%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", nl, nl, imageName, nl, imageName, nl, imageName)
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] Missing required flag: --dockerfile for %s", imageName),
+			"",
+			"[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>",
+			fmt.Sprintf("[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1", imageName),
+			fmt.Sprintf("[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName),
+		)
 	}
 	if sourceImageId == "" {
-		return fmt.Errorf("[ERROR] Missing required flag: --imageId%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", nl, nl, imageName, nl, imageName, nl, imageName)
+		return printErrorMessage(
+			fmt.Sprintf("[ERROR] Missing required flag: --imageId for %s", imageName),
+			"",
+			"[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>",
+			fmt.Sprintf("[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1", imageName),
+			fmt.Sprintf("[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName),
+		)
 	}
 
 	fmt.Printf("[BUILD]  Creating image '%s'...\n", imageName)
@@ -260,7 +329,7 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 	fmt.Println("[OK] Image creation initiated")
 
 	// Step 4: Poll for task status
-	fmt.Println("⏳ Monitoring image creation progress...")
+	fmt.Println("[MONITOR] Monitoring image creation progress...")
 	return pollImageTask(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, uploadResp.Data.TaskID)
 }
 
@@ -332,7 +401,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 		return nil
 	case "RESOURCE_DEPLOYING":
 		fmt.Printf("[REFRESH] Image is already activating, joining the activation process...\n")
-		fmt.Println("⏳ Monitoring image activation status...")
+		fmt.Println("[MONITOR] Monitoring image activation status...")
 		return pollImageActivationStatus(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
 	case "RESOURCE_FAILED", "RESOURCE_CEASED":
 		fmt.Printf("[WARN]  Image is in failed state (%s), attempting to restart activation...\n", formattedStatus)
@@ -367,7 +436,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[SEARCH] Request ID: %s\n", startResp.RequestID)
 
 	// Start status polling
-	fmt.Println("⏳ Monitoring image activation status...")
+	fmt.Println("[MONITOR] Monitoring image activation status...")
 	return pollImageActivationStatus(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
 }
 
@@ -416,7 +485,7 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[SEARCH] Request ID: %s\n", stopResp.RequestID)
 
 	// Start status polling
-	fmt.Println("⏳ Monitoring image deactivation status...")
+	fmt.Println("[MONITOR] Monitoring image deactivation status...")
 	return pollImageDeactivationStatus(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
 }
 
@@ -476,7 +545,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 
 	for _, image := range listResp.Data.Images {
 		fmt.Printf("%-25s %-25s %-20s %-15s %-12s %-20s\n",
-			image.ImageID, // Show full IMAGE ID without truncation
+			truncateString(image.ImageID, 25),
 			truncateString(image.ImageName, 25),
 			FormatImageStatus(image.Status),
 			truncateString(image.Type, 15),
