@@ -148,23 +148,31 @@ jobs:
               # Remove .exe extension from platform_arch for consistent naming
               platform_arch_clean=$(echo "$platform_arch" | sed 's/\.exe$//')
               
-              # Create .tar.gz packages (always without .exe in the name)
+              # Create packages based on platform
               temp_dir=$(mktemp -d)
               cp "$binary" "$temp_dir/${{vars.BINARY_NAME}}"
-              tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
-              sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
               
-              # For Windows, also create direct .exe files
               if [[ "$platform_arch_clean" == windows-* ]]; then
-                # Create Windows executable with clean naming (single .exe extension)
+                # For Windows, create .zip packages (more Windows-friendly)
+                # Ensure the binary has .exe extension in the zip
+                mv "$temp_dir/${{vars.BINARY_NAME}}" "$temp_dir/${{vars.BINARY_NAME}}.exe"
+                (cd "$temp_dir" && zip -q "../packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" "${{vars.BINARY_NAME}}.exe")
+                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip.sha256"
+                echo "✓ Created Windows package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.zip"
+                
+                # Also create direct .exe files for convenience
                 target_name="${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.exe"
                 cp "$binary" "packages/$target_name"
                 sha256sum "packages/$target_name" > "packages/$target_name.sha256"
                 echo "✓ Created Windows executable: $target_name"
+              else
+                # For non-Windows platforms, continue using .tar.gz
+                tar -czf "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" -C "$temp_dir" ${{vars.BINARY_NAME}}
+                sha256sum "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz" > "packages/${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz.sha256"
+                echo "✓ Created package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
               fi
               
               rm -rf "$temp_dir"
-              echo "✓ Created package: ${{vars.BINARY_NAME}}-$VERSION-$platform_arch_clean.tar.gz"
             fi
           done
           
@@ -188,12 +196,21 @@ jobs:
             fi
           done
           
-          # Also verify tar.gz packages for Windows
+          # Also verify zip packages for Windows
           echo ""
-          echo "🔍 Verifying Windows tar.gz packages:"
-          for pkg in packages/*windows*.tar.gz; do
+          echo "🔍 Verifying Windows zip packages:"
+          for pkg in packages/*windows*.zip; do
             if [[ -f "$pkg" ]]; then
               echo "✓ Found: $(basename "$pkg")"
+              # Verify it's a valid zip file
+              if unzip -t "$pkg" >/dev/null 2>&1; then
+                echo "  ✓ Valid zip archive"
+              else
+                echo "  ⚠ Warning: May not be a valid zip archive"
+              fi
+              # Check file size
+              size=$(stat -c%s "$pkg" 2>/dev/null || stat -f%z "$pkg" 2>/dev/null || echo "unknown")
+              echo "  📏 Size: $size bytes"
             fi
           done
 
@@ -343,8 +360,8 @@ jobs:
           
           echo "OSS configuration successful, uploading packages..."
           
-          # Upload binary packages (including .exe files for Windows)
-          for package in packages/*.tar.gz packages/*.exe packages/*.sha256; do
+          # Upload binary packages (including .exe and .zip files for Windows)
+          for package in packages/*.tar.gz packages/*.zip packages/*.exe packages/*.sha256; do
             if [[ -f "$package" ]]; then
               filename=$(basename "$package")
               echo "Uploading $filename to version directory $VERSION..."
@@ -427,8 +444,8 @@ jobs:
           echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.exe"
           echo ""
           echo "📦 Archive Download:"
-          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.tar.gz"
-          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.tar.gz"
+          echo "   • Windows x64:   https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-amd64.zip"
+          echo "   • Windows ARM64: https://${{vars.OSS_BUCKET}}.${{vars.OSS_ENDPOINT}}/${{vars.BINARY_NAME}}/releases/$VERSION/${{vars.BINARY_NAME}}-$VERSION-windows-arm64.zip"
           echo ""
           echo "📋 Usage Instructions:"
           echo "   1. Download the executable for your architecture"
