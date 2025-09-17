@@ -41,6 +41,20 @@ func isRetryableError(err error) bool {
 	// Network connection errors that are typically transient
 	errorStr := err.Error()
 
+	// First check for non-retryable errors
+	nonRetryableErrors := []string{
+		"invalid uri for request",
+		"parse",
+		"malformed",
+		"unsupported protocol",
+	}
+
+	for _, nonRetryableErr := range nonRetryableErrors {
+		if strings.Contains(strings.ToLower(errorStr), nonRetryableErr) {
+			return false
+		}
+	}
+
 	// Common transient network errors
 	retryableErrors := []string{
 		"bad file descriptor",
@@ -156,13 +170,16 @@ func (r *RetryableHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		shouldRetry := false
 		if err != nil {
 			shouldRetry = isRetryableError(err)
+			if !shouldRetry {
+				log.Debugf("[RETRY] Error is not retryable, stopping attempts")
+				break
+			}
 		} else if resp != nil {
 			shouldRetry = isRetryableHTTPStatus(resp.StatusCode)
-		}
-
-		if !shouldRetry {
-			log.Debugf("[RETRY] Error is not retryable, stopping attempts")
-			break
+			if !shouldRetry {
+				log.Debugf("[RETRY] HTTP status is not retryable, stopping attempts")
+				break
+			}
 		}
 
 		// Wait before retrying
