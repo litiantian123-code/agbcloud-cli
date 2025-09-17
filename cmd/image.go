@@ -320,7 +320,7 @@ func runImageActivate(cmd *cobra.Command, args []string) error {
 
 	image := listResp.Data.Images[0]
 	currentStatus := image.Status
-	formattedStatus := formatImageStatus(currentStatus)
+	formattedStatus := FormatImageStatus(currentStatus)
 
 	fmt.Printf("[DATA] Current Status: %s\n", formattedStatus)
 
@@ -415,7 +415,9 @@ func runImageDeactivate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("[DATA] Operation Status: %v\n", stopResp.Data)
 	fmt.Printf("[SEARCH] Request ID: %s\n", stopResp.RequestID)
 
-	return nil
+	// Start status polling
+	fmt.Println("⏳ Monitoring image deactivation status...")
+	return pollImageDeactivationStatus(ctx, apiClient, cfg.Token.LoginToken, cfg.Token.SessionId, imageId)
 }
 
 func runImageList(cmd *cobra.Command, args []string) error {
@@ -476,7 +478,7 @@ func runImageList(cmd *cobra.Command, args []string) error {
 		fmt.Printf("%-25s %-25s %-20s %-15s %-12s %-20s\n",
 			image.ImageID, // Show full IMAGE ID without truncation
 			truncateString(image.ImageName, 25),
-			formatImageStatus(image.Status),
+			FormatImageStatus(image.Status),
 			truncateString(image.Type, 15),
 			FormatResources(image.CPU, image.Memory),
 			formatTimestamp(image.UpdateTime))
@@ -645,6 +647,80 @@ func pollImageTask(ctx context.Context, apiClient *client.APIClient, loginToken,
 	}
 }
 
+// pollImageDeactivationStatus polls the image deactivation status until completion or failure
+func pollImageDeactivationStatus(ctx context.Context, apiClient *client.APIClient, loginToken, sessionId, imageId string) error {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	// Create a new context with longer timeout for polling
+	pollCtx, pollCancel := context.WithTimeout(context.Background(), 45*time.Minute)
+	defer pollCancel()
+
+	for {
+		select {
+		case <-pollCtx.Done():
+			fmt.Printf("[DOC] Image ID: %s\n", imageId)
+			return fmt.Errorf("timeout waiting for image deactivation to complete")
+		case <-ticker.C:
+			// Query specific image status using ListImages with imageIds filter
+			listResp, httpResp, err := apiClient.ImageAPI.ListImages(pollCtx, loginToken, sessionId, "User", 1, 1, []string{imageId})
+			if err != nil {
+				if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+					fmt.Printf("[WARN]  Warning: Failed to check image status: %s\n", apiErr.Error())
+					if httpResp != nil {
+						fmt.Printf("[DATA] Status Code: %d\n", httpResp.StatusCode)
+					}
+					fmt.Printf("[DOC] Image ID: %s\n", imageId)
+					continue // Continue polling on API errors
+				}
+				fmt.Printf("[DOC] Image ID: %s\n", imageId)
+				return fmt.Errorf("network error checking image status: %v", err)
+			}
+
+			if !listResp.Success {
+				fmt.Printf("[WARN]  Warning: Image status check failed: %s\n", listResp.Code)
+				fmt.Printf("[DOC] Image ID: %s\n", imageId)
+				fmt.Printf("[SEARCH] Request ID: %s\n", listResp.RequestID)
+				continue // Continue polling on API errors
+			}
+
+			// Check if we found the image
+			if len(listResp.Data.Images) == 0 {
+				fmt.Printf("[WARN]  Warning: Image not found: %s\n", imageId)
+				continue // Continue polling
+			}
+
+			image := listResp.Data.Images[0]
+			status := image.Status
+			formattedStatus := FormatImageStatus(status)
+
+			fmt.Printf("[DATA] Status: %s", formattedStatus)
+			fmt.Println()
+
+			switch status {
+			case "IMAGE_AVAILABLE":
+				fmt.Printf("[SUCCESS] Image deactivated successfully! Image ID: %s\n", imageId)
+				fmt.Printf("[DATA] Final Status: %s\n", formattedStatus)
+				return nil
+			case "RESOURCE_FAILED":
+				fmt.Printf("[DOC] Image ID: %s\n", imageId)
+				fmt.Printf("[SEARCH] Request ID: %s\n", listResp.RequestID)
+				return fmt.Errorf("image deactivation failed with status: %s", formattedStatus)
+			case "RESOURCE_DELETING":
+				// Continue polling - deactivation in progress
+				continue
+			case "RESOURCE_PUBLISHED":
+				// Image is still activated, continue polling in case deactivation is delayed
+				fmt.Printf("[REFRESH] Image still activated, continuing to monitor deactivation...\n")
+				continue
+			default:
+				fmt.Printf("[REFRESH] Unknown status '%s', continuing to monitor...\n", formattedStatus)
+				continue
+			}
+		}
+	}
+}
+
 // truncateString truncates a string to the specified length with ellipsis
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
@@ -671,8 +747,8 @@ func formatTimestamp(timestamp string) string {
 	return truncateString(timestamp, 20)
 }
 
-// formatImageStatus formats image status for better readability
-func formatImageStatus(status string) string {
+// FormatImageStatus formats image status for better readability
+func FormatImageStatus(status string) string {
 	switch status {
 	// Image creation related statuses
 	case "IMAGE_CREATING":
@@ -774,7 +850,7 @@ func pollImageActivationStatus(ctx context.Context, apiClient *client.APIClient,
 
 			image := listResp.Data.Images[0]
 			status := image.Status
-			formattedStatus := formatImageStatus(status)
+			formattedStatus := FormatImageStatus(status)
 
 			fmt.Printf("[DATA] Status: %s", formattedStatus)
 			fmt.Println()
