@@ -32,10 +32,10 @@ var imageCreateCmd = &cobra.Command{
 	Long:  "Create a custom image using a Dockerfile",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-name>\n\n[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-name>%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", "\n", "\n", "\n", "\n")
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image name), got %d\n\n[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", len(args))
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image name), got %d%s%s[TIP] Usage: agbcloud image create <image-name> --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create myImage -f ./Dockerfile -i agb-code-space-1", len(args), "\n", "\n", "\n", "\n")
 		}
 		return nil
 	},
@@ -57,10 +57,10 @@ Supported CPU and Memory combinations:
 If no CPU/memory is specified, default resources will be used.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-id>\n\n[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", "\n", "\n", "\n", "\n", "\n", "\n")
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d\n\n[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]\n[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4\n[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4\n\n[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", len(args))
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image activate <image-id> [--cpu <cores> --memory <gb>]%s[NOTE] Example: agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4%s[NOTE] Short form: agbcloud image activate img-7a8b9c1d0e -c 2 -m 4%s%s[TOOL] Supported combinations: 2c4g, 4c8g, 8c16g", len(args), "\n", "\n", "\n", "\n", "\n", "\n")
 		}
 		return nil
 	},
@@ -75,10 +75,10 @@ var imageDeactivateCmd = &cobra.Command{
 	Long:  "Deactivate a running image instance",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
-			return fmt.Errorf("[ERROR] Missing required argument: <image-id>\n\n[TIP] Usage: agbcloud image deactivate <image-id>\n[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e")
+			return fmt.Errorf("[ERROR] Missing required argument: <image-id>%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", "\n", "\n", "\n")
 		}
 		if len(args) > 1 {
-			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d\n\n[TIP] Usage: agbcloud image deactivate <image-id>\n[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", len(args))
+			return fmt.Errorf("[ERROR] Too many arguments provided. Expected 1 argument (image ID), got %d%s%s[TIP] Usage: agbcloud image deactivate <image-id>%s[NOTE] Example: agbcloud image deactivate img-7a8b9c1d0e", len(args), "\n", "\n", "\n")
 		}
 		return nil
 	},
@@ -132,7 +132,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	// If only one is specified, both must be specified
 	if (cpu == 0 && memory > 0) || (cpu > 0 && memory == 0) {
-		return fmt.Errorf("[ERROR] Both CPU and memory must be specified together\n\n[TOOL] Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16")
+		return fmt.Errorf("[ERROR] Both CPU and memory must be specified together%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", "\n", "\n", "\n", "\n", "\n")
 	}
 
 	// Check supported combinations
@@ -144,7 +144,7 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 
 	expectedMemory, exists := validCombos[cpu]
 	if !exists || expectedMemory != memory {
-		return fmt.Errorf("[ERROR] Invalid CPU/Memory combination: %dc%dg\n\n[TOOL] Supported combinations:\n  • 2c4g: --cpu 2 --memory 4\n  • 4c8g: --cpu 4 --memory 8\n  • 8c16g: --cpu 8 --memory 16", cpu, memory)
+		return fmt.Errorf("[ERROR] Invalid CPU/Memory combination: %dc%dg%s%s[TOOL] Supported combinations:%s  • 2c4g: --cpu 2 --memory 4%s  • 4c8g: --cpu 4 --memory 8%s  • 8c16g: --cpu 8 --memory 16", cpu, memory, "\n", "\n", "\n", "\n", "\n")
 	}
 
 	return nil
@@ -157,10 +157,10 @@ func runImageCreate(cmd *cobra.Command, args []string) error {
 
 	// Validate required flags with friendly messages
 	if dockerfilePath == "" {
-		return fmt.Errorf("[ERROR] Missing required flag: --dockerfile\n\n[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName, imageName, imageName)
+		return fmt.Errorf("[ERROR] Missing required flag: --dockerfile%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", "\n", "\n", imageName, "\n", imageName, "\n", imageName)
 	}
 	if sourceImageId == "" {
-		return fmt.Errorf("[ERROR] Missing required flag: --imageId\n\n[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>\n[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1\n[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", imageName, imageName, imageName)
+		return fmt.Errorf("[ERROR] Missing required flag: --imageId%s%s[TIP] Usage: agbcloud image create %s --dockerfile <path> --imageId <id>%s[NOTE] Example: agbcloud image create %s --dockerfile ./Dockerfile --imageId agb-code-space-1%s[NOTE] Short form: agbcloud image create %s -f ./Dockerfile -i agb-code-space-1", "\n", "\n", imageName, "\n", imageName, "\n", imageName)
 	}
 
 	fmt.Printf("[BUILD]  Creating image '%s'...\n", imageName)
