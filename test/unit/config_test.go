@@ -10,8 +10,8 @@ import (
 	"github.com/agbcloud/agbcloud-cli/internal/config"
 )
 
-// TestDefaultConfigEnvironmentVariables tests the environment variable configuration
-func TestDefaultConfigEnvironmentVariables(t *testing.T) {
+// TestGetEndpoint tests the GetEndpoint function
+func TestGetEndpoint(t *testing.T) {
 	// Save original environment variables
 	originalCLIEndpoint := os.Getenv("AGB_CLI_ENDPOINT")
 
@@ -24,10 +24,10 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 		// Clear all environment variables
 		os.Unsetenv("AGB_CLI_ENDPOINT")
 
-		cfg := config.DefaultConfig()
+		endpoint := config.GetEndpoint()
 
-		if cfg.Endpoint != "https://agb.cloud" {
-			t.Errorf("Expected default endpoint https://agb.cloud, got %s", cfg.Endpoint)
+		if endpoint != "https://agb.cloud" {
+			t.Errorf("Expected default endpoint https://agb.cloud, got %s", endpoint)
 		}
 
 		t.Logf("[OK] Default values test passed")
@@ -37,10 +37,10 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 		// Set CLI-specific environment variables
 		os.Setenv("AGB_CLI_ENDPOINT", "cli.agb.cloud")
 
-		cfg := config.DefaultConfig()
+		endpoint := config.GetEndpoint()
 
-		if cfg.Endpoint != "https://cli.agb.cloud" {
-			t.Errorf("Expected CLI endpoint https://cli.agb.cloud, got %s", cfg.Endpoint)
+		if endpoint != "https://cli.agb.cloud" {
+			t.Errorf("Expected CLI endpoint https://cli.agb.cloud, got %s", endpoint)
 		}
 
 		t.Logf("[OK] CLI environment variables test passed")
@@ -62,56 +62,67 @@ func TestDefaultConfigEnvironmentVariables(t *testing.T) {
 
 		for _, tc := range testCases {
 			os.Setenv("AGB_CLI_ENDPOINT", tc.input)
-			cfg := config.DefaultConfig()
+			endpoint := config.GetEndpoint()
 
-			if cfg.Endpoint != tc.expected {
-				t.Errorf("Input %s: expected %s, got %s", tc.input, tc.expected, cfg.Endpoint)
+			if endpoint != tc.expected {
+				t.Errorf("Input %s: expected %s, got %s", tc.input, tc.expected, endpoint)
 			} else {
-				t.Logf("[OK] %s -> %s", tc.input, cfg.Endpoint)
+				t.Logf("[OK] %s -> %s", tc.input, endpoint)
 			}
 		}
 	})
 
 	t.Run("EmptyEnvironmentVariables", func(t *testing.T) {
-		// Set empty environment variables
-		os.Setenv("AGB_CLI_ENDPOINT", "")
+		// Clear environment variables
+		os.Unsetenv("AGB_CLI_ENDPOINT")
 
-		cfg := config.DefaultConfig()
+		endpoint := config.GetEndpoint()
 
-		// Should use default when environment variable is empty
-		if cfg.Endpoint != "https://agb.cloud" {
-			t.Errorf("Expected default endpoint https://agb.cloud, got %s", cfg.Endpoint)
+		if endpoint != "https://agb.cloud" {
+			t.Errorf("Expected default endpoint https://agb.cloud, got %s", endpoint)
 		}
 
 		t.Logf("[OK] Empty environment variables test passed")
 	})
 }
 
-// TestConfigPaths tests configuration file paths
-func TestConfigPaths(t *testing.T) {
-	t.Run("ConfigDir", func(t *testing.T) {
-		configDir, err := config.ConfigDir()
-		if err != nil {
-			t.Fatalf("Failed to get config directory: %v", err)
-		}
+// TestConfigTokenOperations tests token-related config operations
+func TestConfigTokenOperations(t *testing.T) {
+	cfg := &config.Config{}
 
-		if configDir == "" {
-			t.Error("Config directory should not be empty")
-		}
+	// Test initial state
+	if cfg.IsAuthenticated() {
+		t.Error("Expected config to not be authenticated initially")
+	}
 
-		t.Logf("Config directory: %s", configDir)
-	})
+	// Test token operations
+	err := cfg.SaveTokens("test-login", "test-session", "test-keepalive", "2025-12-31T23:59:59Z")
+	if err != nil {
+		t.Errorf("Failed to save tokens: %v", err)
+	}
 
-	t.Run("ConfigFile", func(t *testing.T) {
-		configFile, err := config.ConfigFile()
-		if err != nil {
-			t.Fatalf("Failed to get config file path: %v", err)
-		}
+	if !cfg.IsAuthenticated() {
+		t.Error("Expected config to be authenticated after saving tokens")
+	}
 
-		if configFile == "" {
-			t.Error("Config file path should not be empty")
-		}
+	tokens, err := cfg.GetTokens()
+	if err != nil {
+		t.Errorf("Failed to get tokens: %v", err)
+	}
 
-		t.Logf("Config file: %s", configFile)
-	})
+	if tokens.LoginToken != "test-login" {
+		t.Errorf("Expected login token 'test-login', got %s", tokens.LoginToken)
+	}
+
+	// Test clearing tokens
+	err = cfg.ClearTokens()
+	if err != nil {
+		t.Errorf("Failed to clear tokens: %v", err)
+	}
+
+	if cfg.IsAuthenticated() {
+		t.Error("Expected config to not be authenticated after clearing tokens")
+	}
+
+	t.Logf("[OK] Token operations test passed")
 }

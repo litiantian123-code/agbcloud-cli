@@ -91,7 +91,6 @@ func TestLogoutCommandSimple(t *testing.T) {
 			var cfg *config.Config
 			if tt.hasTokens {
 				cfg = &config.Config{
-					Endpoint: "https://test.agb.cloud",
 					Token: &config.Token{
 						LoginToken:     "test-login-token",
 						SessionId:      "test-session-id",
@@ -101,8 +100,7 @@ func TestLogoutCommandSimple(t *testing.T) {
 				}
 			} else {
 				cfg = &config.Config{
-					Endpoint: "https://test.agb.cloud",
-					Token:    nil, // No tokens
+					Token: nil, // No tokens
 				}
 			}
 
@@ -171,8 +169,7 @@ func TestLogoutCommandNoConfig(t *testing.T) {
 
 	// Create empty config
 	cfg := &config.Config{
-		Endpoint: "https://test.agb.cloud",
-		Token:    nil,
+		Token: nil,
 	}
 
 	// Capture output

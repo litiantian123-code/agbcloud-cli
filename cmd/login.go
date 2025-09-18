@@ -34,7 +34,7 @@ func runLogin(cmd *cobra.Command) error {
 	fmt.Println("[SEC] Starting AgbCloud authentication...")
 
 	// Create client configuration for OAuth
-	cfg := config.DefaultConfig()
+	cfg := &config.Config{}
 
 	apiClient := client.NewFromConfig(cfg)
 

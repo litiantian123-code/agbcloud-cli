@@ -38,10 +38,8 @@ func shouldSkipSSLVerification() bool {
 func NewFromConfig(cfg *config.Config) *APIClient {
 	configuration := NewConfiguration()
 
-	// Set the server URL from config
-	if cfg.Endpoint != "" {
-		configuration.Servers[0].URL = cfg.Endpoint
-	}
+	// Set the server URL from environment variable or default
+	configuration.Servers[0].URL = config.GetEndpoint()
 
 	// Create base HTTP client with optional SSL verification skip
 	baseClient := &http.Client{
@@ -73,5 +71,5 @@ func NewFromConfig(cfg *config.Config) *APIClient {
 
 // NewDefault creates a new API client with default configuration
 func NewDefault() *APIClient {
-	return NewFromConfig(config.DefaultConfig())
+	return NewFromConfig(&config.Config{})
 }

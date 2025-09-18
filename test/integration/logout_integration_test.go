@@ -21,7 +21,7 @@ func TestLogoutIntegration(t *testing.T) {
 	}
 
 	// Get configuration
-	cfg := config.DefaultConfig()
+	cfg := &config.Config{}
 
 	// Create API client
 	apiClient := client.NewFromConfig(cfg)

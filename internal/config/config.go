@@ -14,9 +14,9 @@ import (
 )
 
 // Config represents the CLI configuration
+// Only stores authentication tokens, endpoint is determined from environment variables
 type Config struct {
-	Endpoint string `json:"endpoint,omitempty"`
-	Token    *Token `json:"token,omitempty"` // OAuth token authentication
+	Token *Token `json:"token,omitempty"` // OAuth token authentication
 }
 
 // Token represents AgbCloud authentication tokens
@@ -32,7 +32,6 @@ var (
 )
 
 // GetConfig loads the configuration from file or creates a new one
-// Environment variables take precedence over config file values
 func GetConfig() (*Config, error) {
 	configFilePath, err := getConfigPath()
 	if err != nil {
@@ -61,22 +60,22 @@ func GetConfig() (*Config, error) {
 		}
 	}
 
-	// Apply environment variable overrides (highest priority)
-	envEndpoint := os.Getenv("AGB_CLI_ENDPOINT")
-	if envEndpoint != "" {
-		// Ensure endpoint has https:// prefix
-		if !strings.HasPrefix(envEndpoint, "http://") && !strings.HasPrefix(envEndpoint, "https://") {
-			envEndpoint = "https://" + envEndpoint
-		}
-		c.Endpoint = envEndpoint
-	} else if c.Endpoint == "" {
-		// No env var and no config file value, use default
-		c.Endpoint = "https://agb.cloud"
+	return &c, nil
+}
+
+// GetEndpoint returns the endpoint from environment variable or default
+func GetEndpoint() string {
+	endpoint := os.Getenv("AGB_CLI_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "agb.cloud"
 	}
 
-	// Note: Callback port configuration removed - port selection is now handled automatically by server
+	// Ensure endpoint has https:// prefix
+	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+		endpoint = "https://" + endpoint
+	}
 
-	return &c, nil
+	return endpoint
 }
 
 // Save writes the configuration to file
@@ -153,22 +152,7 @@ func getConfigPath() (string, error) {
 
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
-	// Get endpoint from environment variable or use default
-	endpoint := os.Getenv("AGB_CLI_ENDPOINT")
-	if endpoint == "" {
-		endpoint = "agb.cloud"
-	}
-
-	// Ensure endpoint has https:// prefix
-	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
-		endpoint = "https://" + endpoint
-	}
-
-	// Note: Callback port configuration removed - port selection is now handled automatically by server
-
-	return &Config{
-		Endpoint: endpoint,
-	}
+	return &Config{}
 }
 
 // ConfigDir returns the configuration directory path
