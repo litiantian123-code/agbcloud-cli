@@ -24,9 +24,9 @@ func TestAuthSuccessPageContainsAutoClose(t *testing.T) {
 		t.Error("Success HTML should contain window.close() function")
 	}
 
-	// Check that the timeout is set to a reasonable value (10 seconds)
-	if !strings.Contains(html, "10 * 1000") && !strings.Contains(html, "10000") {
-		t.Error("Success HTML should set timeout to 10 seconds")
+	// Check that the timeout is set to a reasonable value (3 seconds)
+	if !strings.Contains(html, "3000") {
+		t.Error("Success HTML should set timeout to 3 seconds")
 	}
 
 	// Verify the HTML structure is valid
@@ -36,6 +36,24 @@ func TestAuthSuccessPageContainsAutoClose(t *testing.T) {
 
 	if !strings.Contains(html, "</script>") {
 		t.Error("Success HTML should have closing script tag")
+	}
+
+	// Check for visibility change handler
+	if !strings.Contains(html, "visibilitychange") {
+		t.Error("Success HTML should contain visibilitychange event listener")
+	}
+
+	// Verify that countdown and manual close elements are NOT present
+	if strings.Contains(html, "countdown") {
+		t.Error("Success HTML should not contain countdown elements")
+	}
+
+	if strings.Contains(html, "manual-close") {
+		t.Error("Success HTML should not contain manual-close elements")
+	}
+
+	if strings.Contains(html, "Try to Close") {
+		t.Error("Success HTML should not contain manual close button")
 	}
 }
 

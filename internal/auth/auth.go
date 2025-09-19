@@ -212,13 +212,6 @@ func GetSuccessHTML() string {
             font-size: 0.85rem;
         }
         
-        .countdown {
-            color: #95a5a6;
-            font-size: 0.85rem;
-            margin-top: 1.5rem;
-            font-style: italic;
-        }
-        
         .brand {
             position: absolute;
             bottom: 1rem;
@@ -249,7 +242,7 @@ func GetSuccessHTML() string {
 </head>
 <body>
     <div class="container">
-        <div class="success-icon">[OK]</div>
+        <div class="success-icon">✓</div>
         <h1>Authentication Successful!</h1>
         <p class="subtitle">You have been successfully authenticated with AgbCloud CLI</p>
         
@@ -258,29 +251,24 @@ func GetSuccessHTML() string {
             <div class="info-text">You can now close this window and return to your terminal to continue using the CLI.</div>
         </div>
         
-        <div class="countdown" id="countdown">This window will close automatically in <span id="timer">10</span> seconds</div>
         <div class="brand">AgbCloud CLI</div>
     </div>
 
     <script>
-        // Countdown timer
-        let timeLeft = 10;
-        const timerElement = document.getElementById('timer');
-        
-        const countdown = setInterval(function() {
-            timeLeft--;
-            timerElement.textContent = timeLeft;
-            
-            if (timeLeft <= 0) {
-                clearInterval(countdown);
-                window.close();
-            }
-        }, 1000);
-        
-        // Also close after 10 seconds as fallback
+        // Silently attempt to close the window after 3 seconds
+        // No timer display or user notification - just try to close
         setTimeout(function() {
             window.close();
-        }, 10 * 1000);
+        }, 3000);
+        
+        // Also try when user switches away from the tab (they're probably done reading)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                setTimeout(function() {
+                    window.close();
+                }, 1000);
+            }
+        });
     </script>
 </body>
 </html>`
