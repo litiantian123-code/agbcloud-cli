@@ -26,14 +26,14 @@ Before using any image management features, you need to log in to AgbCloud.
 ### Command Syntax
 
 ```bash
-agbcloud login
+agb login
 ```
 
 ### Usage Steps
 
 1. **Execute login command**:
    ```bash
-   agbcloud login
+   agb login
    ```
 
 2. **System response**:
@@ -77,7 +77,7 @@ Creating custom images requires providing a Dockerfile and base image ID.
 ### Command Syntax
 
 ```bash
-agbcloud image create <image-name> --dockerfile <dockerfile-path> --imageId <base-image-id>
+agb image create <image-name> --dockerfile <dockerfile-path> --imageId <base-image-id>
 ```
 
 ### Parameter Description
@@ -90,10 +90,10 @@ agbcloud image create <image-name> --dockerfile <dockerfile-path> --imageId <bas
 
 ```bash
 # Full command
-agbcloud image create myCustomImage --dockerfile ./Dockerfile --imageId agb-code-space-1
+agb image create myCustomImage --dockerfile ./Dockerfile --imageId agb-code-space-1
 
 # Using short parameters
-agbcloud image create myCustomImage -f ./Dockerfile -i agb-code-space-1
+agb image create myCustomImage -f ./Dockerfile -i agb-code-space-1
 ```
 
 ### Execution Flow
@@ -138,7 +138,7 @@ Activating an image starts a running instance. You can specify CPU and memory re
 ### Command Syntax
 
 ```bash
-agbcloud image activate <image-id> [--cpu <cores>] [--memory <gb>]
+agb image activate <image-id> [--cpu <cores>] [--memory <gb>]
 ```
 
 ### Parameter Description
@@ -158,19 +158,19 @@ agbcloud image activate <image-id> [--cpu <cores>] [--memory <gb>]
 
 ```bash
 # Basic activation (using default resources)
-agbcloud image activate img-7a8b9c1d0e
+agb image activate img-7a8b9c1d0e
 
 # Using 2c4g configuration
-agbcloud image activate img-7a8b9c1d0e --cpu 2 --memory 4
+agb image activate img-7a8b9c1d0e --cpu 2 --memory 4
 
 # Using 4c8g configuration
-agbcloud image activate img-7a8b9c1d0e --cpu 4 --memory 8
+agb image activate img-7a8b9c1d0e --cpu 4 --memory 8
 
 # Using 8c16g configuration  
-agbcloud image activate img-7a8b9c1d0e --cpu 8 --memory 16
+agb image activate img-7a8b9c1d0e --cpu 8 --memory 16
 
 # Using short parameters
-agbcloud image activate img-7a8b9c1d0e -c 4 -m 8
+agb image activate img-7a8b9c1d0e -c 4 -m 8
 ```
 
 ### Execution Flow
@@ -223,7 +223,7 @@ agbcloud image activate img-7a8b9c1d0e -c 4 -m 8
 
 ```bash
 # Invalid combination example
-agbcloud image activate img-7a8b9c1d0e --cpu 3 --memory 6
+agb image activate img-7a8b9c1d0e --cpu 3 --memory 6
 
 # Error output
 [ERROR] Invalid CPU/Memory combination: 3c6g
@@ -241,7 +241,7 @@ Deactivate (stop) a running image instance.
 ### Command Syntax
 
 ```bash
-agbcloud image deactivate <image-id>
+agb image deactivate <image-id>
 ```
 
 ### Parameter Description
@@ -251,7 +251,7 @@ agbcloud image deactivate <image-id>
 ### Usage Examples
 
 ```bash
-agbcloud image deactivate img-7a8b9c1d0e
+agb image deactivate img-7a8b9c1d0e
 ```
 
 ### Execution Flow
@@ -282,7 +282,7 @@ View your image list with pagination and type filtering support.
 ### Command Syntax
 
 ```bash
-agbcloud image list [--type <type>] [--page <page-number>] [--size <page-size>]
+agb image list [--type <type>] [--page <page-number>] [--size <page-size>]
 ```
 
 ### Parameter Description
@@ -297,16 +297,16 @@ agbcloud image list [--type <type>] [--page <page-number>] [--size <page-size>]
 
 ```bash
 # View user images (default)
-agbcloud image list
+agb image list
 
 # View system images
-agbcloud image list --type System
+agb image list --type System
 
 # Paginated view
-agbcloud image list --page 2 --size 5
+agb image list --page 2 --size 5
 
 # Using short parameters
-agbcloud image list -t User -p 1 -s 20
+agb image list -t User -p 1 -s 20
 ```
 
 ### Output Example
@@ -347,9 +347,9 @@ Images can be in the following states:
 A: Add `--help` or `-h` parameter after any command:
 
 ```bash
-agbcloud --help
-agbcloud image --help
-agbcloud image create --help
+agb --help
+agb image --help
+agb image create --help
 ```
 
 ### Q: What to do if login fails?
@@ -373,7 +373,7 @@ A: Please check:
 A: Use `--verbose` or `-v` parameter:
 
 ```bash
-agbcloud -v image create myImage -f ./Dockerfile -i agb-code-space-1
+agb -v image create myImage -f ./Dockerfile -i agb-code-space-1
 ```
 
 ### Q: What to do if image activation is slow?
@@ -390,7 +390,7 @@ Please be patient, the system will automatically monitor activation status.
 A: Use the image list command to view system images:
 
 ```bash
-agbcloud image list --type System
+agb image list --type System
 ```
 
 ---

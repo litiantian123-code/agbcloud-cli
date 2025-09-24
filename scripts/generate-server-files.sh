@@ -30,12 +30,12 @@ cat > $OUTPUT_DIR/latest.json << EOF
   "releaseDate": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "windows": {
     "amd64": {
-      "url": "$BASE_URL/agbcloud-$VERSION-windows-amd64.exe",
-      "sha256": "$(cat packages/agbcloud-$VERSION-windows-amd64.exe.sha256 2>/dev/null | cut -d' ' -f1 || echo 'PLACEHOLDER_SHA256')"
+      "url": "$BASE_URL/agb-$VERSION-windows-amd64.exe",
+      "sha256": "$(cat packages/agb-$VERSION-windows-amd64.exe.sha256 2>/dev/null | cut -d' ' -f1 || echo 'PLACEHOLDER_SHA256')"
     },
     "arm64": {
-      "url": "$BASE_URL/agbcloud-$VERSION-windows-arm64.exe", 
-      "sha256": "$(cat packages/agbcloud-$VERSION-windows-arm64.exe.sha256 2>/dev/null | cut -d' ' -f1 || echo 'PLACEHOLDER_SHA256')"
+      "url": "$BASE_URL/agb-$VERSION-windows-arm64.exe", 
+      "sha256": "$(cat packages/agb-$VERSION-windows-arm64.exe.sha256 2>/dev/null | cut -d' ' -f1 || echo 'PLACEHOLDER_SHA256')"
     }
   }
 }
@@ -75,7 +75,7 @@ echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\" -Version $VERSI
 echo ""
 echo "[BOOK] Additional Options:"
 echo "   # Install to custom directory"
-echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\" -InstallPath \"C:\\Tools\\agbcloud\""
+echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\" -InstallPath \"C:\\Tools\\agb\""
 echo ""
 echo "   # Install specific architecture"
 echo "   powershell -Command \"irm $BASE_URL/install.ps1 | iex\" -Architecture arm64"

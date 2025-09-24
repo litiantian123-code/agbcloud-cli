@@ -1,5 +1,5 @@
 # Build variables
-BINARY_NAME=agbcloud
+BINARY_NAME=agb
 VERSION?=dev
 GIT_COMMIT?=$(shell git rev-parse --short HEAD)
 BUILD_DATE?=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")

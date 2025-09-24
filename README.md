@@ -16,22 +16,22 @@ AgbCloud CLI provides comprehensive image management capabilities:
 
 ```bash
 # 1. Log in to AgbCloud
-agbcloud login
+agb login
 
 # 2. List available system images (to find base image IDs)
-agbcloud image list --type System
+agb image list --type System
 
 # 3. Create a custom image
-agbcloud image create myapp --dockerfile ./Dockerfile --imageId agb-code-space-1
+agb image create myapp --dockerfile ./Dockerfile --imageId agb-code-space-1
 
 # 4. Activate the image with specific resources
-agbcloud image activate img-7a8b9c1d0e --cpu 4 --memory 8
+agb image activate img-7a8b9c1d0e --cpu 4 --memory 8
 
 # 5. List your images
-agbcloud image list
+agb image list
 
 # 6. Deactivate when done
-agbcloud image deactivate img-7a8b9c1d0e
+agb image deactivate img-7a8b9c1d0e
 ```
 
 ## Installation
@@ -42,16 +42,16 @@ Download the latest release for your platform from the [releases page](https://g
 
 ```bash
 # Show help
-agbcloud --help
+agb --help
 
 # Show version
-agbcloud version
+agb version
 
 # Get detailed help for image commands
-agbcloud image --help
+agb image --help
 
 # Use verbose mode for detailed output
-agbcloud -v image create myapp -f ./Dockerfile -i agb-code-space-1
+agb -v image create myapp -f ./Dockerfile -i agb-code-space-1
 ```
 
 For detailed usage instructions and examples, see the [User Guide](docs/USER_GUIDE.md).
