@@ -1,8 +1,8 @@
 class Agb < Formula
   desc "Secure infrastructure for running AI-generated code"
   homepage "https://github.com/litiantian123-code/agbcloud-cli"
-  url "https://github.com/litiantian123-code/agbcloud-cli/archive/refs/tags/v1.1.2.tar.gz"
-  sha256 "57299a5ff70ecdb250a3b839a5da6cfd980bd2ece618a201644c08bf2df54b58"
+  url "https://github.com/litiantian123-code/agbcloud-cli/archive/refs/tags/v1.1.3.tar.gz"
+  sha256 "d9234b4ca253c9e21b06f46ffd3d48d6cc70b11176cee72f9dd1bf933da89aad"
   license "MIT"
   head "https://github.com/litiantian123-code/agbcloud-cli.git", branch: "main"
 
@@ -17,7 +17,6 @@ class Agb < Formula
     rescue
       "unknown"
     end
-    git_commit = Utils.safe_popen_read("git", "rev-parse", "--short", "HEAD").chomp
     build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     # Build flags matching your Makefile LDFLAGS (with optimization)
     ldflags = %W[
