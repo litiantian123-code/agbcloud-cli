@@ -1,8 +1,8 @@
 class Agb < Formula
   desc "Secure infrastructure for running AI-generated code"
   homepage "https://github.com/litiantian123-code/agbcloud-cli"
-  url "https://github.com/litiantian123-code/agbcloud-cli/archive/refs/tags/v1.1.4.tar.gz"
-  sha256 "ea0719ea3bb8dcb5e6af00c4495f85bdad0348c36052f7f78a7af62ef00d6ad9"
+  url "https://github.com/litiantian123-code/agbcloud-cli/archive/refs/tags/v1.1.5.tar.gz"
+  sha256 "60db27fbdd01db23f3973dd9f035c8796753302b761d44ec774a1d3c15a4e95a"
   license "MIT"
   head "https://github.com/litiantian123-code/agbcloud-cli.git", branch: "main"
 
@@ -17,7 +17,8 @@ class Agb < Formula
     rescue
       "unknown"
     end
-    build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")  
+    build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
     # Set Go proxy for better network connectivity (especially in China)
     ENV["GOPROXY"] = "https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct"
     ENV["GOSUMDB"] = "sum.golang.google.cn"
