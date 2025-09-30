@@ -456,7 +456,12 @@ jobs:
               rescue
                 "unknown"
               end
-              build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+              build_date = Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")  
+              # Set Go proxy for better network connectivity (especially in China)
+              ENV["GOPROXY"] = "https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct"
+              ENV["GOSUMDB"] = "sum.golang.google.cn"
+              ENV["GO111MODULE"] = "on"
+              
               # Build flags matching your Makefile LDFLAGS (with optimization)
               ldflags = %W[
                 -s
