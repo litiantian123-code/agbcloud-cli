@@ -1,26 +1,26 @@
 class Agb < Formula
   desc "Secure infrastructure for running AI-generated code"
   homepage "https://github.com/agbcloud/agbcloud-cli"
-  version "0.1.0"
+  version "1.1.6"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v0.1.0/agb-0.1.0-darwin-amd64.tar.gz"
-      sha256 "2e8db5702b497cbbed07aeae9407417d12454a641d94a7f5a0348c5b15b3c645"
+      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v1.1.6/agb-1.1.6-darwin-amd64.tar.gz"
+      sha256 "ba1e634acee3eebf1c77324cfcd09419380ee06d9f6201037745b53066bd98f9"
     elsif Hardware::CPU.arm? || Hardware::CPU.arch == :arm64
-      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v0.1.0/agb-0.1.0-darwin-arm64.tar.gz"
-      sha256 "692ade7607446a678fcfb840365e5fe24ad756313c0d977db7d19cf727fde382"
+      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v1.1.6/agb-1.1.6-darwin-arm64.tar.gz"
+      sha256 "4d8cc682fa171d705f91f0552cd2d8016b4433fed2abdc3aea2b35c724d87c81"
     end
   end
 
   on_linux do
     if Hardware::CPU.intel?
-      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v0.1.0/agb-0.1.0-linux-amd64.tar.gz"
-      sha256 "14adbac86b512188b826dfbcef6bb72c4d3c46a96fe2802af46eec93df5000fd"
+      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v1.1.6/agb-1.1.6-linux-amd64.tar.gz"
+      sha256 "35320d046c9555c4d57fa443d9b4730235353ee05318cc37d8d2b48199b64e48"
     elsif Hardware::CPU.arm? || Hardware::CPU.arch == :arm64
-      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v0.1.0/agb-0.1.0-linux-arm64.tar.gz"
-      sha256 "7055021bd456f0ee780d8e1f4bda6a3d921fa7419ef76c1d83803cbdccbe3711"
+      url "https://github.com/agbcloud/agbcloud-cli/releases/download/v1.1.6/agb-1.1.6-linux-arm64.tar.gz"
+      sha256 "6862efa459c95b11ff87680d0a5e47ca1a7fd1e302d6e84c2e3c772988802d39"
     end
   end
 
