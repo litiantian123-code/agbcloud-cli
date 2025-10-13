@@ -123,9 +123,11 @@ func TestTimezoneConversion(t *testing.T) {
 	// Should match the expected local time format
 	assert.Equal(t, expectedFormat, result, "Should convert UTC to local timezone correctly")
 
-	// Verify that conversion actually happened (unless we're in UTC timezone)
-	if localTime.Location() != time.UTC {
+	// Verify that conversion actually happened by comparing the time zone offset
+	// Only check if the times differ when the local timezone has a non-zero offset from UTC
+	_, localOffset := localTime.Zone()
+	if localOffset != 0 {
 		utcFormat := utcTime.Format("2006-01-02 15:04")
-		assert.NotEqual(t, utcFormat, result, "Local time should be different from UTC time (unless in UTC timezone)")
+		assert.NotEqual(t, utcFormat, result, "Local time should be different from UTC time when timezone offset is non-zero")
 	}
 }
