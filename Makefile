@@ -67,6 +67,17 @@ clean:
 test:
 	go test ./... -cover
 
+# Run unit tests
+.PHONY: test-unit
+test-unit:
+	go test ./test/unit/... -v
+
+# Generate test coverage report
+.PHONY: test-coverage
+test-coverage:
+	go test ./test/unit/... -coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+
 # Run linter
 .PHONY: lint
 lint:
