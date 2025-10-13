@@ -63,7 +63,7 @@ func TestOAuthAPI_GetLoginProviderURL_WithLocalhostPort(t *testing.T) {
 				}`
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(response))
+				_, _ = w.Write([]byte(response)) // Ignore errors in test mock server
 			}))
 			defer server.Close()
 
@@ -156,7 +156,7 @@ func TestOAuthAPI_LoginTranslate_WithLocalhostPort(t *testing.T) {
 				}`
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(response))
+				_, _ = w.Write([]byte(response)) // Ignore errors in test mock server
 			}))
 			defer server.Close()
 
@@ -218,7 +218,7 @@ func TestOAuthLoginProviderResponse_AlternativePorts(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(jsonResponse))
+		_, _ = w.Write([]byte(jsonResponse)) // Ignore errors in test mock server
 	}))
 	defer server.Close()
 

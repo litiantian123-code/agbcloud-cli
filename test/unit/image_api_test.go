@@ -54,7 +54,7 @@ func TestImageAPIGetUploadCredential(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 	}))
 	defer server.Close()
 
@@ -154,7 +154,7 @@ func TestImageAPICreateImage(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 	}))
 	defer server.Close()
 
@@ -309,7 +309,7 @@ func TestImageAPIGetImageTask(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 	}))
 	defer server.Close()
 
@@ -428,7 +428,7 @@ func TestImageAPIListImages(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 	}))
 	defer server.Close()
 
@@ -599,7 +599,7 @@ func TestImageAPIService_StartImage(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 		}))
 		defer server.Close()
 
@@ -653,7 +653,7 @@ func TestImageAPIService_StartImage(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 		}))
 		defer server.Close()
 
@@ -720,7 +720,7 @@ func TestImageAPIService_StartImage(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 		}))
 		defer server.Close()
 
@@ -795,7 +795,7 @@ func TestImageAPIService_StopImage(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 		}))
 		defer server.Close()
 
@@ -866,7 +866,7 @@ func TestImageAPIService_StopImage(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 		}))
 		defer server.Close()
 

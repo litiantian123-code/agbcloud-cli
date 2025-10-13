@@ -64,7 +64,7 @@ func TestLoginCommand(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response) // Ignore errors in test mock server
 	}))
 	defer mockServer.Close()
 
@@ -199,7 +199,7 @@ func TestLoginCommandErrorHandling(t *testing.T) {
 	// Create a mock server that returns an error
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal Server Error"))
+		_, _ = w.Write([]byte("Internal Server Error")) // Ignore errors in test mock server
 	}))
 	defer mockServer.Close()
 

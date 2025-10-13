@@ -26,7 +26,7 @@ func TestRetryMechanism(t *testing.T) {
 				return func(w http.ResponseWriter, r *http.Request) {
 					*attemptCount++
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("success"))
+					_, _ = w.Write([]byte("success")) // Ignore errors in test mock server
 				}
 			},
 			expectedAttempts: 1,
@@ -41,11 +41,11 @@ func TestRetryMechanism(t *testing.T) {
 					if *attemptCount == 1 {
 						// Simulate server error on first attempt (retryable)
 						w.WriteHeader(http.StatusInternalServerError)
-						w.Write([]byte("server error"))
+						_, _ = w.Write([]byte("server error")) // Ignore errors in test mock server
 						return
 					}
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("success"))
+					_, _ = w.Write([]byte("success")) // Ignore errors in test mock server
 				}
 			},
 			expectedAttempts: 2,
@@ -59,11 +59,11 @@ func TestRetryMechanism(t *testing.T) {
 					*attemptCount++
 					if *attemptCount <= 2 {
 						w.WriteHeader(http.StatusInternalServerError)
-						w.Write([]byte("server error"))
+						_, _ = w.Write([]byte("server error")) // Ignore errors in test mock server
 						return
 					}
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("success"))
+					_, _ = w.Write([]byte("success")) // Ignore errors in test mock server
 				}
 			},
 			expectedAttempts: 3,
@@ -76,7 +76,7 @@ func TestRetryMechanism(t *testing.T) {
 				return func(w http.ResponseWriter, r *http.Request) {
 					*attemptCount++
 					w.WriteHeader(http.StatusNotFound)
-					w.Write([]byte("not found"))
+					_, _ = w.Write([]byte("not found")) // Ignore errors in test mock server
 				}
 			},
 			expectedAttempts: 1,

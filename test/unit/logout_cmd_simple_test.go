@@ -126,7 +126,7 @@ func TestLogoutCommandSimple(t *testing.T) {
 			// Restore stdout and get output
 			w.Close()
 			os.Stdout = oldStdout
-			io.Copy(&buf, r)
+			_, _ = io.Copy(&buf, r) // Ignore errors in test helper
 			output := buf.String()
 
 			if err != nil {
@@ -184,7 +184,7 @@ func TestLogoutCommandNoConfig(t *testing.T) {
 	// Restore stdout and get output
 	w.Close()
 	os.Stdout = oldStdout
-	io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r) // Ignore errors in test helper
 	output := buf.String()
 
 	if err != nil {

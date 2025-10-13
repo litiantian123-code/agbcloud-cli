@@ -245,16 +245,19 @@ func setBody(body interface{}, contentType string) (bodyBuf *bytes.Buffer, err e
 		bodyBuf = &bytes.Buffer{}
 	}
 
-	if reader, ok := body.(io.Reader); ok {
-		_, err = bodyBuf.ReadFrom(reader)
-	} else if b, ok := body.([]byte); ok {
-		_, err = bodyBuf.Write(b)
-	} else if s, ok := body.(string); ok {
-		_, err = bodyBuf.WriteString(s)
-	} else if s, ok := body.(*string); ok {
-		_, err = bodyBuf.WriteString(*s)
-	} else if JsonCheck.MatchString(contentType) {
-		err = json.NewEncoder(bodyBuf).Encode(body)
+	switch v := body.(type) {
+	case io.Reader:
+		_, err = bodyBuf.ReadFrom(v)
+	case []byte:
+		_, err = bodyBuf.Write(v)
+	case string:
+		_, err = bodyBuf.WriteString(v)
+	case *string:
+		_, err = bodyBuf.WriteString(*v)
+	default:
+		if JsonCheck.MatchString(contentType) {
+			err = json.NewEncoder(bodyBuf).Encode(body)
+		}
 	}
 
 	if err != nil {
@@ -270,20 +273,17 @@ func setBody(body interface{}, contentType string) (bodyBuf *bytes.Buffer, err e
 
 // detectContentType method is used to figure out `Request.Body` content type for request header
 func detectContentType(body interface{}) string {
-	contentType := "text/plain; charset=utf-8"
-	switch body.(type) {
+	switch v := body.(type) {
 	case string:
-		// Already set to text/plain by default, no need to reassign
+		return "text/plain; charset=utf-8"
 	case []byte:
-		contentType = http.DetectContentType(body.([]byte))
+		return http.DetectContentType(v)
 	case map[string]interface{}, []interface{}:
-		contentType = "application/json; charset=utf-8"
+		return "application/json; charset=utf-8"
 	default:
 		// For any other type, assume JSON
-		contentType = "application/json; charset=utf-8"
+		return "application/json; charset=utf-8"
 	}
-
-	return contentType
 }
 
 // GenericOpenAPIError Provides access to the body, error and model on returned errors.

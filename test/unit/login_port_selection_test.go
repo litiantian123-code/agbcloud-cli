@@ -74,7 +74,7 @@ func TestLoginPortSelectionFlow(t *testing.T) {
 				}`
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(response))
+				_, _ = w.Write([]byte(response)) // Ignore errors in test mock server
 			}))
 			defer server.Close()
 
@@ -157,7 +157,7 @@ func TestLoginTranslateWithSelectedPort(t *testing.T) {
 		}`
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(response))
+		_, _ = w.Write([]byte(response)) // Ignore errors in test mock server
 	}))
 	defer server.Close()
 

@@ -96,7 +96,7 @@ func TestLogout(t *testing.T) {
 				// Return mock response
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(tt.mockStatusCode)
-				json.NewEncoder(w).Encode(tt.mockResponse)
+				_ = json.NewEncoder(w).Encode(tt.mockResponse) // Ignore errors in test mock server
 			}))
 			defer mockServer.Close()
 
