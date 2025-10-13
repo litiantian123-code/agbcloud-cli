@@ -192,9 +192,9 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 			"[ERROR] Both CPU and memory must be specified together",
 			"",
 			"[TOOL] Supported combinations:",
-			"  • 2c4g: --cpu 2 --memory 4",
-			"  • 4c8g: --cpu 4 --memory 8",
-			"  • 8c16g: --cpu 8 --memory 16",
+			"• 2c4g: --cpu 2 --memory 4",
+			"• 4c8g: --cpu 4 --memory 8",
+			"• 8c16g: --cpu 8 --memory 16",
 		)
 	}
 
@@ -211,9 +211,9 @@ func ValidateCPUMemoryCombo(cpu, memory int) error {
 			fmt.Sprintf("[ERROR] Invalid CPU/Memory combination: %dc%dg", cpu, memory),
 			"",
 			"[TOOL] Supported combinations:",
-			"  • 2c4g: --cpu 2 --memory 4",
-			"  • 4c8g: --cpu 4 --memory 8",
-			"  • 8c16g: --cpu 8 --memory 16",
+			"• 2c4g: --cpu 2 --memory 4",
+			"• 4c8g: --cpu 4 --memory 8",
+			"• 8c16g: --cpu 8 --memory 16",
 		)
 	}
 
