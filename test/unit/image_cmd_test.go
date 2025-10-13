@@ -4,6 +4,8 @@
 package unit
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"testing"
 
@@ -13,6 +15,22 @@ import (
 
 	"github.com/agbcloud/agbcloud-cli/cmd"
 )
+
+// captureStderr temporarily redirects stderr to capture output during tests
+func captureStderr(f func()) string {
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	f()
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	return buf.String()
+}
 
 func TestImageCommand(t *testing.T) {
 	// Test that image command exists and has correct structure
@@ -158,13 +176,18 @@ func TestImageCreateCommandArgumentValidation(t *testing.T) {
 	require.NotNil(t, createCmd, "create command should exist")
 
 	// Test missing argument
-	err := createCmd.Args(createCmd, []string{})
+	var err error
+	captureStderr(func() {
+		err = createCmd.Args(createCmd, []string{})
+	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Missing required argument: <image-name>")
 	assert.Contains(t, err.Error(), "Short form:")
 
 	// Test too many arguments
-	err = createCmd.Args(createCmd, []string{"image1", "image2"})
+	captureStderr(func() {
+		err = createCmd.Args(createCmd, []string{"image1", "image2"})
+	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Too many arguments provided")
 
@@ -258,11 +281,16 @@ If no CPU/memory is specified, default resources will be used.`
 	assert.Equal(t, "0", memoryFlag.DefValue)
 
 	// Test argument validation
-	err := activateCmd.Args(activateCmd, []string{})
+	var err error
+	captureStderr(func() {
+		err = activateCmd.Args(activateCmd, []string{})
+	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Missing required argument: <image-id>")
 
-	err = activateCmd.Args(activateCmd, []string{"img-123", "extra-arg"})
+	captureStderr(func() {
+		err = activateCmd.Args(activateCmd, []string{"img-123", "extra-arg"})
+	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Too many arguments provided")
 
@@ -299,13 +327,18 @@ func TestImageDeactivateCommandArgumentValidation(t *testing.T) {
 	require.NotNil(t, deactivateCmd, "deactivate command should exist")
 
 	// Test missing argument
-	err := deactivateCmd.Args(deactivateCmd, []string{})
+	var err error
+	captureStderr(func() {
+		err = deactivateCmd.Args(deactivateCmd, []string{})
+	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Missing required argument: <image-id>")
 	assert.Contains(t, err.Error(), "Usage: agbcloud image deactivate <image-id>")
 
 	// Test too many arguments
-	err = deactivateCmd.Args(deactivateCmd, []string{"image1", "image2"})
+	captureStderr(func() {
+		err = deactivateCmd.Args(deactivateCmd, []string{"image1", "image2"})
+	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Too many arguments provided")
 
