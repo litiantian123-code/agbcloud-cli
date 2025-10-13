@@ -26,7 +26,7 @@ func captureStderrErr(f func()) string {
 	os.Stderr = oldStderr
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r) // Ignore errors in test helper
 	return buf.String()
 }
 

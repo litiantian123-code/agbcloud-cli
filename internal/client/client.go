@@ -272,16 +272,15 @@ func setBody(body interface{}, contentType string) (bodyBuf *bytes.Buffer, err e
 func detectContentType(body interface{}) string {
 	contentType := "text/plain; charset=utf-8"
 	switch body.(type) {
-	case map[string]interface{}, []interface{}, interface{}:
-		contentType = "application/json; charset=utf-8"
 	case string:
-		contentType = "text/plain; charset=utf-8"
+		// Already set to text/plain by default, no need to reassign
+	case []byte:
+		contentType = http.DetectContentType(body.([]byte))
+	case map[string]interface{}, []interface{}:
+		contentType = "application/json; charset=utf-8"
 	default:
-		if b, ok := body.([]byte); ok {
-			contentType = http.DetectContentType(b)
-		} else {
-			contentType = "application/json; charset=utf-8"
-		}
+		// For any other type, assume JSON
+		contentType = "application/json; charset=utf-8"
 	}
 
 	return contentType

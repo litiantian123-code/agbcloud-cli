@@ -40,9 +40,6 @@ func getNewline() string {
 	return "\n"
 }
 
-// nl is a convenience variable for newline
-var nl = getNewline()
-
 var ImageCmd = &cobra.Command{
 	Use:     "image",
 	Short:   "Manage images",

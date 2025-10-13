@@ -56,7 +56,11 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 		// Return success page
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(GetSuccessHTML()))
+		if _, writeErr := w.Write([]byte(GetSuccessHTML())); writeErr != nil {
+			// Log the error but don't fail the authentication
+			// The code has already been captured successfully
+			err = fmt.Errorf("warning: failed to write success page: %w", writeErr)
+		}
 
 		// Delay server close to ensure browser receives the success page
 		go func() {

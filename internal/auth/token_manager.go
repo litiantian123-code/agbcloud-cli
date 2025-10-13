@@ -44,13 +44,13 @@ func RefreshTokenIfNeeded(ctx context.Context) error {
 		cfg.Token.SessionId)
 	if err != nil {
 		// If refresh fails, clear the tokens
-		cfg.ClearTokens()
+		_ = cfg.ClearTokens() // Ignore error as we're already returning the refresh error
 		return fmt.Errorf("use 'agbcloud-cli login' to reauthenticate: %w", err)
 	}
 
 	if !response.Success {
 		// If refresh fails, clear the tokens
-		cfg.ClearTokens()
+		_ = cfg.ClearTokens() // Ignore error as we're already returning the refresh error
 		return fmt.Errorf("use 'agbcloud-cli login' to reauthenticate: refresh failed with code %s", response.Code)
 	}
 

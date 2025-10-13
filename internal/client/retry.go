@@ -76,8 +76,10 @@ func IsRetryableError(err error) bool {
 	}
 
 	// Check for specific error types
+	// Note: netErr.Temporary() is deprecated since Go 1.18
+	// We rely on string matching and timeout checks instead
 	if netErr, ok := err.(net.Error); ok {
-		return netErr.Temporary() || netErr.Timeout()
+		return netErr.Timeout()
 	}
 
 	// Check for syscall errors
@@ -189,7 +191,7 @@ func (r *RetryableHTTPClient) Do(req *http.Request) (*http.Response, error) {
 
 		select {
 		case <-time.After(delay):
-			// Continue to next attempt
+			// Delay elapsed, continue to next attempt
 		case <-req.Context().Done():
 			return nil, req.Context().Err()
 		}
