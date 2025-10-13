@@ -43,7 +43,7 @@ func TestRefreshToken(t *testing.T) {
 			// Return mock successful response
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"success": true,
 				"code": "SUCCESS",
 				"requestId": "test-request-id",
@@ -55,7 +55,7 @@ func TestRefreshToken(t *testing.T) {
 					"keepAliveToken": "new_keep_alive_token_abcde",
 					"expiresAt": "2025-09-05T20:51:07Z"
 				}
-			}`))
+			}`)) // Ignore errors in test mock server
 		}))
 		defer server.Close()
 
@@ -158,14 +158,14 @@ func TestRefreshToken(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"success": false,
 				"code": "INVALID_TOKEN",
 				"requestId": "test-request-id",
 				"traceId": "test-trace-id",
 				"httpStatusCode": 401,
 				"message": "Invalid or expired tokens"
-			}`))
+			}`)) // Ignore errors in test mock server
 		}))
 		defer server.Close()
 

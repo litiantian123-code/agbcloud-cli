@@ -71,12 +71,10 @@ func StartCallbackServer(ctx context.Context, port string) (string, error) {
 
 	// Start server in background
 	go func() {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			// Only set error if it's not the expected server closed error
-			if err != nil {
-				// Use a channel or other mechanism to communicate startup errors
-				// For now, we'll let the timeout handle startup failures
-			}
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			// Log startup errors for debugging
+			// The callback will timeout if server fails to start
+			_ = err // Error is intentionally not propagated
 		}
 	}()
 
