@@ -1,0 +1,259 @@
+name: Push to Homebrew Tap
+
+# 支持手动触发，带有参数控制是否执行推送
+on:
+  workflow_dispatch:
+    inputs:
+      push_to_tap:
+        description: 'Push rb file to homebrew-agb repository (true/false)'
+        required: true
+        type: boolean
+        default: false
+      version:
+        description: 'Version for the Formula (optional, will use latest tag if not provided)'
+        required: false
+        type: string
+        default: ''
+
+# 权限设置
+permissions:
+  contents: read
+  actions: read
+
+# 环境变量
+env:
+  HOMEBREW_TAP_REPO: 'homebrew-agb'  # 目标仓库名称
+  SOURCE_RB_PATH: 'homebrew/agb.rb'  # 源rb文件路径
+  TARGET_RB_PATH: 'Formula/agb.rb'   # 目标rb文件路径
+
+jobs:
+  push-to-homebrew-tap:
+    name: Push Formula to Homebrew Tap
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    # 只有当参数为true时才执行
+    if: ${{ github.event.inputs.push_to_tap == 'true' }}
+    
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git configuration
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Validate source rb file
+        run: |
+          echo "Checking source rb file..."
+          if [[ ! -f "${{ env.SOURCE_RB_PATH }}" ]]; then
+            echo "❌ Source rb file not found: ${{ env.SOURCE_RB_PATH }}"
+            exit 1
+          fi
+          
+          echo "✅ Source rb file found: ${{ env.SOURCE_RB_PATH }}"
+          echo "File content preview:"
+          head -10 "${{ env.SOURCE_RB_PATH }}"
+
+      - name: Determine version
+        id: version
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            echo "Validating input version: $INPUT_VERSION"
+            
+            # 验证版本是否在GitHub releases中存在
+            RELEASE_EXISTS=$(gh api repos/${{ github.repository }}/releases/tags/v$INPUT_VERSION --silent 2>/dev/null && echo "true" || echo "false")
+            
+            if [[ "$RELEASE_EXISTS" == "true" ]]; then
+              VERSION="$INPUT_VERSION"
+              echo "✅ Version v$VERSION found in releases"
+            else
+              echo "❌ Version v$INPUT_VERSION not found in GitHub releases"
+              echo "Available releases:"
+              gh api repos/${{ github.repository }}/releases --jq '.[].tag_name' | head -10
+              exit 1
+            fi
+          else
+            # 从rb文件中读取当前版本号
+            echo "Reading version from rb file: ${{ env.SOURCE_RB_PATH }}"
+            
+            if [[ ! -f "${{ env.SOURCE_RB_PATH }}" ]]; then
+              echo "❌ Source rb file not found: ${{ env.SOURCE_RB_PATH }}"
+              exit 1
+            fi
+            
+            # 从rb文件中提取版本号 (寻找 url "...v1.2.3.tar.gz" 格式)
+            VERSION=$(grep -o 'tags/v[0-9]\+\.[0-9]\+\.[0-9]\+' "${{ env.SOURCE_RB_PATH }}" | head -1 | sed 's/tags\/v//')
+            
+            if [[ -z "$VERSION" ]]; then
+              echo "❌ Could not extract version from rb file"
+              echo "Rb file content:"
+              cat "${{ env.SOURCE_RB_PATH }}"
+              exit 1
+            fi
+            
+            echo "✅ Using version from rb file: $VERSION"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Final version: $VERSION"
+
+      - name: Update rb file with current version
+        # 只有当用户手动输入了版本号时才执行更新操作
+        if: ${{ github.event.inputs.version != '' }}
+        run: |
+          echo "Updating rb file with version $VERSION..."
+          
+          # 创建临时文件来更新版本信息
+          cp "${{ env.SOURCE_RB_PATH }}" /tmp/agb.rb.tmp
+          
+          # 更新版本号（如果rb文件中有版本信息）
+          sed -i "s/version \"[^\"]*\"/version \"$VERSION\"/g" /tmp/agb.rb.tmp
+          
+          # 更新URL中的版本标签
+          sed -i "s|/tags/v[^/]*/|/tags/v$VERSION/|g" /tmp/agb.rb.tmp
+          
+          echo "Updated rb file content:"
+          echo "========================"
+          cat /tmp/agb.rb.tmp
+          echo "========================"
+
+      - name: Use existing rb file (no version update)
+        # 当用户没有输入版本号时，直接使用现有的rb文件
+        if: ${{ github.event.inputs.version == '' }}
+        run: |
+          echo "Using existing rb file without version update..."
+          echo "Version will be read from existing rb file: $VERSION"
+          
+          # 直接复制现有的rb文件
+          cp "${{ env.SOURCE_RB_PATH }}" /tmp/agb.rb.tmp
+          
+          echo "Existing rb file content:"
+          echo "========================"
+          cat /tmp/agb.rb.tmp
+          echo "========================"
+
+      - name: Clone or create homebrew-agb repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          echo "Cloning homebrew-agb repository..."
+          echo "Repository URL: https://github.com/agbcloud/${{ env.HOMEBREW_TAP_REPO }}.git"
+          
+          # 克隆目标仓库
+          git clone "https://x-access-token:${{ secrets.HOMEBREW_TAP_TOKEN }}@github.com/agbcloud/${{ env.HOMEBREW_TAP_REPO }}.git" homebrew-tap
+          
+          echo "✅ Successfully cloned homebrew-agb repository"
+          
+          # 显示仓库信息
+          cd homebrew-tap
+          echo "Current branch: $(git branch --show-current)"
+          echo "Repository structure:"
+          ls -la
+          cd ..
+
+      - name: Update Formula in homebrew-agb repository
+        run: |
+          echo "Updating Formula in homebrew-agb repository..."
+          
+          cd homebrew-tap
+          
+          # 检查Formula目录是否存在
+          if [[ -d "Formula" ]]; then
+            echo "✅ Formula directory already exists"
+          else
+            echo "📁 Formula directory not found, creating it..."
+            mkdir -p Formula
+            echo "✅ Formula directory created successfully"
+          fi
+          
+          # 验证Formula目录确实存在
+          if [[ ! -d "Formula" ]]; then
+            echo "❌ Failed to create Formula directory"
+            exit 1
+          fi
+          
+          # 复制更新后的rb文件到目标位置
+          cp /tmp/agb.rb.tmp "${{ env.TARGET_RB_PATH }}"
+          
+          echo "✅ Formula file updated at ${{ env.TARGET_RB_PATH }}"
+          
+          # 显示文件内容确认
+          echo "Updated Formula content:"
+          echo "========================"
+          cat "${{ env.TARGET_RB_PATH }}"
+          echo "========================"
+
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          cd homebrew-tap
+          
+          echo "📝 Preparing to commit and push Formula file..."
+          
+          # 添加变更（无论是否有实际变更）
+          git add "${{ env.TARGET_RB_PATH }}"
+          
+          # 创建提交信息
+          COMMIT_MSG="Update agb formula to version $VERSION
+          
+          - Updated from source repository: ${{ github.repository }}
+          - Source file: ${{ env.SOURCE_RB_PATH }}
+          - Target file: ${{ env.TARGET_RB_PATH }}
+          - Triggered by: ${{ github.actor }}
+          - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          
+          # 提交变更（允许空提交）
+          git commit -m "$COMMIT_MSG" --allow-empty
+          echo "✅ Formula committed successfully"
+          
+          # 推送到远程仓库
+          echo "Pushing changes to homebrew-agb repository..."
+          if git push origin main 2>/dev/null || git push origin master 2>/dev/null; then
+            echo "✅ Successfully pushed Formula to homebrew-agb repository"
+          else
+            echo "⚠️ Failed to push to existing branch, trying to create new branch..."
+            git push -u origin HEAD:main
+            echo "✅ Successfully created and pushed to main branch"
+          fi
+
+      - name: Summary
+        run: |
+          echo ""
+          echo "🎉 Formula push completed successfully!"
+          echo ""
+          echo "📋 Summary:"
+          echo "  - Source repository: ${{ github.repository }}"
+          echo "  - Target repository: agbcloud/${{ env.HOMEBREW_TAP_REPO }}"
+          echo "  - Formula version: $VERSION"
+          echo "  - Source file: ${{ env.SOURCE_RB_PATH }}"
+          echo "  - Target file: ${{ env.TARGET_RB_PATH }}"
+          echo ""
+          echo "🍺 Users can now install with:"
+          echo "  brew tap agbcloud/${{ env.HOMEBREW_TAP_REPO }}"
+          echo "  brew install agb"
+          echo ""
+          echo "🔗 Repository URL:"
+          echo "  https://github.com/agbcloud/${{ env.HOMEBREW_TAP_REPO }}"
+
+  # 当参数为false时显示跳过信息
+  skip-push:
+    name: Skip Push (Parameter is false)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.push_to_tap != 'true' }}
+    
+    steps:
+      - name: Skip message
+        run: |
+          echo "⏭️ Skipping push to agbcloud-homebrew repository"
+          echo "   Reason: push_to_tap parameter is set to '${{ github.event.inputs.push_to_tap }}'"
+          echo "   To enable push, set the parameter to 'true' when running this workflow manually"
