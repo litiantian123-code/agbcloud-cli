@@ -4,13 +4,31 @@
 package unit
 
 import (
+	"bytes"
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/agbcloud/agbcloud-cli/cmd"
 )
+
+// captureStderrErr temporarily redirects stderr to capture output during tests
+func captureStderrErr(f func()) string {
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	f()
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	return buf.String()
+}
 
 func TestErrorMessageFormatting(t *testing.T) {
 	// Get expected newline for current platform
@@ -54,7 +72,10 @@ func TestErrorMessageFormatting(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.testFunc()
+			var err error
+			captureStderrErr(func() {
+				err = tt.testFunc()
+			})
 			if err == nil {
 				t.Fatal("Expected error but got nil")
 			}
@@ -101,7 +122,10 @@ func TestValidateCPUMemoryCombo_ValidCombinations(t *testing.T) {
 
 	for _, combo := range validCombos {
 		t.Run(fmt.Sprintf("%dc%dg", combo.cpu, combo.memory), func(t *testing.T) {
-			err := cmd.ValidateCPUMemoryCombo(combo.cpu, combo.memory)
+			var err error
+			captureStderrErr(func() {
+				err = cmd.ValidateCPUMemoryCombo(combo.cpu, combo.memory)
+			})
 			if err != nil {
 				t.Errorf("Expected valid combination %dc%dg to pass, got error: %v", combo.cpu, combo.memory, err)
 			}
@@ -111,7 +135,10 @@ func TestValidateCPUMemoryCombo_ValidCombinations(t *testing.T) {
 
 func TestPlatformSpecificNewlines(t *testing.T) {
 	// This test verifies that our newline handling works correctly on different platforms
-	err := cmd.ValidateCPUMemoryCombo(2, 0)
+	var err error
+	captureStderrErr(func() {
+		err = cmd.ValidateCPUMemoryCombo(2, 0)
+	})
 	if err == nil {
 		t.Fatal("Expected error but got nil")
 	}

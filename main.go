@@ -14,7 +14,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:               "agbcloud",
+	Use:               "agb",
 	Short:             "AgbCloud CLI",
 	Long:              "Command line interface for AgbCloud services",
 	DisableAutoGenTag: true,
@@ -38,7 +38,7 @@ func init() {
 
 	// Global flags
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
-	rootCmd.PersistentFlags().BoolP("help", "", false, "help for agbcloud")
+	rootCmd.PersistentFlags().BoolP("help", "", false, "help for agb")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Enable verbose output")
 	rootCmd.Flags().BoolP("version", "", false, "Display the version of AgbCloud CLI")
 

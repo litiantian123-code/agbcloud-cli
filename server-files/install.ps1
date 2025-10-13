@@ -58,10 +58,10 @@ $baseUrl = if ($DownloadUrl) {
 
 $destination = if ($InstallPath) { 
     $InstallPath 
-} elseif ($env:AGBCLOUD_PATH) { 
-    $env:AGBCLOUD_PATH 
-} else { 
-    "$env:APPDATA\bin\agbcloud" 
+} elseif ($env:AGBCLOUD_PATH) {
+    $env:AGBCLOUD_PATH
+} else {
+    "$env:APPDATA\bin\agb" 
 }
 
 # Get latest version if needed
@@ -80,7 +80,7 @@ if ($version -eq "latest") {
     }
 }
 
-$downloadUrl = "$baseUrl/agbcloud-$version-windows-$Architecture.exe"
+$downloadUrl = "$baseUrl/agb-$version-windows-$Architecture.exe"
 
 Write-Host "[INFO] Installing AgbCloud CLI..."
 Write-Host ""
@@ -110,7 +110,7 @@ try {
 }
 
 # File to download
-$outputFile = "$destination\agbcloud.exe"
+$outputFile = "$destination\agb.exe"
 
 # Check if already installed and get current version
 $upgrading = $false
@@ -121,7 +121,7 @@ if (Test-Path $outputFile) {
             Write-Host "[SUCCESS] AgbCloud CLI $version is already installed!"
             Write-Host "   Location: $outputFile"
             Write-Host ""
-            Write-Host "[INFO] You're all set! Use 'agbcloud --help' to get started."
+            Write-Host "[INFO] You're all set! Use 'agb --help' to get started."
             exit 0
         } else {
             Write-Host "[INFO] Upgrading from $currentVersion to $version"
@@ -243,13 +243,13 @@ try {
     Write-Host "   Location: $outputFile"
     Write-Host ""
     Write-Host "Quick Start:"
-    Write-Host "   agbcloud --help          # Show help (note: 'agbcloud' not 'abgcloud')"
-    Write-Host "   agbcloud version         # Show version"
-    Write-Host "   agbcloud login           # Login to AgbCloud"
+    Write-Host "   agb --help          # Show help"
+Write-Host "   agb version         # Show version"
+Write-Host "   agb login           # Login to AgbCloud"
     Write-Host ""
     Write-Host "Important Notes:"
-    Write-Host "   * The command is 'agbcloud' (not 'abgcloud')"
-    Write-Host "   * If 'agbcloud' command not found, restart your terminal"
+    Write-Host "   * The command is 'agb'"
+Write-Host "   * If 'agb' command not found, restart your terminal"
     Write-Host "   * Or run directly: $outputFile"
     Write-Host ""
     Write-Host "Documentation: https://docs.agbcloud.com"

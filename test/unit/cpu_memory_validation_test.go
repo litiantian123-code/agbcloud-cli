@@ -4,11 +4,29 @@
 package unit
 
 import (
+	"bytes"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/agbcloud/agbcloud-cli/cmd"
 )
+
+// captureStderr temporarily redirects stderr to capture output during tests
+func captureStderrCPU(f func()) string {
+	oldStderr := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+
+	f()
+
+	w.Close()
+	os.Stderr = oldStderr
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	return buf.String()
+}
 
 func TestValidateCPUMemoryCombo(t *testing.T) {
 	tests := []struct {
@@ -88,7 +106,10 @@ func TestValidateCPUMemoryCombo(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := cmd.ValidateCPUMemoryCombo(tt.cpu, tt.memory)
+			var err error
+			captureStderrCPU(func() {
+				err = cmd.ValidateCPUMemoryCombo(tt.cpu, tt.memory)
+			})
 
 			if tt.expectError {
 				if err == nil {
