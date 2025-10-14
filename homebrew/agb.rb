@@ -1,10 +1,10 @@
 class Agb < Formula
   desc "Secure infrastructure for running AI-generated code"
-  homepage "https://github.com/litiantian123-code/agbcloud-cli"
-  url "https://github.com/litiantian123-code/agbcloud-cli/archive/refs/tags/v1.1.8.tar.gz"
-  sha256 "840e53aa57a6aadb6da77ee9f3bd58cd0bee6b999d544215e9df5ee1e5563833"
+  homepage "https://github.com/agbcloud/agbcloud-cli"
+  url "https://github.com/agbcloud/agbcloud-cli/archive/refs/tags/v0.1.0.tar.gz"
+  sha256 "edd04b46f1c72693935edf2c8fbeba2b3ca1a66dfca3da150235012d29a0b42b"
   license "MIT"
-  head "https://github.com/litiantian123-code/agbcloud-cli.git", branch: "main"
+  head "https://github.com/agbcloud/agbcloud-cli.git", branch: "main"
 
   depends_on "go" => :build
 
