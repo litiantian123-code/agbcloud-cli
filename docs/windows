@@ -6,28 +6,56 @@ $Architecture = ""
 $InstallPath = ""
 $Help = $false
 
+# Debug: Show all arguments received
+Write-Host "[DEBUG] Script arguments received: $($args -join ' ')" -ForegroundColor Yellow
+
 for ($i = 0; $i -lt $args.Length; $i++) {
     switch ($args[$i]) {
         "-Version" { 
             if ($i + 1 -lt $args.Length) { 
-                $Version = $args[++$i] 
+                $Version = $args[++$i]
+                Write-Host "[DEBUG] Version parameter set to: '$Version'" -ForegroundColor Yellow
+            } else {
+                Write-Host "[WARN] -Version parameter provided but no value specified" -ForegroundColor Red
             }
         }
         "-Architecture" { 
             if ($i + 1 -lt $args.Length) { 
-                $Architecture = $args[++$i] 
+                $Architecture = $args[++$i]
+                Write-Host "[DEBUG] Architecture parameter set to: '$Architecture'" -ForegroundColor Yellow
+            } else {
+                Write-Host "[WARN] -Architecture parameter provided but no value specified" -ForegroundColor Red
             }
         }
         "-InstallPath" { 
             if ($i + 1 -lt $args.Length) { 
-                $InstallPath = $args[++$i] 
+                $InstallPath = $args[++$i]
+                Write-Host "[DEBUG] InstallPath parameter set to: '$InstallPath'" -ForegroundColor Yellow
+            } else {
+                Write-Host "[WARN] -InstallPath parameter provided but no value specified" -ForegroundColor Red
             }
         }
         "-Help" { 
-            $Help = $true 
+            $Help = $true
+            Write-Host "[DEBUG] Help parameter set" -ForegroundColor Yellow
+        }
+        default {
+            # Handle cases where arguments might not have dashes
+            if ($args[$i] -match "^v?\d+\.\d+\.\d+" -and -not $Version) {
+                $Version = $args[$i]
+                Write-Host "[DEBUG] Version detected from argument: '$Version'" -ForegroundColor Yellow
+            }
         }
     }
 }
+
+# Additional debug info
+Write-Host "[DEBUG] Final parsed values:" -ForegroundColor Yellow
+Write-Host "[DEBUG]   Version: '$Version'" -ForegroundColor Yellow
+Write-Host "[DEBUG]   Architecture: '$Architecture'" -ForegroundColor Yellow
+Write-Host "[DEBUG]   InstallPath: '$InstallPath'" -ForegroundColor Yellow
+Write-Host "[DEBUG]   Help: $Help" -ForegroundColor Yellow
+Write-Host ""
 
 # Show help information
 if ($Help) {
@@ -87,13 +115,23 @@ Write-Host "[INFO] Installing AgbCloud CLI..."
 Write-Host ""
 
 # Determine version with parameter priority
+Write-Host "[DEBUG] Determining version to install..." -ForegroundColor Yellow
+Write-Host "[DEBUG]   Parsed Version parameter: '$Version'" -ForegroundColor Yellow
+Write-Host "[DEBUG]   Environment AGBCLOUD_VERSION: '$($env:AGBCLOUD_VERSION)'" -ForegroundColor Yellow
+
 $version = if ($Version) { 
+    Write-Host "[DEBUG] Using Version parameter: '$Version'" -ForegroundColor Green
     $Version 
 } elseif ($env:AGBCLOUD_VERSION) { 
+    Write-Host "[DEBUG] Using environment variable AGBCLOUD_VERSION: '$($env:AGBCLOUD_VERSION)'" -ForegroundColor Green
     $env:AGBCLOUD_VERSION 
 } else { 
+    Write-Host "[DEBUG] No version specified, defaulting to 'latest'" -ForegroundColor Green
     "latest"  # Default to latest version
 }
+
+Write-Host "[DEBUG] Final version decision: '$version'" -ForegroundColor Yellow
+Write-Host ""
 
 # Get latest version if needed
 if ($version -eq "latest") {
