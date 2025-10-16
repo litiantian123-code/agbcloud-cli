@@ -1,6 +1,6 @@
 # PowerShell script to download and install AgbCloud CLI binary from GitHub Releases
 
-# Parse command line arguments from $args
+# Parse command line arguments from $args and script content
 $Version = ""
 $Architecture = ""
 $InstallPath = ""
@@ -9,12 +9,13 @@ $Help = $false
 # Debug: Show all arguments received
 Write-Host "[DEBUG] Script arguments received: $($args -join ' ')" -ForegroundColor Yellow
 
+# Parse from $args first (traditional method)
 for ($i = 0; $i -lt $args.Length; $i++) {
     switch ($args[$i]) {
         "-Version" { 
             if ($i + 1 -lt $args.Length) { 
                 $Version = $args[++$i]
-                Write-Host "[DEBUG] Version parameter set to: '$Version'" -ForegroundColor Yellow
+                Write-Host "[DEBUG] Version parameter set from args: '$Version'" -ForegroundColor Yellow
             } else {
                 Write-Host "[WARN] -Version parameter provided but no value specified" -ForegroundColor Red
             }
@@ -22,7 +23,7 @@ for ($i = 0; $i -lt $args.Length; $i++) {
         "-Architecture" { 
             if ($i + 1 -lt $args.Length) { 
                 $Architecture = $args[++$i]
-                Write-Host "[DEBUG] Architecture parameter set to: '$Architecture'" -ForegroundColor Yellow
+                Write-Host "[DEBUG] Architecture parameter set from args: '$Architecture'" -ForegroundColor Yellow
             } else {
                 Write-Host "[WARN] -Architecture parameter provided but no value specified" -ForegroundColor Red
             }
@@ -30,14 +31,14 @@ for ($i = 0; $i -lt $args.Length; $i++) {
         "-InstallPath" { 
             if ($i + 1 -lt $args.Length) { 
                 $InstallPath = $args[++$i]
-                Write-Host "[DEBUG] InstallPath parameter set to: '$InstallPath'" -ForegroundColor Yellow
+                Write-Host "[DEBUG] InstallPath parameter set from args: '$InstallPath'" -ForegroundColor Yellow
             } else {
                 Write-Host "[WARN] -InstallPath parameter provided but no value specified" -ForegroundColor Red
             }
         }
         "-Help" { 
             $Help = $true
-            Write-Host "[DEBUG] Help parameter set" -ForegroundColor Yellow
+            Write-Host "[DEBUG] Help parameter set from args" -ForegroundColor Yellow
         }
         default {
             # Handle cases where arguments might not have dashes
@@ -46,6 +47,44 @@ for ($i = 0; $i -lt $args.Length; $i++) {
                 Write-Host "[DEBUG] Version detected from argument: '$Version'" -ForegroundColor Yellow
             }
         }
+    }
+}
+
+# If no parameters found in $args, try to parse from script content itself
+# This handles the case where parameters are appended to script content
+if (-not $Version -and -not $Architecture -and -not $InstallPath -and -not $Help) {
+    Write-Host "[DEBUG] No parameters found in args, checking script content..." -ForegroundColor Yellow
+    
+    # Get the current script content (this is a bit tricky, but we can use MyInvocation)
+    try {
+        # Try to get the last line of the script execution context
+        $scriptContent = $MyInvocation.MyCommand.ScriptContents
+        if ($scriptContent) {
+            Write-Host "[DEBUG] Checking script content for appended parameters..." -ForegroundColor Yellow
+            
+            # Look for parameters at the end of the script content
+            if ($scriptContent -match '\s+-Version\s+([^\s]+)') {
+                $Version = $matches[1]
+                Write-Host "[DEBUG] Version parameter found in script content: '$Version'" -ForegroundColor Green
+            }
+            
+            if ($scriptContent -match '\s+-Architecture\s+([^\s]+)') {
+                $Architecture = $matches[1]
+                Write-Host "[DEBUG] Architecture parameter found in script content: '$Architecture'" -ForegroundColor Green
+            }
+            
+            if ($scriptContent -match '\s+-InstallPath\s+([^\s]+)') {
+                $InstallPath = $matches[1]
+                Write-Host "[DEBUG] InstallPath parameter found in script content: '$InstallPath'" -ForegroundColor Green
+            }
+            
+            if ($scriptContent -match '\s+-Help\b') {
+                $Help = $true
+                Write-Host "[DEBUG] Help parameter found in script content" -ForegroundColor Green
+            }
+        }
+    } catch {
+        Write-Host "[DEBUG] Could not parse script content: $($_.Exception.Message)" -ForegroundColor Yellow
     }
 }
 
