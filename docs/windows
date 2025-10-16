@@ -15,7 +15,7 @@ if ($Help) {
     Write-Host "  powershell -Command `"irm https://agbcloud.github.io/agbcloud-cli/windows | iex`""
     Write-Host ""
     Write-Host "Options:"
-    Write-Host "  -Version <version>      Specify version to install (e.g., 'v0.1.0', 'latest')"
+    Write-Host "  -Version <version>      Specify version to install (e.g., 'v1.0.0', 'latest')"
     Write-Host "  -Architecture <arch>    Specify architecture ('amd64' or 'arm64')"
     Write-Host "  -InstallPath <path>     Specify custom installation directory"
     Write-Host "  -Help                   Show this help message"
@@ -26,7 +26,7 @@ if ($Help) {
     Write-Host ""
     Write-Host "Examples:"
     Write-Host "  powershell -Command `"irm https://agbcloud.github.io/agbcloud-cli/windows | iex`""
-    Write-Host "  powershell -Command `"irm https://agbcloud.github.io/agbcloud-cli/windows| iex`" -Version v0.1.0"
+    Write-Host "  powershell -Command `"irm https://agbcloud.github.io/agbcloud-cli/windows| iex`" -Version v1.0.0"
     exit 0
 }
 
@@ -77,31 +77,30 @@ if ($version -eq "latest") {
     } catch {
         Write-Host "[WARN] Could not fetch latest version, trying to get available releases..."
         try {
-            # Try to get all releases and pick the best available version
+            # Try to get all releases and pick the latest available version
+            Write-Host "[INFO] Trying to fetch all releases..."
             $allReleases = Invoke-RestMethod -Uri "$githubApiUrl/releases" -UseBasicParsing -ErrorAction Stop
             if ($allReleases -and $allReleases.Count -gt 0) {
-                if ($allReleases.Count -eq 1) {
-                    # Only one release available, use it
-                    $version = $allReleases[0].tag_name
-                    Write-Host "[INFO] Using the only available version: $version"
-                } else {
-                    # Multiple releases available, use the second latest (more stable)
-                    $version = $allReleases[1].tag_name
-                    Write-Host "[INFO] Using second latest version for stability: $version"
-                }
+                # Always use the latest (first) release
+                $version = $allReleases[0].tag_name
+                Write-Host "[INFO] Found $($allReleases.Count) release(s), using latest: $version"
             } else {
-                Write-Host "[WARN] No releases found in repository, using fallback v0.1.0"
-                $version = "v0.1.0"
+                Write-Host "[WARN] No releases found in repository, using fallback v1.0.0"
+                $version = "v1.0.0"
             }
         } catch {
-            Write-Host "[WARN] Could not fetch any release information, using fallback v0.1.0"
-            $version = "v0.1.0"
+            Write-Host "[ERROR] Could not fetch release information: $($_.Exception.Message)"
+            Write-Host "[INFO] API URL attempted: $githubApiUrl/releases"
+            Write-Host "[WARN] Using fallback version v1.0.0"
+            $version = "v1.0.0"
         }
     }
 }
 
 # Construct download URL
-$binaryName = "agb-$version-windows-$Architecture.exe"
+# Remove 'v' prefix from version for binary name, but keep original version for download tag
+$versionForBinary = $version.TrimStart('v')
+$binaryName = "agb-$versionForBinary-windows-$Architecture.exe"
 $downloadUrl = "https://github.com/$repoOwner/$repoName/releases/download/$version/$binaryName"
 
 # Display installation info
@@ -142,7 +141,7 @@ if (Test-Path $outputFile) {
                 Write-Host "[INFO] You're all set! Use 'agb --help' to get started."
                 exit 0
             } else {
-                Write-Host "[INFO] Upgrading from v$currentVersion to $version"
+                Write-Host "[INFO] Upgrading from $currentVersion to $version"
                 $upgrading = $true
             }
         } else {
@@ -178,7 +177,7 @@ try {
     Write-Host "Troubleshooting:"
     Write-Host "   1. Check your internet connection"
     Write-Host "   2. Verify the version exists: https://github.com/$repoOwner/$repoName/releases"
-    Write-Host "   3. Try a different version: -Version v0.1.0"
+    Write-Host "   3. Try a different version: -Version v1.0.0"
     Write-Host "   4. Check if the architecture is correct: -Architecture amd64"
     exit 1
 }

@@ -45,12 +45,13 @@ jobs:
           sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" docs/windows
           
           # Update version in install script if this is a tag
+          echo "GitHub ref type: ${{ github.ref_type }}"
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             VERSION="${{ github.ref_name }}"
             echo "Updating version to: $VERSION"
             
             # Update the default version in the install script
-            sed -i "s/v0\.1\.0/$VERSION/g" docs/windows
+            sed -i "s/1\.0\.0/$VERSION/g" docs/windows
             
             # Update latest.json with current version
             cat > docs/latest.json << EOF
