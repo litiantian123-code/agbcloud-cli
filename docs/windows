@@ -1,11 +1,33 @@
 # PowerShell script to download and install AgbCloud CLI binary from GitHub Releases
 
-param(
-    [string]$Version = "",
-    [string]$Architecture = "",
-    [string]$InstallPath = "",
-    [switch]$Help
-)
+# Parse command line arguments from $args
+$Version = ""
+$Architecture = ""
+$InstallPath = ""
+$Help = $false
+
+for ($i = 0; $i -lt $args.Length; $i++) {
+    switch ($args[$i]) {
+        "-Version" { 
+            if ($i + 1 -lt $args.Length) { 
+                $Version = $args[++$i] 
+            }
+        }
+        "-Architecture" { 
+            if ($i + 1 -lt $args.Length) { 
+                $Architecture = $args[++$i] 
+            }
+        }
+        "-InstallPath" { 
+            if ($i + 1 -lt $args.Length) { 
+                $InstallPath = $args[++$i] 
+            }
+        }
+        "-Help" { 
+            $Help = $true 
+        }
+    }
+}
 
 # Show help information
 if ($Help) {
