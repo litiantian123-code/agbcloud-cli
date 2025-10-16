@@ -71,22 +71,76 @@ $version = if ($Version) {
 if ($version -eq "latest") {
     try {
         Write-Host "[INFO] Fetching latest version from GitHub..."
-        $latestRelease = Invoke-RestMethod -Uri "$githubApiUrl/releases/latest" -UseBasicParsing -ErrorAction Stop
-        $version = $latestRelease.tag_name
-        Write-Host "[INFO] Latest version: $version"
+        
+        # Create headers to avoid 403 errors
+        $headers = @{
+            'User-Agent' = 'AgbCloud-CLI-Installer/1.0 PowerShell'
+            'Accept' = 'application/vnd.github.v3+json'
+        }
+        
+        # Add timeout and retry logic
+        $maxRetries = 3
+        $retryDelay = 2
+        
+        for ($i = 1; $i -le $maxRetries; $i++) {
+            try {
+                Write-Host "[INFO] Attempt $i/$maxRetries to fetch latest release..."
+                $latestRelease = Invoke-RestMethod -Uri "$githubApiUrl/releases/latest" -Headers $headers -TimeoutSec 30 -ErrorAction Stop
+                $version = $latestRelease.tag_name
+                Write-Host "[INFO] Latest version: $version"
+                break
+            } catch {
+                if ($i -eq $maxRetries) {
+                    throw $_
+                }
+                Write-Host "[WARN] Attempt $i failed: $($_.Exception.Message). Retrying in $retryDelay seconds..."
+                Start-Sleep -Seconds $retryDelay
+                $retryDelay *= 2  # Exponential backoff
+            }
+        }
     } catch {
         Write-Host "[WARN] Could not fetch latest version, trying to get available releases..."
         try {
             # Try to get all releases and pick the latest available version
             Write-Host "[INFO] Trying to fetch all releases..."
-            $allReleases = Invoke-RestMethod -Uri "$githubApiUrl/releases" -UseBasicParsing -ErrorAction Stop
-            if ($allReleases -and $allReleases.Count -gt 0) {
-                # Always use the latest (first) release
-                $version = $allReleases[0].tag_name
-                Write-Host "[INFO] Found $($allReleases.Count) release(s), using latest: $version"
-            } else {
-                Write-Host "[WARN] No releases found in repository, using fallback v1.0.0"
-                $version = "v1.0.0"
+            
+            # Create headers for the fallback request
+            $headers = @{
+                'User-Agent' = 'AgbCloud-CLI-Installer/1.0 PowerShell'
+                'Accept' = 'application/vnd.github.v3+json'
+            }
+            
+            # Retry logic for all releases
+            for ($i = 1; $i -le 3; $i++) {
+                try {
+                    Write-Host "[INFO] Attempt $i/3 to fetch all releases..."
+                    $allReleases = Invoke-RestMethod -Uri "$githubApiUrl/releases" -Headers $headers -TimeoutSec 30 -ErrorAction Stop
+                    if ($allReleases -and $allReleases.Count -gt 0) {
+                        # Always use the latest (first) release
+                        $version = $allReleases[0].tag_name
+                        Write-Host "[INFO] Found $($allReleases.Count) release(s), using latest: $version"
+                        break
+                    } else {
+                        Write-Host "[WARN] No releases found in repository, using fallback v1.0.0"
+                        $version = "v1.0.0"
+                        break
+                    }
+                } catch {
+                    if ($i -eq 3) {
+                        Write-Host "[ERROR] Could not fetch release information after 3 attempts: $($_.Exception.Message)"
+                        Write-Host "[INFO] API URL attempted: $githubApiUrl/releases"
+                        Write-Host "[INFO] This might be due to:"
+                        Write-Host "   • GitHub API rate limiting (try again later)"
+                        Write-Host "   • Network connectivity issues"
+                        Write-Host "   • Firewall or proxy restrictions"
+                        Write-Host "   • Geographic access restrictions"
+                        Write-Host "[WARN] Using fallback version v1.0.0"
+                        $version = "v1.0.0"
+                        break
+                    }
+                    Write-Host "[WARN] Attempt $i failed, retrying..."
+                    Start-Sleep -Seconds 2
+                }
             }
         } catch {
             Write-Host "[ERROR] Could not fetch release information: $($_.Exception.Message)"
