@@ -19,6 +19,8 @@ permissions:
   contents: write
   packages: write
   actions: read
+  pages: write
+  id-token: write
 
 # Global environment variables
 env:
@@ -534,6 +536,95 @@ jobs:
           echo "   ✅ Multi-platform support"
           echo ""
           echo "🔗 Homebrew Guidelines: https://docs.brew.sh/Adding-Software-to-Homebrew"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Prepare GitHub Pages Deployment
+        run: |
+          echo "📄 Preparing GitHub Pages deployment..."
+          
+          # Ensure docs directory exists
+          mkdir -p docs
+          
+          # Replace repository placeholders with actual values in HTML and scripts
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          
+          echo "Repository info: $REPO_OWNER/$REPO_NAME"
+          
+          # Replace placeholders in HTML file
+          if [[ -f "docs/index.html" ]]; then
+            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" docs/index.html
+            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" docs/index.html
+            echo "✅ Updated placeholders in docs/index.html"
+          fi
+          
+          # Replace placeholders in install script
+          if [[ -f "docs/windows" ]]; then
+            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" docs/windows
+            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" docs/windows
+            echo "✅ Updated placeholders in docs/windows"
+          fi
+          
+          # Update version in install script if this is a tag
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+            echo "Updating version to: $VERSION"
+            
+            # Update the fallback version in the install script
+            if [[ -f "docs/windows" ]]; then
+              sed -i "s/v1\.0\.0/$VERSION/g" docs/windows
+              echo "✅ Updated fallback version to $VERSION in install script"
+            fi
+            
+            # Update latest.json with current version
+            cat > docs/latest.json << EOF
+          {
+            "version": "$VERSION",
+            "tag_name": "$VERSION", 
+            "name": "AgbCloud CLI $VERSION",
+            "published_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "assets": {
+              "windows": {
+                "amd64": {
+                  "name": "agb-${VERSION#v}-windows-amd64.exe",
+                  "download_url": "https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/agb-${VERSION#v}-windows-amd64.exe",
+                  "size": 0
+                },
+                "arm64": {
+                  "name": "agb-${VERSION#v}-windows-arm64.exe",
+                  "download_url": "https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/agb-${VERSION#v}-windows-arm64.exe", 
+                  "size": 0
+                }
+              }
+            },
+            "install_commands": {
+              "windows": "powershell -Command \\\"irm https://$REPO_OWNER.github.io/$REPO_NAME/windows | iex\\\"",
+              "windows_with_version": "powershell -Command \\\"irm https://$REPO_OWNER.github.io/$REPO_NAME/windows | iex\\\" -Version $VERSION"
+            }
+          }
+          EOF
+            echo "✅ Created latest.json with version $VERSION"
+          fi
+          
+          # Verify files exist
+          echo "Files in docs directory:"
+          ls -la docs/
+          
+          if [[ -f "docs/windows" ]]; then
+            echo "Content of docs/windows (first 10 lines):"
+            head -10 docs/windows
+          fi
+          
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Validate Official Formula
         run: |
