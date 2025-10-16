@@ -28,11 +28,6 @@ if ($Help) {
     Write-Host "  # Install default version (v1.0.0)"
     Write-Host "  powershell -Command `"irm https://agbcloud.github.io/agbcloud-cli/windows | iex`""
     Write-Host ""
-    Write-Host "  # Install specific version"
-    Write-Host "  powershell -Command `"irm https://agbcloud.github.io/agbcloud-cli/windows | iex`" -Version v1.2.3"
-    Write-Host ""
-    Write-Host "  # Install to custom directory"
-    Write-Host "  powershell -Command `"irm https://agbcloud.github.io/agbcloud-cli/windows | iex`" -InstallPath C:\MyTools"
     exit 0
 }
 
