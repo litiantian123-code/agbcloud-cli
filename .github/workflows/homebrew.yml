@@ -544,8 +544,8 @@ jobs:
         run: |
           echo "📄 Preparing GitHub Pages deployment..."
           
-          # Ensure docs directory exists
-          mkdir -p docs
+          # Ensure scripts directory exists
+          mkdir -p scripts
           
           # Replace repository placeholders with actual values in HTML and scripts
           REPO_OWNER="${{ github.repository_owner }}"
@@ -554,17 +554,17 @@ jobs:
           echo "Repository info: $REPO_OWNER/$REPO_NAME"
           
           # Replace placeholders in HTML file
-          if [[ -f "docs/index.html" ]]; then
-            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" docs/index.html
-            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" docs/index.html
-            echo "✅ Updated placeholders in docs/index.html"
+          if [[ -f "scripts/index.html" ]]; then
+            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" scripts/index.html
+            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" scripts/index.html
+            echo "✅ Updated placeholders in scripts/index.html"
           fi
           
           # Replace placeholders in install script
-          if [[ -f "docs/windows" ]]; then
-            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" docs/windows
-            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" docs/windows
-            echo "✅ Updated placeholders in docs/windows"
+          if [[ -f "scripts/windows" ]]; then
+            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" scripts/windows
+            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" scripts/windows
+            echo "✅ Updated placeholders in scripts/windows"
           fi
           
           # Update version in install script if this is a tag
@@ -573,13 +573,13 @@ jobs:
             echo "Updating version to: $VERSION"
             
             # Update the fallback version in the install script
-            if [[ -f "docs/windows" ]]; then
-              sed -i "s/v1\.0\.0/$VERSION/g" docs/windows
+            if [[ -f "scripts/windows" ]]; then
+              sed -i "s/v1\.0\.0/$VERSION/g" scripts/windows
               echo "✅ Updated fallback version to $VERSION in install script"
             fi
             
             # Update latest.json with current version
-            cat > docs/latest.json << EOF
+            cat > scripts/latest.json << EOF
           {
             "version": "$VERSION",
             "tag_name": "$VERSION", 
@@ -609,18 +609,18 @@ jobs:
           fi
           
           # Verify files exist
-          echo "Files in docs directory:"
-          ls -la docs/
+          echo "Files in scripts directory:"
+          ls -la scripts/
           
-          if [[ -f "docs/windows" ]]; then
-            echo "Content of docs/windows (first 10 lines):"
-            head -10 docs/windows
+          if [[ -f "scripts/windows" ]]; then
+            echo "Content of scripts/windows (first 10 lines):"
+            head -10 scripts/windows
           fi
           
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs
+          path: ./scripts
 
       - name: Deploy to GitHub Pages
         id: deployment
