@@ -560,11 +560,6 @@ jobs:
             exit 1
           fi
           
-          if [ ! -f "scripts/index.html" ]; then
-            echo "❌ scripts/index.html file not found!"
-            exit 1
-          fi
-          
           echo "✅ All required files found"
 
       - name: Upload artifact
