@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgbCloud CLI - Installation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #0066cc;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 1.2rem;
+        }
+        .install-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        .install-command {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        .copy-btn {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .copy-btn:hover {
+            background: #0052a3;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .feature {
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .feature h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .links {
+            text-align: center;
+            margin-top: 3rem;
+        }
+        .links a {
+            color: #0066cc;
+            text-decoration: none;
+            margin: 0 1rem;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">AgbCloud CLI</div>
+        <div class="subtitle">Command Line Interface for AgbCloud Platform</div>
+    </div>
+
+    <div class="install-section">
+        <h2>🚀 Quick Installation</h2>
+        <p>Install AgbCloud CLI with a single command:</p>
+        
+        <h3>Windows (PowerShell)</h3>
+        <div class="install-command" id="windows-cmd">powershell -Command "irm https://{{REPO_OWNER}}.github.io/{{REPO_NAME}}/windows | iex"</div>
+        <button class="copy-btn" onclick="copyToClipboard('windows-cmd')">Copy Command</button>
+        
+        <h3>Alternative Installation Methods</h3>
+        <p>You can also download binaries directly from our <a href="https://github.com/{{REPO_OWNER}}/{{REPO_NAME}}/releases">GitHub Releases</a> page.</p>
+    </div>
+
+    <div class="features">
+        <div class="feature">
+            <h3>🔧 Easy Installation</h3>
+            <p>One-command installation with automatic PATH configuration and architecture detection.</p>
+        </div>
+        <div class="feature">
+            <h3>🔄 Auto Updates</h3>
+            <p>Built-in version checking and upgrade capabilities to keep your CLI up-to-date.</p>
+        </div>
+        <div class="feature">
+            <h3>🏗️ Cross Platform</h3>
+            <p>Supports Windows (amd64/arm64) with plans for macOS and Linux support.</p>
+        </div>
+        <div class="feature">
+            <h3>🛡️ Secure</h3>
+            <p>Downloads from official GitHub releases with integrity verification.</p>
+        </div>
+    </div>
+
+    <div class="install-section">
+        <h2>📖 Quick Start</h2>
+        <p>After installation, get started with these commands:</p>
+        <div class="install-command">
+# Show help
+agb --help
+
+# Show version
+agb version
+
+# Login to AgbCloud
+agb login
+
+# List available images
+agb image list
+        </div>
+    </div>
+
+    <div class="links">
+        <a href="https://github.com/{{REPO_OWNER}}/{{REPO_NAME}}">GitHub Repository</a>
+        <a href="https://github.com/{{REPO_OWNER}}/{{REPO_NAME}}/releases">Releases</a>
+        <a href="https://github.com/{{REPO_OWNER}}/{{REPO_NAME}}/issues">Issues</a>
+        <a href="https://github.com/{{REPO_OWNER}}/{{REPO_NAME}}/blob/main/docs/USER_GUIDE.md">Documentation</a>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const btn = element.nextElementSibling;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#28a745';
+                
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.background = '#0066cc';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
