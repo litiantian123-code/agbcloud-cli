@@ -39,7 +39,7 @@ agb login
 2. **System response**:
    ```
    [SEC] Starting AgbCloud authentication...
-   [SIGNAL] Default callback port: 8080
+   [SIGNAL] Using callback port: 8080
    [WEB] Requesting OAuth login URL...
    [OK] Successfully retrieved OAuth URL!
    [DOC] Request ID: req-xxxxx
@@ -395,4 +395,4 @@ agb image list --type System
 
 ---
 
-**Technical Support**: If you encounter issues, please contact the technical support team and provide relevant Request ID and Trace ID.
+**Technical Support**: If you encounter issues, please contact the technical support team and provide relevant Request ID and Trace ID. 
