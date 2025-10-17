@@ -43,8 +43,8 @@ if (-not $Architecture) {
 }
 
 # GitHub repository information
-$repoOwner = "{{REPO_OWNER}}"
-$repoName = "{{REPO_NAME}}"
+$repoOwner = "litiantian123-code"
+$repoName = "agbcloud-cli"
 $githubApiUrl = "https://api.github.com/repos/$repoOwner/$repoName"
 
 # Installation directory
