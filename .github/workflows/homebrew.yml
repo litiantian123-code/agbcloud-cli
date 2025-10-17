@@ -539,85 +539,35 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        
-      - name: Prepare GitHub Pages Deployment
+
+      - name: Prepare deployment files
         run: |
-          echo "📄 Preparing GitHub Pages deployment..."
+          echo "📁 Preparing GitHub Pages deployment from scripts directory..."
           
-          # Ensure scripts directory exists
-          mkdir -p scripts
-          
-          # Replace repository placeholders with actual values in HTML and scripts
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_NAME="${{ github.event.repository.name }}"
-          
-          echo "Repository info: $REPO_OWNER/$REPO_NAME"
-          
-          # Replace placeholders in HTML file
-          if [[ -f "scripts/index.html" ]]; then
-            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" scripts/index.html
-            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" scripts/index.html
-            echo "✅ Updated placeholders in scripts/index.html"
+          # 确保scripts目录存在
+          if [ ! -d "scripts" ]; then
+            echo "❌ scripts directory not found!"
+            exit 1
           fi
           
-          # Replace placeholders in install script
-          if [[ -f "scripts/windows" ]]; then
-            sed -i "s/{{REPO_OWNER}}/$REPO_OWNER/g" scripts/windows
-            sed -i "s/{{REPO_NAME}}/$REPO_NAME/g" scripts/windows
-            echo "✅ Updated placeholders in scripts/windows"
-          fi
-          
-          # Update version in install script if this is a tag
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            VERSION="${{ github.ref_name }}"
-            echo "Updating version to: $VERSION"
-            
-            # Update the fallback version in the install script
-            if [[ -f "scripts/windows" ]]; then
-              sed -i "s/v1\.0\.0/$VERSION/g" scripts/windows
-              echo "✅ Updated fallback version to $VERSION in install script"
-            fi
-            
-            # Update latest.json with current version
-            cat > scripts/latest.json << EOF
-          {
-            "version": "$VERSION",
-            "tag_name": "$VERSION", 
-            "name": "AgbCloud CLI $VERSION",
-            "published_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "assets": {
-              "windows": {
-                "amd64": {
-                  "name": "agb-${VERSION#v}-windows-amd64.exe",
-                  "download_url": "https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/agb-${VERSION#v}-windows-amd64.exe",
-                  "size": 0
-                },
-                "arm64": {
-                  "name": "agb-${VERSION#v}-windows-arm64.exe",
-                  "download_url": "https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$VERSION/agb-${VERSION#v}-windows-arm64.exe", 
-                  "size": 0
-                }
-              }
-            },
-            "install_commands": {
-              "windows": "powershell -Command \\\"irm https://$REPO_OWNER.github.io/$REPO_NAME/windows | iex\\\"",
-              "windows_with_version": "powershell -Command \\\"irm https://$REPO_OWNER.github.io/$REPO_NAME/windows | iex\\\" -Version $VERSION"
-            }
-          }
-          EOF
-            echo "✅ Created latest.json with version $VERSION"
-          fi
-          
-          # Verify files exist
-          echo "Files in scripts directory:"
+          # 显示将要部署的文件
+          echo "Files to be deployed:"
           ls -la scripts/
           
-          if [[ -f "scripts/windows" ]]; then
-            echo "Content of scripts/windows (first 10 lines):"
-            head -10 scripts/windows
+          # 验证关键文件存在
+          if [ ! -f "scripts/windows" ]; then
+            echo "❌ scripts/windows file not found!"
+            exit 1
           fi
           
-      - name: Upload Pages Artifact
+          if [ ! -f "scripts/index.html" ]; then
+            echo "❌ scripts/index.html file not found!"
+            exit 1
+          fi
+          
+          echo "✅ All required files found"
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./scripts
@@ -625,6 +575,12 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        run: |
+          echo "🎉 GitHub Pages deployment completed!"
+          echo "📄 Site URL: ${{ steps.deployment.outputs.page_url }}"
+          echo "🔗 Install command: powershell -Command \"irm https://litiantian123-code.github.io/agbcloud-cli/windows | iex\""
 
       - name: Validate Official Formula
         run: |
