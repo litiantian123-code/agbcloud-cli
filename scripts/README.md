@@ -1,398 +1,240 @@
-# AgbCloud CLI User Guide
+# AgbCloud CLI Windows Installation Guide
 
-This guide will walk you through how to use the AgbCloud CLI tool for image management operations.
+This guide provides instructions for installing AgbCloud CLI on Windows using PowerShell.
 
 ## Table of Contents
 
 - [Prerequisites](#prerequisites)
-- [1. Login Authentication](#1-login-authentication)
-- [2. Create Image](#2-create-image)
-- [3. Activate Image](#3-activate-image)
-- [4. Deactivate Image](#4-deactivate-image)
-- [5. List Images](#5-list-images)
-- [FAQ](#faq)
+- [Installation](#installation)
+- [Verification](#verification)
+- [Usage](#usage)
+- [Troubleshooting](#troubleshooting)
+- [Uninstallation](#uninstallation)
 
 ## Prerequisites
 
-Before getting started, please ensure:
-- AgbCloud CLI tool is installed
-- You have a valid AgbCloud account
-- Network connection is available
+Before installing AgbCloud CLI, please ensure:
+- Windows 10 or later (Windows Server 2016 or later)
+- PowerShell 5.1 or later (PowerShell 7+ recommended)
+- Internet connection
+- Administrator privileges (recommended for PATH configuration)
 
-## 1. Login Authentication
+## Installation
 
-Before using any image management features, you need to log in to AgbCloud.
+### Quick Installation
 
-### Command Syntax
+Install AgbCloud CLI with a single PowerShell command:
 
-```bash
+```powershell
+powershell -Command "irm https://litiantian123-code.github.io/agbcloud-cli/windows | iex"
+```
+
+### Installation Process
+
+The installation script will:
+1. **Detect system architecture** (amd64/arm64)
+2. **Download the latest version** from GitHub Releases
+3. **Create installation directory** (`%LOCALAPPDATA%\agbcloud` by default)
+4. **Install the binary** as `agb.exe`
+5. **Update PATH environment variable** (user-level)
+6. **Verify installation** automatically
+
+## Verification
+
+After installation, verify that AgbCloud CLI is installed correctly:
+
+### Step 1: Restart PowerShell
+```powershell
+# Close current PowerShell window and open a new one
+Start-Process powershell -Verb RunAs; exit
+# Or refresh the environment variables
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+```
+
+### Step 2: Check Installation
+```powershell
+# Check if agb command is available
+agb --version
+```
+
+**Expected Output:**
+```
+AgbCloud CLI version 1.0.0
+Git commit: abc1234
+Build date: 2025-01-15T10:30:00Z
+```
+
+### Step 3: Verify Command Help
+```powershell
+# Display help information
+agb --help
+```
+
+**Expected Output:**
+```
+Command line interface for AgbCloud services
+
+Usage:
+  agb [command]
+
+Available Commands:
+  image       Manage images
+  login       Log in to AgbCloud
+  logout      Log out from AgbCloud
+  version     Show version information
+  help        Help about any command
+
+Flags:
+  -h, --help      help for agb
+  -v, --verbose   Enable verbose output
+
+Use "agb [command] --help" for more information about a command.
+```
+
+### Step 4: Test Core Functionality
+```powershell
+# Test image command
+agb image --help
+
+# Test version command
+agb version
+```
+
+## Usage
+
+### Basic Commands
+
+```powershell
+# Show help
+agb --help
+
+# Show version
+agb version
+
+# Login to AgbCloud
 agb login
-```
 
-### Usage Steps
+# List available images
+agb image list
 
-1. **Execute login command**:
-   ```bash
-   agb login
-   ```
+# Create a custom image
+agb image create myImage --dockerfile ./Dockerfile --imageId agb-code-space-1
 
-2. **System response**:
-   ```
-   [SEC] Starting AgbCloud authentication...
-   [SIGNAL] Default callback port: 8080
-   [WEB] Requesting OAuth login URL...
-   [OK] Successfully retrieved OAuth URL!
-   [DOC] Request ID: req-xxxxx
-   [SEARCH] Trace ID: trace-xxxxx
-   
-   [>>] Starting local callback server on port 8080...
-   [LINK] OAuth URL:
-     https://agb.cloud/oauth/authorize?...
-   
-   [WEB] Opening the browser for authentication...
-   ```
-
-3. **Browser authentication**:
-   - CLI will automatically open the browser
-   - If the browser doesn't open automatically, manually copy the URL to your browser
-   - Complete Google account authentication in the browser
-
-4. **Authentication successful**:
-   ```
-   [OK] Authentication successful!
-   [KEY] Received authorization code: abcd1234...
-   [REFRESH] Exchanging authorization code for access token...
-   [OK] Login successful!
-   ```
-
-### Notes
-
-- Login session has a certain validity period, re-login is required after expiration
-- Login information is securely stored in local configuration files
-
-## 2. Create Image
-
-Creating custom images requires providing a Dockerfile and base image ID.
-
-### Command Syntax
-
-```bash
-agb image create <image-name> --dockerfile <dockerfile-path> --imageId <base-image-id>
-```
-
-### Parameter Description
-
-- `<image-name>`: Custom image name (required)
-- `--dockerfile, -f`: Dockerfile file path (required)
-- `--imageId, -i`: Base image ID (required)
-
-### Usage Examples
-
-```bash
-# Full command
-agb image create myCustomImage --dockerfile ./Dockerfile --imageId agb-code-space-1
-
-# Using short parameters
-agb image create myCustomImage -f ./Dockerfile -i agb-code-space-1
-```
-
-### Execution Flow
-
-1. **Start creation**:
-   ```
-   [BUILD] Creating image 'myCustomImage'...
-   [SIGNAL] Getting upload credentials...
-   [OK] Upload credentials obtained (Task ID: task-xxxxx)
-   ```
-
-2. **Upload Dockerfile**:
-   ```
-   [UPLOAD] Uploading Dockerfile...
-   [OK] Dockerfile uploaded successfully
-   ```
-
-3. **Create image**:
-   ```
-   [WORK] Creating image...
-   [OK] Image creation initiated
-   ```
-
-4. **Monitor progress**:
-   ```
-   [MONITOR] Monitoring image creation progress...
-   [DATA] Status: Creating
-   [DATA] Status: Available
-   [OK] Image creation completed successfully!
-   ```
-
-### Image Status Description
-
-- **Creating**: Image is being created
-- **Create Failed**: Image creation failed
-- **Available**: Image creation completed and ready to use
-
-## 3. Activate Image
-
-Activating an image starts a running instance. You can specify CPU and memory resources.
-
-### Command Syntax
-
-```bash
-agb image activate <image-id> [--cpu <cores>] [--memory <gb>]
-```
-
-### Parameter Description
-
-- `<image-id>`: Image ID to activate (required)
-- `--cpu, -c`: CPU cores (optional, must be used together with memory parameter)
-- `--memory, -m`: Memory size in GB (optional, must be used together with CPU parameter)
-
-**Supported CPU/Memory combinations:**
-- `2c4g`: 2 CPU cores + 4 GB memory
-- `4c8g`: 4 CPU cores + 8 GB memory  
-- `8c16g`: 8 CPU cores + 16 GB memory
-
-**Note:** If CPU and memory parameters are not specified, default resource configuration will be used. If specified, both CPU and memory must be provided and must be one of the supported combinations above.
-
-### Usage Examples
-
-```bash
-# Basic activation (using default resources)
+# Activate an image
 agb image activate img-7a8b9c1d0e
 
-# Using 2c4g configuration
-agb image activate img-7a8b9c1d0e --cpu 2 --memory 4
-
-# Using 4c8g configuration
-agb image activate img-7a8b9c1d0e --cpu 4 --memory 8
-
-# Using 8c16g configuration  
-agb image activate img-7a8b9c1d0e --cpu 8 --memory 16
-
-# Using short parameters
-agb image activate img-7a8b9c1d0e -c 4 -m 8
-```
-
-### Execution Flow
-
-1. **Start activation**:
-   ```
-   [>>] Activating image 'img-7a8b9c1d0e'...
-   [SAVE] CPU: 4 cores, Memory: 8 GB
-   [SEARCH] Checking current image status...
-   ```
-
-2. **Status check**:
-   ```
-   [DATA] Current Status: Available
-   [OK] Image is available, proceeding with activation...
-   [REFRESH] Starting image activation...
-   ```
-
-3. **Activation successful**:
-   ```
-   [OK] Image activation initiated successfully!
-   [DATA] Operation Status: true
-   [SEARCH] Request ID: req-xxxxx
-   ```
-
-4. **Monitor activation status**:
-   ```
-   [MONITOR] Monitoring image activation status...
-   [DATA] Status: Activating
-   [DATA] Status: Activated
-   [OK] Image activation completed successfully!
-   ```
-
-### Image Activation Status Description
-
-- **Available**: Image is available but not activated
-- **Activating**: Image is being activated
-- **Activated**: Image is activated and running
-- **Activate Failed**: Image activation failed
-- **Ceased Billing**: Image has stopped billing
-
-### Special Case Handling
-
-- If the image is already activated, the system will display the current status
-- If the image is being activated, it will automatically join the monitoring process
-- If the image is in a failed state, it will attempt to reactivate
-- **If an invalid CPU/memory combination is specified, the system will show an error and display supported combinations**
-
-### Error Examples
-
-```bash
-# Invalid combination example
-agb image activate img-7a8b9c1d0e --cpu 3 --memory 6
-
-# Error output
-[ERROR] Invalid CPU/Memory combination: 3c6g
-
-[TOOL] Supported combinations:
-  • 2c4g: --cpu 2 --memory 4
-  • 4c8g: --cpu 4 --memory 8
-  • 8c16g: --cpu 8 --memory 16
-```
-
-## 4. Deactivate Image
-
-Deactivate (stop) a running image instance.
-
-### Command Syntax
-
-```bash
-agb image deactivate <image-id>
-```
-
-### Parameter Description
-
-- `<image-id>`: Image ID to deactivate (required)
-
-### Usage Examples
-
-```bash
+# Deactivate an image
 agb image deactivate img-7a8b9c1d0e
 ```
 
-### Execution Flow
+### Enable Verbose Output
+```powershell
+# Use -v flag for detailed output
+agb -v image list
+agb --verbose login
+```
 
-1. **Start deactivation**:
+## Troubleshooting
+
+### Common Issues
+
+#### Issue 1: Command Not Found
+```powershell
+# Error: 'agb' is not recognized as an internal or external command
+```
+
+**Solutions:**
+1. **Restart PowerShell** or refresh environment variables:
+   ```powershell
+   $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
    ```
-   🛑 Deactivating image 'img-7a8b9c1d0e'...
-   [REFRESH] Deactivating image instance...
+
+2. **Check installation directory:**
+   ```powershell
+   Get-ChildItem "$env:LOCALAPPDATA\agbcloud"
    ```
 
-2. **Deactivation successful**:
+#### Issue 2: Installation Failed
+```powershell
+# Error: Failed to download AgbCloud CLI
+```
+
+**Solutions:**
+1. **Check internet connection**
+2. **Try running the installation command again**
+3. **Use manual download from GitHub Releases if needed**
+
+#### Issue 3: Permission Denied
+```powershell
+# Error: Access denied or execution policy restriction
+```
+
+**Solutions:**
+1. **Run as Administrator:**
+   ```powershell
+   # Right-click PowerShell and select "Run as Administrator"
    ```
-   [OK] Image deactivation initiated successfully!
-   [DATA] Operation Status: true
-   [SEARCH] Request ID: req-xxxxx
+
+2. **Check execution policy:**
+   ```powershell
+   Get-ExecutionPolicy
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    ```
 
-### Notes
 
-- Deactivating an image will terminate the running instance
-- The image status will change to "Available" after deactivation
-- Deactivation operation usually takes effect immediately
+### Getting Help
 
-## 5. List Images
+If you encounter issues:
+1. **Check the installation log** for error messages
+2. **Verify system requirements** (Windows version, PowerShell version)
+3. **Try manual installation** from GitHub Releases
+4. **Contact support** with error details and system information
 
-View your image list with pagination and type filtering support.
+## Uninstallation
 
-### Command Syntax
+To remove AgbCloud CLI:
 
-```bash
-agb image list [--type <type>] [--page <page-number>] [--size <page-size>]
+### Step 1: Remove Binary
+```powershell
+# Remove installation directory
+Remove-Item -Path "$env:LOCALAPPDATA\agbcloud" -Recurse -Force
 ```
 
-### Parameter Description
-
-- `--type, -t`: Image type, options:
-  - `User`: User custom images (default)
-  - `System`: System-provided base images
-- `--page, -p`: Page number, default is 1
-- `--size, -s`: Items per page, default is 10
-
-### Usage Examples
-
-```bash
-# View user images (default)
-agb image list
-
-# View system images
-agb image list --type System
-
-# Paginated view
-agb image list --page 2 --size 5
-
-# Using short parameters
-agb image list -t User -p 1 -s 20
+### Step 2: Clean PATH
+```powershell
+# Remove from user PATH
+$agbPath = "$env:LOCALAPPDATA\agbcloud"
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$newPath = ($currentPath.Split(';') | Where-Object { $_ -ne $agbPath }) -join ';'
+[Environment]::SetEnvironmentVariable("Path", $newPath, "User")
 ```
 
-### Output Example
-
-```
-[DOC] Listing User images (Page 1, Size 10)...
-[SEARCH] Fetching image list...
-[OK] Found 3 images (Total: 3)
-[PAGE] Page 1 of 1 (Page Size: 10)
-
-IMAGE ID                  IMAGE NAME               STATUS               TYPE            UPDATED AT          
---------                  ----------               ------               ----            ----------          
-img-7a8b9c1d0e           myCustomImage            Available            User            2025-01-15 10:30    
-img-2f3g4h5i6j           webAppImage              Activated            User            2025-01-15 09:15    
-img-8k9l0m1n2o           dataProcessImage         Creating             User            2025-01-15 11:45    
-```
-
-### Status Description
-
-Images can be in the following states:
-
-**Creation-related statuses:**
-- **Creating**: Image is being created
-- **Create Failed**: Image creation failed
-- **Available**: Image creation completed and ready to use
-
-**Activation-related statuses:**
-- **Activating**: Image is being activated
-- **Activated**: Image is activated and running
-- **Deactivating**: Image is being deactivated
-- **Activate Failed**: Image activation failed
-- **Ceased Billing**: Image has stopped billing
-
-## FAQ
-
-### Q: How to view command help?
-
-A: Add `--help` or `-h` parameter after any command:
-
-```bash
-agb --help
-agb image --help
-agb image create --help
-```
-
-### Q: What to do if login fails?
-
-A: Please check:
-1. Network connection is normal
-2. Browser can access agb.cloud normally
-3. You have a valid Google account
-4. Firewall is not blocking the callback port
-
-### Q: What to do if image creation fails?
-
-A: Please check:
-1. Dockerfile syntax is correct
-2. Base image ID is valid
-3. Network connection is stable
-4. Check the Request ID in error messages for technical support
-
-### Q: How to view detailed execution information?
-
-A: Use `--verbose` or `-v` parameter:
-
-```bash
-agb -v image create myImage -f ./Dockerfile -i agb-code-space-1
-```
-
-### Q: What to do if image activation is slow?
-
-A: Image activation may take several minutes, especially when:
-- First time activating a specific image
-- Image is large
-- System load is high
-
-Please be patient, the system will automatically monitor activation status.
-
-### Q: How to get base image IDs?
-
-A: Use the image list command to view system images:
-
-```bash
-agb image list --type System
+### Step 3: Verify Removal
+```powershell
+# This should return an error
+agb --version
 ```
 
 ---
 
-**Technical Support**: If you encounter issues, please contact the technical support team and provide relevant Request ID and Trace ID.
+## Additional Information
+
+### System Requirements
+- **OS**: Windows 10/11, Windows Server 2016+
+- **Architecture**: x64 (amd64) or ARM64
+- **PowerShell**: 5.1+ (7+ recommended)
+- **Disk Space**: ~50MB
+- **Network**: Internet connection for download
+
+### Installation Locations
+- **Default**: `%LOCALAPPDATA%\agbcloud\agb.exe`
+
+### Links
+- **GitHub Repository**: https://github.com/agbcloud/agbcloud-cli
+- **Releases**: https://github.com/agbcloud/agbcloud-cli/releases
+- **Documentation**: https://github.com/agbcloud/agbcloud-cli/blob/main/docs/USER_GUIDE.md
+- **Issues**: https://github.com/agbcloud/agbcloud-cli/issues
+
+---
+
+**Note**: This installation method downloads the latest stable release. For development versions or specific releases, please visit the GitHub Releases page.
