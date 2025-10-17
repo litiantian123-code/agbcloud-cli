@@ -544,17 +544,17 @@ jobs:
         run: |
           echo "📁 Preparing GitHub Pages deployment from scripts directory..."
           
-          # 确保scripts目录存在
+          # Ensure scripts directory exists
           if [ ! -d "scripts" ]; then
             echo "❌ scripts directory not found!"
             exit 1
           fi
           
-          # 显示将要部署的文件
+          # Display files to be deployed
           echo "Files to be deployed:"
           ls -la scripts/
           
-          # 验证关键文件存在
+          # Verify critical files exist
           if [ ! -f "scripts/windows" ]; then
             echo "❌ scripts/windows file not found!"
             exit 1
@@ -580,7 +580,7 @@ jobs:
         run: |
           echo "🎉 GitHub Pages deployment completed!"
           echo "📄 Site URL: ${{ steps.deployment.outputs.page_url }}"
-          echo "🔗 Install command: powershell -Command \"irm https://litiantian123-code.github.io/agbcloud-cli/windows | iex\""
+          echo "🔗 Install command: powershell -Command \"irm https://agbcloud.github.io/agbcloud-cli/windows | iex\""
 
       - name: Validate Official Formula
         run: |
